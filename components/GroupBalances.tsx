@@ -171,27 +171,30 @@ const GroupBalancesWidget: React.FC<{ trip: Trip }> = ({ trip }) => {
                         const to = getMemberById(debt.to);
                         if (!from || !to) return null;
                         return (
-                            <div key={index} className="bg-surface-variant p-4 rounded-2xl flex flex-col items-center gap-2 text-center animate-slide-in-up" style={{ animationDelay: `${index * 60}ms` }}>
-                                <div>
-                                    <MemberAvatar member={from} size="sm" />
-                                    <p className="font-semibold text-on-surface text-sm mt-1">{from.name}</p>
-                                    <p className="text-xs text-on-surface-variant">Paga</p>
-                                </div>
-                                
-                                <div className="my-1">
-                                    <span className="material-symbols-outlined text-3xl text-on-surface-variant">arrow_downward</span>
-                                    <p className="font-bold text-2xl text-primary -mt-2">{formatCurrency(debt.amount, mainCurrency)}</p>
-                                </div>
+                            <div key={index} className="bg-surface-variant p-4 rounded-2xl flex flex-col justify-between animate-slide-in-up" style={{ animationDelay: `${index * 60}ms`, minHeight: '180px' }}>
+                                <div className="flex items-center justify-between text-center flex-grow">
+                                    {/* Debtor Info */}
+                                    <div className="flex flex-col items-center space-y-1 flex-1 min-w-0 px-1">
+                                        <MemberAvatar member={from} size="sm" />
+                                        <p className="font-semibold text-on-surface text-sm w-full truncate" title={from.name}>{from.name}</p>
+                                    </div>
+                                    
+                                    {/* Amount and Arrow */}
+                                    <div className="flex flex-col items-center flex-shrink-0 mx-2">
+                                        <p className="font-bold text-lg text-primary">{formatCurrency(debt.amount, mainCurrency)}</p>
+                                        <span className="material-symbols-outlined text-2xl text-on-surface-variant">arrow_forward</span>
+                                    </div>
 
-                                <div>
-                                    <MemberAvatar member={to} size="sm" />
-                                    <p className="font-semibold text-on-surface text-sm mt-1">{to.name}</p>
-                                    <p className="text-xs text-on-surface-variant">Riceve</p>
+                                    {/* Creditor Info */}
+                                    <div className="flex flex-col items-center space-y-1 flex-1 min-w-0 px-1">
+                                        <MemberAvatar member={to} size="sm" />
+                                        <p className="font-semibold text-on-surface text-sm w-full truncate" title={to.name}>{to.name}</p>
+                                    </div>
                                 </div>
                                 
                                 <button 
                                     onClick={() => setAdjustingDebt({ from, to, amount: debt.amount })}
-                                    className="mt-3 w-full px-3 py-2 bg-secondary-container text-on-secondary-container text-xs font-bold rounded-full hover:opacity-80 transition-opacity"
+                                    className="mt-4 w-full px-3 py-2 bg-secondary-container text-on-secondary-container text-xs font-bold rounded-full hover:opacity-80 transition-opacity flex-shrink-0"
                                 >
                                     Registra Pagamento
                                 </button>
