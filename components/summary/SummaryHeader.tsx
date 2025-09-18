@@ -3,7 +3,7 @@ import { Trip } from '../../types';
 import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
 
 const SummaryHeader: React.FC<{ trip: Trip }> = ({ trip }) => {
-    const { convert, formatCurrency } = useCurrencyConverter();
+    const { convert } = useCurrencyConverter();
 
     const isSameDay = (d1: Date, d2: Date) =>
         d1.getFullYear() === d2.getFullYear() &&
@@ -32,44 +32,39 @@ const SummaryHeader: React.FC<{ trip: Trip }> = ({ trip }) => {
         };
     }, [trip.totalBudget, trip.startDate, trip.endDate, trip.expenses, trip.mainCurrency, convert]);
 
-    const spentTodayPercentage = dailyBudget > 0 ? (spentToday / dailyBudget) * 100 : 0;
+    const formatRoundedCurrency = (amount: number) => {
+        return new Intl.NumberFormat('it-IT', {
+            style: 'currency',
+            currency: trip.mainCurrency,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(Math.round(amount));
+    };
 
     return (
-        <div className="bg-surface p-6 rounded-3xl shadow-lg relative overflow-hidden">
-            <div 
-                className="absolute top-4 left-4 px-3 py-1 text-xs font-bold rounded-full"
-                style={{ 
-                    backgroundColor: trip.color || 'var(--color-primary)', 
-                    color: 'var(--trip-on-primary)' 
-                }}
-            >
-                {trip.name.toUpperCase()}
-            </div>
-            <div className="flex justify-between items-start mt-12">
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm text-on-surface-variant">Speso Oggi</p>
-                    <p className="text-5xl font-bold text-on-surface tracking-tighter leading-tight truncate">
-                         {formatCurrency(spentToday, trip.mainCurrency)}
+        <div 
+            className="relative overflow-hidden text-center rounded-3xl p-6 flex flex-col items-center justify-center min-h-[240px] shadow-lg"
+            style={{ 
+                backgroundColor: trip.color || 'var(--color-primary)',
+                color: 'var(--trip-on-primary)'
+            }}
+        >
+            <div className="relative z-10 w-full space-y-4">
+                <div>
+                    <p className="text-sm uppercase tracking-wider opacity-80">Speso Oggi</p>
+                    <p className="text-6xl font-bold tracking-tighter">
+                         {formatRoundedCurrency(spentToday)}
                     </p>
-                    <div className="w-full bg-surface-variant rounded-full h-2 mt-2">
-                        <div 
-                            className="h-2 rounded-full transition-all duration-500"
-                            style={{ 
-                                width: `${Math.min(spentTodayPercentage, 100)}%`,
-                                backgroundColor: spentToday > dailyBudget ? 'var(--color-error)' : (trip.color || 'var(--color-primary)')
-                            }}
-                        />
-                    </div>
                 </div>
                 
-                <div className="text-right space-y-2 ml-4 flex-shrink-0">
+                <div className="flex justify-center gap-8 w-full pt-2">
                     <div>
-                        <p className="text-sm text-on-surface-variant">Budget Oggi</p>
-                        <p className="font-semibold text-on-surface">{formatCurrency(dailyBudget, trip.mainCurrency)}</p>
+                        <p className="text-xs uppercase tracking-wider opacity-80">Budget Diario</p>
+                        <p className="font-semibold">{formatRoundedCurrency(dailyBudget)}</p>
                     </div>
-                    <div>
-                        <p className="text-sm text-on-surface-variant">Rimanente Viaggio</p>
-                        <p className={`font-semibold ${remainingBudget < 0 ? 'text-error' : 'text-on-surface'}`}>{formatCurrency(remainingBudget, trip.mainCurrency)}</p>
+                     <div>
+                        <p className="text-xs uppercase tracking-wider opacity-80">Rimanente</p>
+                        <p className={`font-semibold ${remainingBudget < 0 ? 'opacity-90' : ''}`}>{formatRoundedCurrency(remainingBudget)}</p>
                     </div>
                 </div>
             </div>

@@ -185,3 +185,42 @@ export const VIAGGIARE_SICURI_COUNTRY_SLUGS: { [key: string]: string } = {
     'Stati Uniti': 'stati-uniti',
     'Regno Unito': 'regno-unito',
 };
+
+// NEW: Static travel info data to display directly in the app
+export const TRAVEL_INFO_DATA: { [key: string]: { visaInfo: string; healthInfo: string; safetyTips: string[] } } = {
+    'Thailandia': {
+        visaInfo: "Per soggiorni turistici fino a 30 giorni, non è necessario un visto per i cittadini italiani. È richiesto un passaporto con validità residua di almeno 6 mesi.",
+        healthInfo: "Nessuna vaccinazione obbligatoria. Consigliate le vaccinazioni contro epatite A e B. Bere solo acqua in bottiglia.",
+        safetyTips: ["Attenzione ai borseggiatori nelle zone turistiche.", "Rispetta la cultura locale e la famiglia reale.", "Usa solo taxi con tassametro."]
+    },
+    'Vietnam': {
+        visaInfo: "È necessario un visto d'ingresso (e-visa) da richiedere online prima della partenza per soggiorni fino a 30 giorni.",
+        healthInfo: "Consigliata la vaccinazione contro il tifo e l'epatite A. La profilassi antimalarica è raccomandata per le aree rurali.",
+        safetyTips: ["Fai attenzione al traffico caotico, specialmente nelle grandi città.", "Contratta i prezzi prima di acquistare beni o servizi.", "Evita di bere acqua dal rubinetto."]
+    },
+    'Cambogia': {
+        visaInfo: "Il visto turistico può essere ottenuto all'arrivo in aeroporto o online (e-visa) ed è valido per 30 giorni.",
+        healthInfo: "Vaccinazioni consigliate: epatite A, tifo. Rischio di dengue presente in tutto il paese.",
+        safetyTips: ["Non avventurarti in zone rurali non segnalate a causa del rischio di mine inesplose.", "Vesti in modo rispettoso quando visiti i templi.", "Fai attenzione alle truffe nei principali siti turistici."]
+    },
+    'Giappone': {
+        visaInfo: "I cittadini italiani non necessitano di visto per soggiorni turistici fino a 90 giorni.",
+        healthInfo: "Il sistema sanitario è eccellente. Non sono richieste vaccinazioni specifiche. È consigliabile stipulare un'assicurazione sanitaria.",
+        safetyTips: ["Il Giappone è un paese estremamente sicuro, ma è sempre bene usare il buon senso.", "Porta con te contanti, non tutti i negozi accettano carte.", "Impara alcune frasi base in giapponese per cortesia."]
+    },
+    'Stati Uniti': {
+        visaInfo: "Necessario l'ESTA (Electronic System for Travel Authorization) da richiedere online prima della partenza, valido per 90 giorni.",
+        healthInfo: "I costi sanitari sono molto elevati, è indispensabile un'assicurazione di viaggio con massimali adeguati.",
+        safetyTips: ["Tieni sempre con te un documento d'identità.", "Le mance (tips) sono praticamente obbligatorie (15-20%).", "Sii consapevole delle leggi locali che possono variare da stato a stato."]
+    },
+     'Area Euro': {
+        visaInfo: "Nessun visto richiesto per i cittadini dell'Unione Europea.",
+        healthInfo: "Porta con te la Tessera Europea di Assicurazione Malattia (TEAM).",
+        safetyTips: ["Le normative e la sicurezza variano da paese a paese, ma generalmente sono elevate.", "Attenzione ai borseggiatori nelle principali capitali turistiche."]
+    },
+    'Regno Unito': {
+        visaInfo: "Non è richiesto il visto per soggiorni turistici fino a 6 mesi. È necessario il passaporto.",
+        healthInfo: "Il sistema sanitario (NHS) è pubblico. È consigliata un'assicurazione di viaggio integrativa.",
+        safetyTips: ["Guida a sinistra!", "Le prese elettriche sono di tipo G, porta un adattatore.", "Sii preparato a tempo variabile."]
+    },
+};
