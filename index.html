@@ -133,12 +133,23 @@
       }
     </style>
     <script>
-      // Prevents Flash of Unstyled Content (FOUC) for dark mode
-      if (localStorage.getItem('vsc_theme') === 'dark' || (!('vsc_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
+      // Prevents Flash of Unstyled Content (FOUC) for dark mode.
+      // This logic is designed to be simple and explicit.
+      // 1. Check for a saved preference in localStorage.
+      // 2. If no preference, check the system setting.
+      // 3. Apply the 'dark' class if needed, otherwise do nothing (default is light).
+      (function() {
+        try {
+          var theme = localStorage.getItem('vsc_theme');
+          var systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+          if (theme === 'dark' || (theme === null && systemIsDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+      })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
