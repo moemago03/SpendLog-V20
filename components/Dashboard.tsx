@@ -11,9 +11,6 @@ import BudgetProgress from './summary/BudgetProgress';
 import RecentExpenses from './summary/RecentExpenses';
 
 
-const ExpenseForm = lazy(() => import('./ExpenseForm'));
-const FloatingActionButtons = lazy(() => import('./layout/FloatingActionButtons'));
-const AIPanel = lazy(() => import('./AIPanel'));
 const CategoryBudgetTracker = lazy(() => import('./CategoryBudgetTracker'));
 const AdvancedFilterPanel = lazy(() => import('./AdvancedFilterPanel'));
 const GroupBalances = lazy(() => import('./GroupBalances'));
@@ -21,16 +18,16 @@ const GroupBalances = lazy(() => import('./GroupBalances'));
 interface DashboardProps {
     activeTripId: string;
     currentView: Exclude<AppView, 'profile'>;
+    setEditingExpense: (expense: Expense | null) => void;
 }
 
-const SummaryView: React.FC<{ trip: Trip; allCategories: Category[]; }> = ({ trip, allCategories }) => {
-    const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
-    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-    
+const SummaryView: React.FC<{ 
+    trip: Trip; 
+    allCategories: Category[]; 
+    onEditExpense: (expense: Expense) => void;
+}> = ({ trip, allCategories, onEditExpense }) => {
     return (
         <div className="p-4 pb-28 max-w-2xl mx-auto space-y-6">
-            <header className="pt-8"></header>
-
             <SummaryHeader trip={trip} />
             
             <BudgetProgress trip={trip} />
@@ -44,36 +41,13 @@ const SummaryView: React.FC<{ trip: Trip; allCategories: Category[]; }> = ({ tri
             <RecentExpenses 
                 trip={trip} 
                 allCategories={allCategories}
-                onEditExpense={(expense) => setEditingExpense(expense)}
+                onEditExpense={onEditExpense}
             />
-
-            <Suspense fallback={null}>
-                 <FloatingActionButtons
-                    onAddExpense={() => setEditingExpense({} as Expense)}
-                    onAIPanelOpen={() => setIsAIPanelOpen(true)}
-                />
-
-                {(editingExpense) && (
-                    <ExpenseForm
-                        trip={trip}
-                        expense={editingExpense.id ? editingExpense : undefined}
-                        onClose={() => setEditingExpense(null)}
-                    />
-                )}
-                
-                {isAIPanelOpen && (
-                    <AIPanel
-                        trip={trip}
-                        expenses={trip.expenses || []}
-                        onClose={() => setIsAIPanelOpen(false)}
-                    />
-                )}
-            </Suspense>
         </div>
     );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView }) => {
+const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEditingExpense }) => {
     const { data, loading } = useData();
     
     const activeTrip = useMemo(() => {
@@ -96,6 +70,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView }) => {
                     <SummaryView 
                         trip={activeTrip}
                         allCategories={data.categories}
+                        onEditExpense={setEditingExpense}
                     />
                 );
             case 'stats':

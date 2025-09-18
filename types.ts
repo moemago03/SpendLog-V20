@@ -25,6 +25,7 @@ export interface TripMember {
 
 export interface Expense {
   id: string;
+  createdAt?: number; // Timestamp of creation for precise sorting
   amount: number;
   currency: string;
   category: string;

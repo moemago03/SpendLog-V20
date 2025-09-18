@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, lazy, Suspense } from 'react';
 import { DataProvider, useData } from './context/DataContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -9,6 +9,12 @@ import Dashboard from './components/Dashboard';
 import ProfileScreen from './components/ProfileScreen';
 import LoadingScreen from './components/LoadingScreen';
 import MainLayout from './components/layout/MainLayout';
+import { Expense, Trip } from './types';
+
+const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
+const FloatingActionButtons = lazy(() => import('./components/layout/FloatingActionButtons'));
+const AIPanel = lazy(() => import('./components/AIPanel'));
+
 
 export type AppView = 'summary' | 'stats' | 'checklist' | 'group' | 'currency' | 'profile';
 
@@ -29,6 +35,11 @@ const AppContent: React.FC<{
     const [animationClass, setAnimationClass] = useState('animate-view-transition');
     const { data, loading, setDefaultTrip } = useData();
     const [isInitialized, setIsInitialized] = useState(false); // State to track initial load
+    
+    // State for modals, lifted from Dashboard to fix FAB positioning
+    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+    const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
+
 
     const changeView = useCallback((newView: AppView, isSlide: boolean) => {
         setActiveView(currentActiveView => {
@@ -151,6 +162,7 @@ const AppContent: React.FC<{
                     key={activeTripId}
                     activeTripId={activeTripId}
                     currentView={activeView}
+                    setEditingExpense={setEditingExpense}
                 />
             );
         }
@@ -176,6 +188,31 @@ const AppContent: React.FC<{
             <div key={activeView + activeTripId} className={animationClass}>
                 {renderMainContent()}
             </div>
+             {/* FABs and Modals are rendered here, outside the animated div, to ensure correct fixed positioning */}
+            {activeView === 'summary' && activeTrip && (
+                <Suspense fallback={null}>
+                    <FloatingActionButtons
+                        onAddExpense={() => setEditingExpense({} as Expense)}
+                        onAIPanelOpen={() => setIsAIPanelOpen(true)}
+                    />
+
+                    {editingExpense && (
+                        <ExpenseForm
+                            trip={activeTrip}
+                            expense={editingExpense.id ? editingExpense : undefined}
+                            onClose={() => setEditingExpense(null)}
+                        />
+                    )}
+                    
+                    {isAIPanelOpen && (
+                        <AIPanel
+                            trip={activeTrip}
+                            expenses={activeTrip.expenses || []}
+                            onClose={() => setIsAIPanelOpen(false)}
+                        />
+                    )}
+                </Suspense>
+            )}
         </MainLayout>
     );
 });

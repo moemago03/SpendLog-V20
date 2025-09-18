@@ -63,7 +63,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
             processedData.categories = [...DEFAULT_CATEGORIES, ...customCategories];
         }
         
-        // Data migration for group expenses
+        // Data migration for group expenses and createdAt timestamp
         processedData.trips = (processedData.trips || []).map(trip => {
             let members = (trip.members && trip.members.length > 0)
                 ? [...trip.members] // Create a mutable copy
@@ -75,25 +75,35 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
                 members[selfMemberIndex] = { ...members[selfMemberIndex], name: 'Creatore Viaggio' };
             }
         
-            // If after potential rename, members is empty (for very old trips), add a default.
-            // This is crucial for the expense migration logic below.
             if (members.length === 0) {
                 members = [{ id: 'user-self', name: 'Creatore Viaggio' }];
             }
 
-            // Migrate old expenses that don't have split data
             const expenses = (trip.expenses || []).map(exp => {
-                if (exp.paidById && exp.splitBetweenMemberIds) {
-                    return exp; // Already in the new format
+                let finalExp = { ...exp };
+
+                // Migrate old expenses that don't have split data
+                if (!finalExp.paidById || !finalExp.splitBetweenMemberIds) {
+                    finalExp = {
+                        ...finalExp,
+                        paidById: members[0].id,
+                        splitType: 'equally' as 'equally',
+                        splitBetweenMemberIds: [members[0].id]
+                    };
                 }
-                // This is an old expense, migrate it.
-                // It was paid by the user and only for the user.
-                return {
-                    ...exp,
-                    paidById: members[0].id,
-                    splitType: 'equally' as 'equally',
-                    splitBetweenMemberIds: [members[0].id]
-                };
+
+                // MIGRATE: Add createdAt timestamp for sorting
+                if (!finalExp.createdAt) {
+                    const idAsTimestamp = parseInt(finalExp.id, 10);
+                    // A simple check to see if the ID looks like a timestamp
+                    if (!isNaN(idAsTimestamp) && finalExp.id.length > 10) {
+                        finalExp.createdAt = idAsTimestamp;
+                    } else {
+                        // Fallback for very old expenses with non-timestamp IDs
+                        finalExp.createdAt = new Date(finalExp.date).getTime();
+                    }
+                }
+                return finalExp;
             });
 
             return { ...trip, members, expenses };
@@ -263,7 +273,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
     
     const addExpense = useCallback((tripId: string, expense: Omit<Expense, 'id'>) => {
         if (!data) return;
-        const newExpense: Expense = { ...expense, id: Date.now().toString() };
+        const now = Date.now();
+        const newExpense: Expense = { ...expense, id: now.toString(), createdAt: now };
         const updatedTrips = data.trips.map(trip => {
             if (trip.id === tripId) {
                 return { ...trip, expenses: [...(trip.expenses || []), newExpense] };

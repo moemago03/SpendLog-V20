@@ -28,8 +28,15 @@ const RecentExpenses: React.FC<RecentExpensesProps> = ({ trip, allCategories, on
     });
 
     const expenses = useMemo(() => {
-        // Sort by date, most recent first.
-        return [...(trip.expenses || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        // Sort by date (most recent day first), then by creation timestamp (most recent entry first).
+        return [...(trip.expenses || [])].sort((a, b) => {
+            const dateComparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+            if (dateComparison !== 0) {
+                return dateComparison;
+            }
+            // If dates are identical, sort by creation timestamp (newest first)
+            return (b.createdAt || 0) - (a.createdAt || 0);
+        });
     }, [trip.expenses]);
 
     const filteredExpenses = useMemo(() => {

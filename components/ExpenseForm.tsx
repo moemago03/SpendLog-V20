@@ -136,7 +136,7 @@ const ExpenseForm: React.FC<{
                 </h1>
             </header>
 
-            <main className="flex-1 overflow-y-auto px-4 pb-28 space-y-4">
+            <main className="flex-1 overflow-y-auto px-4 pb-24 space-y-4">
                 
                 {/* Amount & Currency */}
                 <div className="bg-surface-variant rounded-2xl p-4">
