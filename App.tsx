@@ -14,17 +14,19 @@ import { Expense, Trip } from './types';
 const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
 const FloatingActionButtons = lazy(() => import('./components/layout/FloatingActionButtons'));
 const AIPanel = lazy(() => import('./components/AIPanel'));
+const ExploreView = lazy(() => import('./components/explore/ExploreView'));
 
 
-export type AppView = 'summary' | 'stats' | 'checklist' | 'group' | 'currency' | 'profile';
+export type AppView = 'explore' | 'summary' | 'stats' | 'checklist' | 'group' | 'currency' | 'profile';
 
 const viewIndices: { [key in AppView]: number } = {
-    summary: 0,
-    stats: 1,
-    checklist: 2,
-    group: 3,
-    currency: 4,
-    profile: 5,
+    explore: 0,
+    summary: 1,
+    stats: 2,
+    checklist: 3,
+    group: 4,
+    currency: 5,
+    profile: 6,
 };
 
 const AppContent: React.FC<{
@@ -153,11 +155,16 @@ const AppContent: React.FC<{
             );
         }
 
-        // FIX: Removed redundant `activeView !== 'profile'` check. The preceding `if` statement
-        // already handles the 'profile' case, so TypeScript correctly narrows the type of
-        // `activeView` at this point, making the check unnecessary and causing a type error.
         if (activeTrip && activeTripId) {
-             return (
+             if (activeView === 'explore') {
+                return (
+                    <Suspense fallback={<LoadingScreen />}>
+                        <ExploreView trip={activeTrip} />
+                    </Suspense>
+                );
+            }
+            // For all other views that require an active trip
+            return (
                 <Dashboard 
                     key={activeTripId}
                     activeTripId={activeTripId}
@@ -166,6 +173,7 @@ const AppContent: React.FC<{
                 />
             );
         }
+
 
         // Fallback: If no active trip, but view is not profile, redirect to profile
         // This can happen if the default trip is deleted.

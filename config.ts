@@ -1,6 +1,5 @@
-// FIX: Update imports to use Firebase v9 compatibility layer, which exposes the v8 API.
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/firestore';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Incolla qui la configurazione del tuo progetto Firebase
 const firebaseConfig = {
@@ -15,20 +14,14 @@ const firebaseConfig = {
 // Check for placeholder configuration values to prevent the app from hanging.
 const isConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR_');
 
-let db: firebase.firestore.Firestore;
+let db: Firestore;
 
 if (isConfigured) {
-    // Initialize Firebase only if it hasn't been initialized already.
-    // This prevents errors during hot-reloading in development.
-    if (!firebase.apps.length) {
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-        } catch (e) {
-            console.error("Firebase initialization failed:", e);
-        }
-    } else {
-        db = firebase.app().firestore();
+    try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+    } catch (e) {
+        console.error("Firebase initialization failed:", e);
     }
 } else {
     // Log a clear error in the console if the Firebase config is missing.
@@ -40,17 +33,7 @@ if (isConfigured) {
         "** connetterti al database.                     **\n" +
         "****************************************************"
     );
-    // Create a dummy db object that will make data calls fail gracefully
-    // instead of crashing the app.
-    db = {
-        collection: () => ({
-            doc: () => ({
-                get: () => Promise.reject(new Error("Firebase non è configurato. Controlla il file config.ts.")),
-                set: () => Promise.reject(new Error("Firebase non è configurato. Controlla il file config.ts.")),
-            }),
-        }),
-    } as unknown as firebase.firestore.Firestore;
 }
 
-// Esporta l'istanza di Firestore (reale o fittizia)
+// Esporta l'istanza di Firestore
 export { db };

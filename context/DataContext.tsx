@@ -4,6 +4,7 @@ import { DEFAULT_CATEGORIES } from '../constants';
 import { fetchData, saveData as saveCloudData, isDevelopmentEnvironment } from '../services/dataService';
 import { useNotification } from './NotificationContext';
 import { db } from '../config';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 interface DataContextProps {
     data: UserData | null;
@@ -140,9 +141,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         }
 
         console.log("Ambiente di produzione rilevato. Impostazione del listener Firestore in tempo reale.");
-        const docRef = db.collection("users").doc(user);
-        const unsubscribe = docRef.onSnapshot(docSnap => {
-            if (docSnap.exists) {
+        const docRef = doc(db, "users", user);
+        const unsubscribe = onSnapshot(docRef, docSnap => {
+            if (docSnap.exists()) {
                 console.log("Dati utente esistenti trovati.");
                 const rawData = docSnap.data() as UserData;
                 setData(processFetchedData(rawData));
@@ -151,7 +152,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
                 // Document doesn't exist, this must be a new user.
                 // Let's create their document to ensure subsequent saves work.
                 console.log("Documento utente non trovato, creazione in corso...");
-                docRef.set(defaultUserData)
+                setDoc(docRef, defaultUserData)
                     .then(() => {
                         console.log("Documento utente creato con successo.");
                         // Don't wait for the snapshot to fire again. We have the data.

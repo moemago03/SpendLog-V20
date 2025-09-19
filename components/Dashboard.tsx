@@ -17,7 +17,7 @@ const GroupBalances = lazy(() => import('./GroupBalances'));
 
 interface DashboardProps {
     activeTripId: string;
-    currentView: Exclude<AppView, 'profile'>;
+    currentView: Exclude<AppView, 'profile' | 'explore'>;
     setEditingExpense: (expense: Expense | null) => void;
 }
 

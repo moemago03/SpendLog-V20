@@ -4,7 +4,6 @@ import AddItemForm from './checklist/AddItemForm';
 import ChecklistItems from './checklist/ChecklistItems';
 import ChecklistProgress from './checklist/ChecklistProgress';
 import ChecklistTemplates from './checklist/ChecklistTemplates';
-import TravelInfo from './checklist/TravelInfo';
 
 
 interface ChecklistProps {
@@ -35,8 +34,6 @@ const Checklist: React.FC<ChecklistProps> = ({ trip }) => {
             />
 
             <ChecklistTemplates tripId={trip.id} />
-
-            <TravelInfo countries={trip.countries || []} />
         </div>
     );
 };

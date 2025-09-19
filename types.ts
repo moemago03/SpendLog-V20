@@ -1,7 +1,31 @@
+// FIX: Removed circular self-import and added ChecklistItem interface definition.
 export interface ChecklistItem {
-  id: string;
-  text: string;
-  completed: boolean;
+    id: string;
+    text: string;
+    completed: boolean;
+}
+
+export interface Attraction {
+    name: string;
+    type: string;
+    estimatedCost: string;
+    description: string;
+    lat?: number;
+    lng?: number;
+}
+
+export interface ExploreCity {
+    name: string;
+    country: string;
+    image: string;
+    description: string;
+    attractions: Attraction[];
+    activities: string[];
+    dailyCostEstimate: {
+        low: string;
+        medium: string;
+        high: string;
+    };
 }
 
 export interface CategoryBudget {
