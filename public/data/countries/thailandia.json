@@ -1,0 +1,80 @@
+{
+  "//": "Dati generali per la Thailandia. Valido per tutte le città del paese. Conversione approssimativa basata su 1€ ≈ 40 THB.",
+  "countryName": "Thailandia",
+  "countryCode": "TH",
+  "entryRequirements": {
+    "visaInfo": "Per soggiorni turistici fino a 30 giorni, i cittadini italiani non necessitano di un visto preventivo (esenzione). È necessario un passaporto con validità residua di almeno 6 mesi. Verificare sempre sul sito ufficiale dell'Ambasciata Thailandese prima della partenza.",
+    "passportValidity": "Almeno 6 mesi di validità residua al momento dell'ingresso nel paese."
+  },
+  "healthAndVaccinations": {
+    "recommendedVaccines": [
+      {
+        "vaccine": "Vaccinazioni di base",
+        "details": "Verificare di essere in regola con le vaccinazioni standard (tetano, difterite, poliomielite)."
+      },
+      {
+        "vaccine": "Epatite A e B",
+        "details": "Consigliate, specialmente per lunghi soggiorni o se si prevede di viaggiare in aree rurali."
+      },
+      {
+        "vaccine": "Tifo",
+        "details": "Consigliato per chi prevede di mangiare spesso cibo di strada o in condizioni igieniche precarie."
+      }
+    ],
+    "disclaimer": "Queste sono solo indicazioni. È fondamentale consultare il proprio medico o un centro di medicina dei viaggi con largo anticipo.",
+    "generalHealthTips": [
+      "Bevi solo acqua sigillata e evita il ghiaccio nelle bevande se non sei sicuro della provenienza.",
+      "Usa repellenti per zanzare (specialmente all'alba e al tramonto) per prevenire la Dengue.",
+      "Stipula un'assicurazione di viaggio con una buona copertura sanitaria, è fortemente raccomandata."
+    ]
+  },
+  "moneyAndCosts": {
+    "currency": "Thai Baht (THB, ฿)",
+    "atmsAndCards": "Gli sportelli ATM sono molto diffusi. Le carte di credito sono accettate in hotel, ristoranti e centri commerciali, ma è essenziale avere contanti per mercati, street food e piccoli negozi.",
+    "tippingCulture": "La mancia non è obbligatoria ma è molto apprezzata. È comune lasciare un piccolo extra (20-50 THB) per un buon servizio."
+  },
+  "safetyAndSecurity": {
+    "emergencyNumbers": {
+      "police": "191",
+      "touristPolice": "1155",
+      "ambulance": "1669"
+    },
+    "commonScams": "Diffida delle truffe comuni come quella del 'Grand Palace è chiuso oggi' o dei tuk-tuk che offrono corse a prezzi irrisori per portarti in negozi di gemme o sartorie.",
+    "generalSafety": "La Thailandia è un paese generalmente sicuro, ma usa il buon senso: tieni d'occhio i tuoi effetti personali, evita di mostrare oggetti di valore e non lasciare mai il tuo drink incustodito."
+  },
+  "lawsAndCustoms": {
+    "title": "Leggi e Usanze da Rispettare",
+    "points": [
+      {
+        "topic": "Reato di Lesa Maestà",
+        "details": "Qualsiasi critica o mancanza di rispetto verso la famiglia reale è un reato gravissimo punibile con molti anni di carcere."
+      },
+      {
+        "topic": "Sigarette Elettroniche (Vaping)",
+        "details": "Il possesso, l'uso e la vendita di sigarette elettroniche e liquidi sono illegali e soggetti a pesanti multe o arresto."
+      },
+      {
+        "topic": "Droni",
+        "details": "Per usare un drone è necessaria la registrazione presso le autorità locali. Farlo volare senza permesso può portare a multe e confisca."
+      }
+    ]
+  },
+  "connectivity": {
+    "simCards": "È facile ed economico acquistare una SIM turistica all'arrivo in aeroporto (es. AIS, DTAC). Offrono ottimi pacchetti dati a basso costo.",
+    "wifi": "Il Wi-Fi è ampiamente disponibile in hotel, caffè e centri commerciali."
+  },
+  "powerAndPlugs": {
+    "voltage": "230V",
+    "frequency": "50Hz",
+    "plugTypes": "Tipo A, B, C, F, O. Le prese sono spesso ibride. Un adattatore universale è consigliato."
+  },
+  "usefulApps": [
+    { "name": "Grab / Bolt", "description": "Per taxi e ride-sharing a prezzi fissi." },
+    { "name": "Google Translate", "description": "Indispensabile per comunicare e tradurre scritte." }
+  ],
+  "climateByMonth": [
+    { "month": "Gennaio", "summary": "Alta stagione. Clima ideale: soleggiato, secco e non troppo caldo." },
+    { "month": "Aprile", "summary": "Il mese più caldo dell'anno. Coincide con il Songkran (Capodanno Thailandese)." },
+    { "month": "Settembre", "summary": "Picco della stagione delle piogge. Piogge intense e frequenti." }
+  ]
+}

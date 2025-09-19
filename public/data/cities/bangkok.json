@@ -1,0 +1,55 @@
+{
+  "//": "Dati specifici per la città di Bangkok. Si collega al file della Thailandia tramite 'countryCode'.",
+  "cityName": "Bangkok",
+  "countryCode": "TH",
+  "countryName": "Thailandia",
+  "image": "https://img.freepik.com/premium-photo/vertical-shot-wat-arun-buddhist-temple-bangkok-thailand-with-trees_665346-143461.jpg",
+  "generalInfo": {
+    "quickDescription": "La Città degli Angeli: un mix caotico e affascinante di templi dorati, mercati galleggianti e grattacieli moderni.",
+    "bestTimeToVisit": "Da novembre a febbraio. Il clima è più fresco e secco, ideale per esplorare la città a piedi."
+  },
+  "arrivalInfo": {
+    "airport": "Aeroporto di Suvarnabhumi (BKK)",
+    "options": [
+      { "method": "Airport Rail Link (ARL)", "details": "Il modo più veloce ed economico per raggiungere il centro. Si collega alla rete BTS.", "cost": "45 THB (~1.15€)", "time": "Circa 30 minuti" },
+      { "method": "Taxi Pubblico", "details": "Usa sempre il tassametro ('meter'). Vanno aggiunti i costi dell'autostrada e un supplemento aeroportuale di 50 THB.", "cost": "400-600 THB (~10-15€)", "time": "45-90 minuti (a seconda del traffico)" }
+    ]
+  },
+  "estimatedBudget": {
+    "description": "Spesa media giornaliera per persona (escluso alloggio).",
+    "backpacker": "800 - 1.200 THB (circa 20-30€)",
+    "midRange": "2.000 - 3.500 THB (circa 50-90€)"
+  },
+  "gettingAround": [
+    { "method": "BTS Skytrain & MRT", "details": "I modi più veloci e comodi per evitare il traffico. Un biglietto per una singola corsa parte da 17 THB (~0.45€). Un pass giornaliero per il BTS costa 150 THB (~3.75€)." },
+    { "method": "Tuk-Tuk", "details": "Iconici per brevi distanze. Contrattate SEMPRE il prezzo prima di salire. Una corsa breve dovrebbe costare 100-200 THB (~2.50-5€)." },
+    { "method": "Barche sul fiume (Chao Phraya Express)", "details": "La barca locale (bandiera arancione) è un modo economico e panoramico per visitare attrazioni lungo il fiume, costa 16 THB (~0.40€) a tratta." }
+  ],
+  "mainAttractions": [
+    { "name": "Grande Palazzo Reale & Wat Phra Kaew", "description": "Il complesso di templi più sacro e spettacolare della Thailandia. Obbligatorio abbigliamento consono.", "estimatedCost": "500 THB (~12.50€)", "type": "Tempio" },
+    { "name": "Wat Arun (Tempio dell'Alba)", "description": "Iconico tempio sulla riva del fiume, famoso per le sue guglie decorate con porcellana. Splendido al tramonto.", "estimatedCost": "100 THB (~2.50€)", "type": "Tempio" },
+    { "name": "Wat Pho (Tempio del Buddha Sdraiato)", "description": "Ospita un'enorme statua del Buddha sdraiato lunga 46 metri. È anche sede di una rinomata scuola di massaggio.", "estimatedCost": "300 THB (~7.50€)", "type": "Tempio" },
+    { "name": "Mercato del fine settimana di Chatuchak", "description": "Uno dei mercati più grandi del mondo con oltre 15.000 bancarelle. Aperto solo sabato e domenica.", "estimatedCost": "Ingresso gratuito", "type": "Mercato" }
+  ],
+  "foodExperience": [
+    { "name": "Pad Thai (da strada)", "description": "Il piatto nazionale thailandese: noodles di riso saltati con gamberi o pollo.", "priceRange": "50-80 THB (~1.25-2€)" },
+    { "name": "Mango Sticky Rice", "description": "Un dessert divino: riso glutinoso cotto nel latte di cocco, servito con mango fresco.", "priceRange": "60-100 THB (~1.50-2.50€)" },
+    { "name": "Corso di cucina Thailandese", "description": "Un'esperienza immersiva per imparare i segreti della cucina locale. Dura solitamente mezza giornata.", "priceRange": "A partire da 1.000 THB (~25€)" }
+  ],
+  "suggestedItineraries": [
+    {
+      "title": "Bangkok Classica in 3 Giorni",
+      "days": [
+        { "day": 1, "theme": "Templi e Fiume", "activities": ["Mattina: Grande Palazzo Reale e Wat Phra Kaew.", "Pomeriggio: Wat Pho.", "Sera: Tramonto da Wat Arun e cena lungo il fiume."] },
+        { "day": 2, "theme": "Mercati e Shopping", "activities": ["Mattina: Mercato di Chatuchak (solo weekend) o un mercato galleggiante.", "Pomeriggio: Shopping nei centri commerciali di Siam.", "Sera: Esplorazione di un mercato notturno."] }
+      ]
+    }
+  ],
+  "dayTrips": [
+    { "name": "Ayutthaya", "description": "L'antica capitale del Siam. Un parco archeologico con rovine di templi maestosi. Raggiungibile in treno (biglietti da 20 THB, ~0.50€).", "travelTime": "Circa 1.5 - 2 ore" }
+  ],
+  "travelerTips": {
+    "families": "Il parco Lumphini è ottimo per una pausa dal caos. L'acquario Sea Life Bangkok Ocean World è un'alternativa per una giornata di pioggia.",
+    "couples": "Considerate una crociera con cena sul fiume Chao Phraya per una serata romantica. I rooftop bar offrono viste mozzafiato."
+  }
+}

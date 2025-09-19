@@ -1,0 +1,13 @@
+{
+  "cities": [
+    {
+      "id": "bangkok",
+      "name": "Bangkok",
+      "country": "Thailandia",
+      "image": "https://img.freepik.com/premium-photo/vertical-shot-wat-arun-buddhist-temple-bangkok-thailand-with-trees_665346-143461.jpg"
+    }
+  ],
+  "countryFileMap": {
+    "TH": "thailandia"
+  }
+}

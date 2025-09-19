@@ -155,14 +155,15 @@ const AppContent: React.FC<{
             );
         }
 
+        if (activeView === 'explore') {
+            return (
+                <Suspense fallback={<LoadingScreen />}>
+                    <ExploreView />
+                </Suspense>
+            );
+        }
+
         if (activeTrip && activeTripId) {
-             if (activeView === 'explore') {
-                return (
-                    <Suspense fallback={<LoadingScreen />}>
-                        <ExploreView trip={activeTrip} />
-                    </Suspense>
-                );
-            }
             // For all other views that require an active trip
             return (
                 <Dashboard 

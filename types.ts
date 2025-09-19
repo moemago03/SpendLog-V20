@@ -5,29 +5,6 @@ export interface ChecklistItem {
     completed: boolean;
 }
 
-export interface Attraction {
-    name: string;
-    type: string;
-    estimatedCost: string;
-    description: string;
-    lat?: number;
-    lng?: number;
-}
-
-export interface ExploreCity {
-    name: string;
-    country: string;
-    image: string;
-    description: string;
-    attractions: Attraction[];
-    activities: string[];
-    dailyCostEstimate: {
-        low: string;
-        medium: string;
-        high: string;
-    };
-}
-
 export interface CategoryBudget {
   categoryName: string;
   amount: number;
@@ -106,4 +83,94 @@ export interface ChecklistTemplateItem {
 export interface ChecklistTemplate {
     icon: string;
     items: ChecklistTemplateItem[];
+}
+
+
+// --- NEW TYPES FOR EXPLORE GUIDES ---
+
+export interface ManifestCity {
+  id: string;
+  name: string;
+  country: string;
+  image: string;
+}
+
+export interface Manifest {
+  cities: ManifestCity[];
+  countryFileMap: { [key: string]: string };
+}
+
+export interface CityGuide {
+  cityName: string;
+  countryCode: string;
+  countryName: string;
+  image: string;
+  generalInfo: {
+    quickDescription: string;
+    bestTimeToVisit: string;
+  };
+  arrivalInfo: {
+    airport: string;
+    options: { method: string; details: string; cost: string; time: string }[];
+  };
+  estimatedBudget: {
+    description: string;
+    backpacker: string;
+    midRange: string;
+  };
+  gettingAround: { method: string; details: string }[];
+  mainAttractions: { name: string; description: string; estimatedCost: string; type: string }[];
+  foodExperience: { name: string; description: string; priceRange: string }[];
+  suggestedItineraries: {
+    title: string;
+    days: { day: number; theme: string; activities: string[] }[];
+  }[];
+  dayTrips: { name: string; description: string; travelTime: string }[];
+  travelerTips: {
+    families: string;
+    couples: string;
+  };
+}
+
+export interface CountryGuide {
+  countryName: string;
+  countryCode: string;
+  entryRequirements: {
+    visaInfo: string;
+    passportValidity: string;
+  };
+  healthAndVaccinations: {
+    recommendedVaccines: { vaccine: string; details: string }[];
+    disclaimer: string;
+    generalHealthTips: string[];
+  };
+  moneyAndCosts: {
+    currency: string;
+    atmsAndCards: string;
+    tippingCulture: string;
+  };
+  safetyAndSecurity: {
+    emergencyNumbers: {
+      police: string;
+      touristPolice: string;
+      ambulance: string;
+    };
+    commonScams: string;
+    generalSafety: string;
+  };
+  lawsAndCustoms: {
+    title: string;
+    points: { topic: string; details: string }[];
+  };
+  connectivity: {
+    simCards: string;
+    wifi: string;
+  };
+  powerAndPlugs: {
+    voltage: string;
+    frequency: string;
+    plugTypes: string;
+  };
+  usefulApps: { name: string; description: string }[];
+  climateByMonth: { month: string; summary: string }[];
 }
