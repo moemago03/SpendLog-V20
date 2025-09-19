@@ -1,5 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
+// By loading Firebase via script tags in index.html, we no longer need to import it here.
+// This ensures the firebase object is globally available before our app code runs.
+declare const firebase: any;
+
 
 // Incolla qui la configurazione del tuo progetto Firebase
 const firebaseConfig = {
@@ -14,12 +16,15 @@ const firebaseConfig = {
 // Check for placeholder configuration values to prevent the app from hanging.
 const isConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('YOUR_');
 
-let db: Firestore;
+let db: any;
 
 if (isConfigured) {
     try {
-        const app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
+        // Use compat initialization from the global firebase object
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
     } catch (e) {
         console.error("Firebase initialization failed:", e);
     }

@@ -1,7 +1,6 @@
 import { UserData } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants';
 import { db } from '../config';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Detect if the app is running in a local/development environment
 export const isDevelopmentEnvironment = (): boolean => {
@@ -84,10 +83,10 @@ const getMockData = (password: string): UserData => {
 // --- FIRESTORE DATA ---
 const fetchFirestoreData = async (password: string): Promise<UserData | null> => {
     try {
-        const docRef = doc(db, "users", password);
-        const docSnap = await getDoc(docRef);
+        const docRef = db.collection("users").doc(password);
+        const docSnap = await docRef.get();
 
-        if (docSnap.exists()) {
+        if (docSnap.exists) {
             return docSnap.data() as UserData;
         } else {
             console.log("No such document!");
@@ -101,7 +100,7 @@ const fetchFirestoreData = async (password: string): Promise<UserData | null> =>
 
 const saveFirestoreData = async (password: string, data: UserData): Promise<void> => {
      try {
-        await setDoc(doc(db, "users", password), data);
+        await db.collection("users").doc(password).set(data);
     } catch (error) {
         console.error("Error saving data to Firestore:", error);
         throw new Error('Failed to save data to Firestore. Check your configuration and permissions.');
