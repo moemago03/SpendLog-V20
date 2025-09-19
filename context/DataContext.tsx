@@ -5,7 +5,6 @@ import { fetchData, saveData as saveCloudData, isDevelopmentEnvironment } from '
 import { useNotification } from './NotificationContext';
 import { db } from '../config';
 
-
 interface DataContextProps {
     data: UserData | null;
     loading: boolean;

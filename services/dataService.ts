@@ -83,9 +83,11 @@ const getMockData = (password: string): UserData => {
 // --- FIRESTORE DATA ---
 const fetchFirestoreData = async (password: string): Promise<UserData | null> => {
     try {
+        // FIX: Switched to Firebase v8 syntax for fetching a document.
         const docRef = db.collection("users").doc(password);
         const docSnap = await docRef.get();
 
+        // FIX: Switched to Firebase v8 syntax for checking document existence (`.exists` is a property).
         if (docSnap.exists) {
             return docSnap.data() as UserData;
         } else {
@@ -100,6 +102,7 @@ const fetchFirestoreData = async (password: string): Promise<UserData | null> =>
 
 const saveFirestoreData = async (password: string, data: UserData): Promise<void> => {
      try {
+        // FIX: Switched to Firebase v8 syntax for setting a document.
         await db.collection("users").doc(password).set(data);
     } catch (error) {
         console.error("Error saving data to Firestore:", error);
