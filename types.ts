@@ -1,4 +1,5 @@
-// FIX: Removed circular self-import and added ChecklistItem interface definition.
+// types.ts
+
 export interface ChecklistItem {
     id: string;
     text: string;
@@ -33,6 +34,7 @@ export interface Expense {
   date: string; // ISO string
   country?: string;
   description?: string; // Field for notes/description
+  eventId?: string; // Link to an itinerary event
 
   // NEW: Fields for shared expenses
   paidById?: string; // ID of the TripMember who paid. Optional for backward compatibility.
@@ -61,10 +63,11 @@ export interface Trip {
 }
 
 export interface Category {
-  id: string;
+  id:string;
   name: string;
   icon: string;
   color: string;
+  isItineraryCategory?: boolean; // Can this category be used for itinerary events?
 }
 
 export interface UserData {
@@ -119,7 +122,7 @@ export interface CityGuide {
     midRange: string;
   };
   gettingAround: { method: string; details: string }[];
-  mainAttractions: { name: string; description: string; estimatedCost: string; type: string }[];
+  mainAttractions: { name: string; description: string; estimatedCost: string; type: string; location?: string }[];
   foodExperience: { name: string; description: string; priceRange: string }[];
   suggestedItineraries: {
     title: string;
@@ -173,4 +176,19 @@ export interface CountryGuide {
   };
   usefulApps: { name: string; description: string }[];
   climateByMonth: { month: string; summary: string }[];
+}
+
+// --- NEW TYPES FOR ITINERARY ---
+export interface Event {
+  eventId: string;
+  tripId: string;
+  eventDate: string; // YYYY-MM-DD (Start Date)
+  endDate?: string;   // YYYY-MM-DD (End Date for multi-day/timed events)
+  title: string;
+  type: string; // Changed from union type to string to support custom category names
+  startTime?: string; // HH:MM
+  endTime?: string;   // HH:MM
+  description?: string;
+  location?: string;
+  status: 'planned' | 'completed';
 }

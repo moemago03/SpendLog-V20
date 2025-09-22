@@ -1,25 +1,14 @@
 import { UserData } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants';
 import { db } from '../config';
+// FIX: Import Firebase v9 modular functions
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Detect if the app is running in a local/development environment
 export const isDevelopmentEnvironment = (): boolean => {
-    const hostname = window.location.hostname;
-    const href = window.location.href;
-
-    const developmentHostnames = ['localhost', '127.0.0.1'];
-    // The user's provided URL indicates a specific development platform
-    const developmentPatterns = ['.scf.usercontent.goog'];
-
-    if (developmentHostnames.includes(hostname)) {
-        return true;
-    }
-
-    if (developmentPatterns.some(pattern => href.includes(pattern))) {
-        return true;
-    }
-
-    return false;
+    // Force mock data environment as per user request to resolve performance issues.
+    // This prevents any attempts to connect to Firebase.
+    return true;
 };
 
 
@@ -82,13 +71,14 @@ const getMockData = (password: string): UserData => {
 
 // --- FIRESTORE DATA ---
 const fetchFirestoreData = async (password: string): Promise<UserData | null> => {
+    if (!db) {
+        throw new Error('Firebase DB not initialized. Check configuration in config.ts.');
+    }
     try {
-        // FIX: Switched to Firebase v8 syntax for fetching a document.
-        const docRef = db.collection("users").doc(password);
-        const docSnap = await docRef.get();
+        const docRef = doc(db, "users", password);
+        const docSnap = await getDoc(docRef);
 
-        // FIX: Switched to Firebase v8 syntax for checking document existence (`.exists` is a property).
-        if (docSnap.exists) {
+        if (docSnap.exists()) {
             return docSnap.data() as UserData;
         } else {
             console.log("No such document!");
@@ -101,9 +91,11 @@ const fetchFirestoreData = async (password: string): Promise<UserData | null> =>
 }
 
 const saveFirestoreData = async (password: string, data: UserData): Promise<void> => {
+    if (!db) {
+        throw new Error('Firebase DB not initialized. Check configuration in config.ts.');
+    }
      try {
-        // FIX: Switched to Firebase v8 syntax for setting a document.
-        await db.collection("users").doc(password).set(data);
+        await setDoc(doc(db, "users", password), data);
     } catch (error) {
         console.error("Error saving data to Firestore:", error);
         throw new Error('Failed to save data to Firestore. Check your configuration and permissions.');

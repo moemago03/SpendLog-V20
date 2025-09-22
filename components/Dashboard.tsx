@@ -4,7 +4,6 @@ import { useData } from '../context/DataContext';
 import { Expense, Trip, Category } from '../types';
 import Statistics from './Statistics';
 import Checklist from './Checklist';
-import CurrencyConverter from './CurrencyConverter';
 import ExpenseListSkeleton from './ExpenseListSkeleton';
 import SummaryHeader from './summary/SummaryHeader';
 import BudgetProgress from './summary/BudgetProgress';
@@ -94,12 +93,6 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEdi
                         <Suspense fallback={<ExpenseListSkeleton />}>
                             <GroupBalances trip={activeTrip} />
                         </Suspense>
-                    </div>
-                );
-            case 'currency':
-                return (
-                     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
-                        <CurrencyConverter trip={activeTrip} />
                     </div>
                 );
             default:

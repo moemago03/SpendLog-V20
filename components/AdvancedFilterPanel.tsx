@@ -40,7 +40,7 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({ onClose, onAp
         <>
             <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={onClose} aria-hidden="true"></div>
             <div
-                className="fixed bottom-0 right-0 left-0 sm:left-auto sm:bottom-8 sm:right-8 bg-surface rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:w-[450px] max-h-[80vh] flex flex-col z-50 animate-[slide-up_0.3s_ease-out]"
+                className="fixed inset-0 bg-surface z-50 flex flex-col animate-[slide-up_0.3s_ease-out]"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="filter-panel-title"
@@ -93,7 +93,7 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({ onClose, onAp
                     </div>
                 </main>
                 
-                <footer className="p-4 border-t border-surface-variant flex-shrink-0 flex gap-4">
+                <footer className="p-4 border-t border-surface-variant flex-shrink-0 flex gap-4 mt-auto">
                     <button
                         onClick={handleReset}
                         className="flex-1 bg-surface-variant text-on-surface-variant font-bold py-3 rounded-2xl"
@@ -112,12 +112,6 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({ onClose, onAp
                 @keyframes slide-up {
                     from { transform: translateY(100%); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
-                }
-                @media (min-width: 640px) {
-                    @keyframes slide-up {
-                        from { transform: translateY(2rem) scale(0.95); opacity: 0; }
-                        to { transform: translateY(0) scale(1); opacity: 1; }
-                    }
                 }
                 .animate-\\[slide-up_0\\.3s_ease-out\\] {
                     animation: slide-up 0.3s ease-out;

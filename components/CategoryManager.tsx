@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { Category } from '../types';
@@ -34,7 +35,7 @@ const CreateCategoryItem: React.FC<{ onClick: () => void; }> = ({ onClick }) => 
 
 
 const CategoryManager: React.FC<CategoryManagerProps> = ({ onClose }) => {
-    const { data, addCategory, updateCategory } = useData();
+    const { data, addCategory, updateCategory, deleteCategory } = useData();
     const [view, setView] = useState<'list' | 'form'>('list');
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
@@ -44,15 +45,11 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onClose }) => {
     };
     
     const handleEdit = (category: Category) => {
-        const isDefault = DEFAULT_CATEGORIES.some(c => c.id === category.id);
-        if (isDefault) {
-            return;
-        }
         setEditingCategory(category);
         setView('form');
     };
     
-    const handleSave = (categoryData: Omit<Category, 'id' | 'expenses' | 'color'> & { color: string }) => {
+    const handleSave = (categoryData: Omit<Category, 'id'>) => {
         if (editingCategory) {
             updateCategory({ ...editingCategory, ...categoryData });
         } else {
@@ -60,6 +57,14 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onClose }) => {
         }
         setView('list');
         setEditingCategory(null);
+    };
+
+    const handleDelete = () => {
+        if (editingCategory) {
+            deleteCategory(editingCategory.id);
+            setView('list');
+            setEditingCategory(null);
+        }
     };
 
     return (
@@ -87,6 +92,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onClose }) => {
                     category={editingCategory || undefined}
                     onSave={handleSave}
                     onClose={() => setView('list')}
+                    onDelete={editingCategory && !DEFAULT_CATEGORIES.some(c => c.id === editingCategory.id) ? handleDelete : undefined}
                 />
             )}
         </div>

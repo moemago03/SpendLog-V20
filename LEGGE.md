@@ -22,5 +22,23 @@ Questo file contiene una lista di funzionalità e comportamenti critici che DEVO
 - **Rule:** The search bar must display an "X" (or `close`) icon on the right side whenever it contains text. Clicking this "X" must clear the search field immediately.
 
 ---
+
+## 2. Componenti Globali (Global Components)
+
+### 2.1. Convertitore di Valuta (Currency Converter)
+
+- **Regola:** Il Convertitore di Valuta DEVE essere implementato come un pulsante di azione mobile (FAB) accessibile globalmente e posizionato nell'angolo in basso a destra dello schermo. Non deve far parte delle schede di navigazione principali.
+- **Rule:** The Currency Converter MUST be implemented as a globally accessible floating action button (FAB) positioned in the bottom right corner of the screen. It should not be part of the main navigation tabs.
+
+---
+
+## 3. Interfaccia Utente (User Interface)
+
+### 3.1. Moduli a Schermo Intero (Full-Screen Forms)
+
+- **Regola:** Tutti i moduli e i pannelli che richiedono un input significativo da parte dell'utente (es. Aggiungi Spesa, Convertitore Valuta, Filtri Avanzati, Pannello AI) DEVONO aprirsi a schermo intero per garantire un'esperienza coerente e priva di distrazioni.
+- **Rule:** All forms and panels that require significant user input (e.g., Add Expense, Currency Converter, Advanced Filters, AI Panel) MUST open in full-screen to ensure a consistent and distraction-free experience.
+
+---
 **Non rimuovere o modificare queste regole senza il consenso esplicito dell'utente.**
 **Do not remove or modify these rules without explicit user consent.**

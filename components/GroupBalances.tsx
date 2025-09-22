@@ -40,7 +40,6 @@ const PaymentModal: React.FC<{
     onClose: () => void;
 }> = ({ debt, trip, onClose }) => {
     const { addExpense } = useData();
-    const { formatCurrency } = useCurrencyConverter();
     const { addNotification } = useNotification();
     const [amount, setAmount] = useState(debt.amount.toFixed(2));
     const [description, setDescription] = useState('');
@@ -67,43 +66,43 @@ const PaymentModal: React.FC<{
     };
     
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" onClick={onClose}>
-            <div className="bg-surface rounded-3xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-                <header className="p-4 border-b border-surface-variant">
-                    <h3 className="text-lg font-semibold text-on-surface text-center">Registra Pagamento</h3>
-                </header>
-                <main className="p-6 space-y-4">
-                    <p className="text-sm text-center text-on-surface-variant">
-                        <span className="font-semibold">{debt.from.name}</span> paga a <span className="font-semibold">{debt.to.name}</span>
-                    </p>
-                    <div>
-                        <label className="text-xs text-on-surface-variant">Importo ({trip.mainCurrency})</label>
-                        <input
-                            type="number"
-                            value={amount}
-                            onChange={e => setAmount(e.target.value)}
-                            className="w-full bg-surface-variant text-on-surface text-2xl font-bold p-3 rounded-lg mt-1 border-2 border-transparent focus:border-primary focus:outline-none"
-                            max={debt.amount.toFixed(2)}
-                            min="0.01"
-                            step="0.01"
-                        />
-                    </div>
-                     <div>
-                        <label className="text-xs text-on-surface-variant">Nota (opzionale)</label>
-                        <input
-                            type="text"
-                            value={description}
-                            onChange={e => setDescription(e.target.value)}
-                            placeholder="Es. Pagamento in contanti"
-                            className="w-full bg-surface-variant text-on-surface p-3 rounded-lg mt-1 border-2 border-transparent focus:border-primary focus:outline-none"
-                        />
-                    </div>
-                </main>
-                 <footer className="p-4 flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-surface-variant text-on-surface-variant font-semibold">Annulla</button>
-                    <button onClick={handleSave} className="flex-1 py-3 rounded-xl bg-primary text-on-primary font-semibold">Salva</button>
-                </footer>
-            </div>
+        <div className="fixed inset-0 bg-background z-50 flex flex-col animate-[slide-up_0.3s_ease-out]">
+            <header className="flex items-center p-4 flex-shrink-0">
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-variant">
+                    <span className="material-symbols-outlined">close</span>
+                </button>
+                <h1 className="text-xl font-bold ml-4">Registra Pagamento</h1>
+            </header>
+            <main className="flex-1 overflow-y-auto p-6 space-y-4">
+                <p className="text-base text-center text-on-surface-variant">
+                    <span className="font-semibold text-on-surface">{debt.from.name}</span> sta pagando a <span className="font-semibold text-on-surface">{debt.to.name}</span>
+                </p>
+                <div className="bg-surface-variant rounded-2xl p-4">
+                     <label className="text-sm font-medium text-on-surface-variant">Importo ({trip.mainCurrency})</label>
+                    <input
+                        type="number"
+                        value={amount}
+                        onChange={e => setAmount(e.target.value)}
+                        className="w-full bg-transparent text-on-surface text-4xl font-bold mt-1 border-0 focus:ring-0 p-0"
+                        max={debt.amount.toFixed(2)}
+                        min="0.01"
+                        step="0.01"
+                    />
+                </div>
+                 <div className="bg-surface-variant rounded-2xl p-4">
+                    <label className="text-sm font-medium text-on-surface-variant">Nota (opzionale)</label>
+                    <input
+                        type="text"
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        placeholder="Es. Pagamento in contanti"
+                        className="w-full bg-transparent text-on-surface font-medium mt-1 border-0 focus:ring-0 p-0"
+                    />
+                </div>
+            </main>
+             <footer className="p-4 border-t border-surface-variant mt-auto flex-shrink-0">
+                <button onClick={handleSave} className="w-full py-4 rounded-2xl bg-primary text-on-primary font-bold shadow-md hover:shadow-lg transition-shadow">Salva Pagamento</button>
+            </footer>
         </div>
     );
 };

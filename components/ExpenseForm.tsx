@@ -16,28 +16,34 @@ const getLocalDateString = () => {
     return `${year}-${month}-${day}`;
 };
 
-const ExpenseForm: React.FC<{
+interface ExpenseFormProps {
     trip: Trip;
-    expense?: Expense;
+    expense: Expense; // Always provided, check expense.id to determine if new or editing
     onClose: () => void;
-}> = ({ trip, expense, onClose }) => {
+}
+
+const ExpenseForm: React.FC<ExpenseFormProps> = ({ trip, expense, onClose }) => {
     const { addExpense, updateExpense, data } = useData();
     const { convert, formatCurrency } = useCurrencyConverter();
     const { addNotification } = useNotification();
-    const [amount, setAmount] = useState(expense?.amount ? expense.amount.toString() : '');
-    const [currency, setCurrency] = useState(expense?.currency || trip.mainCurrency);
-    const [category, setCategory] = useState(expense?.category || data.categories[0]?.name || '');
-    const [date, setDate] = useState(expense ? new Date(expense.date).toISOString().split('T')[0] : getLocalDateString());
+
+    const isEditMode = !!expense.id;
+
+    const [amount, setAmount] = useState(expense.amount ? expense.amount.toString() : '');
+    const [currency, setCurrency] = useState(expense.currency || trip.mainCurrency);
+    const [category, setCategory] = useState(expense.category || data.categories[0]?.name || '');
+    const [date, setDate] = useState(expense.date ? new Date(expense.date).toISOString().split('T')[0] : getLocalDateString());
+    const [description, setDescription] = useState(expense.description || '');
 
     const members = useMemo(() => trip.members || [{ id: 'user-self', name: 'Io' }], [trip.members]);
     
     // Smart split logic
-    const isEditingSharedExpense = !!(expense?.splitBetweenMemberIds && expense.splitBetweenMemberIds.length > 1);
+    const isEditingSharedExpense = !!(expense.splitBetweenMemberIds && expense.splitBetweenMemberIds.length > 1);
     const [isSplit, setIsSplit] = useState(isEditingSharedExpense);
 
-    const [paidById, setPaidById] = useState(expense?.paidById || members[0].id);
+    const [paidById, setPaidById] = useState(expense.paidById || members[0].id);
     const [splitParticipantIds, setSplitParticipantIds] = useState<string[]>(
-        expense?.splitBetweenMemberIds || (isSplit ? members.map(m => m.id) : [members[0].id])
+        expense.splitBetweenMemberIds || (isSplit ? members.map(m => m.id) : [members[0].id])
     );
 
     const amountInputRef = useRef<HTMLInputElement>(null);
@@ -62,10 +68,8 @@ const ExpenseForm: React.FC<{
         const newIsSplit = !isSplit;
         setIsSplit(newIsSplit);
         if (newIsSplit) {
-            // When enabling split, default to everyone
             setSplitParticipantIds(members.map(m => m.id));
         } else {
-            // When disabling split, it's just for the user
             setPaidById(members[0].id);
             setSplitParticipantIds([members[0].id]);
         }
@@ -85,7 +89,7 @@ const ExpenseForm: React.FC<{
             return;
         }
         
-        const finalSplitParticipantIds = isSplit ? splitParticipantIds : [members[0].id];
+        const finalSplitParticipantIds = isSplit ? splitParticipantIds : [paidById];
         const finalPaidById = isSplit ? paidById : members[0].id;
 
 
@@ -94,12 +98,13 @@ const ExpenseForm: React.FC<{
             currency,
             category,
             date: new Date(date).toISOString(),
+            description: description.trim() || undefined,
             paidById: finalPaidById,
             splitType: 'equally' as 'equally',
             splitBetweenMemberIds: finalSplitParticipantIds,
         };
 
-        if (expense && expense.id) {
+        if (isEditMode) {
             updateExpense(trip.id, { ...expense, ...expenseData });
         } else {
             addExpense(trip.id, expenseData);
@@ -132,7 +137,7 @@ const ExpenseForm: React.FC<{
                     <span className="material-symbols-outlined">close</span>
                 </button>
                 <h1 className="text-xl font-bold ml-4">
-                    {expense?.id ? 'Modifica Spesa' : 'Nuova Spesa'}
+                    {isEditMode ? 'Modifica Spesa' : 'Nuova Spesa'}
                 </h1>
             </header>
 
@@ -188,6 +193,19 @@ const ExpenseForm: React.FC<{
                         />
                     </div>
                 </div>
+
+                {/* Description */}
+                <div className="bg-surface-variant rounded-2xl flex items-center p-4 gap-4">
+                    <span className="material-symbols-outlined text-on-surface-variant w-8 text-center">notes</span>
+                    <input
+                        type="text"
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                        placeholder="Descrizione (opzionale)"
+                        className="w-full bg-transparent text-on-surface focus:outline-none font-medium text-base placeholder:text-on-surface-variant/70"
+                    />
+                </div>
+
 
                 {/* Split Expense Toggle */}
                  {members.length > 1 && (
@@ -248,7 +266,7 @@ const ExpenseForm: React.FC<{
                     onClick={handleSubmit}
                     className="w-full bg-trip-primary text-trip-on-primary font-bold py-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow active:scale-[0.98]"
                 >
-                    {expense?.id ? 'Salva Modifiche' : 'Salva Spesa'}
+                    {isEditMode ? 'Salva Modifiche' : 'Salva Spesa'}
                 </button>
             </footer>
 

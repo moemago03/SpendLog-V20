@@ -1,3 +1,5 @@
+// constants.ts
+
 import { Category, ChecklistTemplate } from './types';
 
 export const CATEGORY_COLORS = [
@@ -20,14 +22,14 @@ export const TRIP_CARD_COLORS = [
 ];
 
 export const DEFAULT_CATEGORIES: Category[] = [
-    { id: 'cat-1', name: 'Cibo', icon: '🍔', color: '#FF9800' },
-    { id: 'cat-2', name: 'Alloggio', icon: '🏠', color: '#795548' },
-    { id: 'cat-3', name: 'Trasporti', icon: '🚆', color: '#2196F3' },
-    { id: 'cat-4', name: 'Attività', icon: '🏞️', color: '#4CAF50' },
-    { id: 'cat-5', name: 'Shopping', icon: '🛍️', color: '#E91E63' },
-    { id: 'cat-6', name: 'Visti', icon: '🛂', color: '#607D8B' },
-    { id: 'cat-7', name: 'Assicurazione', icon: '🛡️', color: '#00BCD4' },
-    { id: 'cat-8', name: 'Varie', icon: '📦', color: '#9E9E9E' },
+    { id: 'cat-1', name: 'Cibo', icon: '🍔', color: '#FF9800', isItineraryCategory: true },
+    { id: 'cat-2', name: 'Alloggio', icon: '🏠', color: '#795548', isItineraryCategory: true },
+    { id: 'cat-3', name: 'Trasporti', icon: '🚆', color: '#2196F3', isItineraryCategory: true },
+    { id: 'cat-4', name: 'Attività', icon: '🏞️', color: '#4CAF50', isItineraryCategory: true },
+    { id: 'cat-5', name: 'Shopping', icon: '🛍️', color: '#E91E63', isItineraryCategory: false },
+    { id: 'cat-6', name: 'Visti', icon: '🛂', color: '#607D8B', isItineraryCategory: true },
+    { id: 'cat-7', name: 'Assicurazione', icon: '🛡️', color: '#00BCD4', isItineraryCategory: false },
+    { id: 'cat-8', name: 'Varie', icon: '📦', color: '#9E9E9E', isItineraryCategory: true },
 ];
 
 export const ADJUSTMENT_CATEGORY = 'Aggiustamento Saldo';

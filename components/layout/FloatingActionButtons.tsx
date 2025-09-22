@@ -7,7 +7,7 @@ interface FloatingActionButtonsProps {
 
 const FloatingActionButtons: React.FC<FloatingActionButtonsProps> = ({ onAddExpense, onAIPanelOpen }) => {
     return (
-        <div className="fixed bottom-20 right-4 flex flex-col items-center gap-3 z-20">
+        <div className="fixed bottom-36 right-4 flex flex-col items-center gap-3 z-20">
             <button
                 onClick={onAIPanelOpen}
                 className="h-10 w-10 bg-secondary-container text-on-secondary-container rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-90"

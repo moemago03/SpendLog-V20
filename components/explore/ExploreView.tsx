@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
-import { Manifest, ManifestCity } from '../../types';
+import { Manifest, ManifestCity, Trip } from '../../types';
 import LoadingScreen from '../LoadingScreen';
 import CityCard from './CityCard';
 const ExploreDetailView = lazy(() => import('./CityDetailModal'));
 
-const ExploreView: React.FC = () => {
+interface ExploreViewProps {
+    activeTrip: Trip | null;
+}
+
+const ExploreView: React.FC<ExploreViewProps> = ({ activeTrip }) => {
     const [manifest, setManifest] = useState<Manifest | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -101,6 +105,7 @@ const ExploreView: React.FC = () => {
                     <ExploreDetailView
                         cityId={selectedCity.id}
                         countryFileMap={manifest.countryFileMap}
+                        activeTrip={activeTrip}
                         onClose={() => setSelectedCity(null)}
                     />
                 </Suspense>

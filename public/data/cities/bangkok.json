@@ -26,10 +26,10 @@
     { "method": "Barche sul fiume (Chao Phraya Express)", "details": "La barca locale (bandiera arancione) è un modo economico e panoramico per visitare attrazioni lungo il fiume, costa 16 THB (~0.40€) a tratta." }
   ],
   "mainAttractions": [
-    { "name": "Grande Palazzo Reale & Wat Phra Kaew", "description": "Il complesso di templi più sacro e spettacolare della Thailandia. Obbligatorio abbigliamento consono.", "estimatedCost": "500 THB (~12.50€)", "type": "Tempio" },
-    { "name": "Wat Arun (Tempio dell'Alba)", "description": "Iconico tempio sulla riva del fiume, famoso per le sue guglie decorate con porcellana. Splendido al tramonto.", "estimatedCost": "100 THB (~2.50€)", "type": "Tempio" },
-    { "name": "Wat Pho (Tempio del Buddha Sdraiato)", "description": "Ospita un'enorme statua del Buddha sdraiato lunga 46 metri. È anche sede di una rinomata scuola di massaggio.", "estimatedCost": "300 THB (~7.50€)", "type": "Tempio" },
-    { "name": "Mercato del fine settimana di Chatuchak", "description": "Uno dei mercati più grandi del mondo con oltre 15.000 bancarelle. Aperto solo sabato e domenica.", "estimatedCost": "Ingresso gratuito", "type": "Mercato" }
+    { "name": "Grande Palazzo Reale & Wat Phra Kaew", "description": "Il complesso di templi più sacro e spettacolare della Thailandia. Obbligatorio abbigliamento consono.", "estimatedCost": "500 THB (~12.50€)", "type": "Tempio", "location": "Na Phra Lan Rd, Phra Borom Maha Ratchawang, Phra Nakhon, Bangkok 10200, Thailandia" },
+    { "name": "Wat Arun (Tempio dell'Alba)", "description": "Iconico tempio sulla riva del fiume, famoso per le sue guglie decorate con porcellana. Splendido al tramonto.", "estimatedCost": "100 THB (~2.50€)", "type": "Tempio", "location": "158 Thanon Wang Doem, Wat Arun, Bangkok Yai, Bangkok 10600, Thailandia" },
+    { "name": "Wat Pho (Tempio del Buddha Sdraiato)", "description": "Ospita un'enorme statua del Buddha sdraiato lunga 46 metri. È anche sede di una rinomata scuola di massaggio.", "estimatedCost": "300 THB (~7.50€)", "type": "Tempio", "location": "2 Sanam Chai Rd, Phra Borom Maha Ratchawang, Phra Nakhon, Bangkok 10200, Thailandia" },
+    { "name": "Mercato del fine settimana di Chatuchak", "description": "Uno dei mercati più grandi del mondo con oltre 15.000 bancarelle. Aperto solo sabato e domenica.", "estimatedCost": "Ingresso gratuito", "type": "Mercato", "location": "Kamphaeng Phet 2 Rd, Chatuchak, Bangkok 10900, Thailandia" }
   ],
   "foodExperience": [
     { "name": "Pad Thai (da strada)", "description": "Il piatto nazionale thailandese: noodles di riso saltati con gamberi o pollo.", "priceRange": "50-80 THB (~1.25-2€)" },
