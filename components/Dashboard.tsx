@@ -3,11 +3,12 @@ import { AppView } from '../App';
 import { useData } from '../context/DataContext';
 import { Expense, Trip, Category } from '../types';
 import Statistics from './Statistics';
-import Checklist from './Checklist';
 import ExpenseListSkeleton from './ExpenseListSkeleton';
 import SummaryHeader from './summary/SummaryHeader';
 import BudgetProgress from './summary/BudgetProgress';
 import RecentExpenses from './summary/RecentExpenses';
+const QuickAddBar = lazy(() => import('./summary/QuickAddBar'));
+const TodaysItineraryWidget = lazy(() => import('./summary/TodaysItineraryWidget'));
 
 
 const CategoryBudgetTracker = lazy(() => import('./CategoryBudgetTracker'));
@@ -16,20 +17,57 @@ const GroupBalances = lazy(() => import('./GroupBalances'));
 
 interface DashboardProps {
     activeTripId: string;
-    currentView: Exclude<AppView, 'profile' | 'explore'>;
-    setEditingExpense: (expense: Expense | null) => void;
+    currentView: Exclude<AppView, 'profile' | 'explore' | 'itinerary'>;
+    setEditingExpense: (expense: Partial<Expense> | null) => void;
+    onNavigate: (view: AppView) => void;
 }
 
+// FIX: Updated onEditExpense to accept null to align with the state setter from App.tsx.
 const SummaryView: React.FC<{ 
     trip: Trip; 
     allCategories: Category[]; 
-    onEditExpense: (expense: Expense) => void;
-}> = ({ trip, allCategories, onEditExpense }) => {
+    onEditExpense: (expense: Partial<Expense> | null) => void;
+    onNavigate: (view: AppView) => void;
+}> = ({ trip, allCategories, onEditExpense, onNavigate }) => {
+
+    const topCategories = useMemo(() => {
+        const categoryCounts = (trip.expenses || []).reduce((acc, exp) => {
+            acc[exp.category] = (acc[exp.category] || 0) + 1;
+            return acc;
+        }, {} as { [key: string]: number });
+
+        const sortedCategoryNames = Object.keys(categoryCounts).sort((a, b) => categoryCounts[b] - categoryCounts[a]);
+        
+        return sortedCategoryNames
+            .slice(0, 3)
+            .map(name => allCategories.find(c => c.name === name))
+            .filter((c): c is Category => !!c);
+
+    }, [trip.expenses, allCategories]);
+
+
     return (
         <div className="p-4 pb-28 max-w-2xl mx-auto space-y-6">
             <SummaryHeader trip={trip} />
             
             <BudgetProgress trip={trip} />
+
+            <Suspense fallback={null}>
+                <TodaysItineraryWidget
+                    tripId={trip.id}
+                    allCategories={allCategories}
+                    onNavigateToItinerary={() => onNavigate('itinerary')}
+                />
+            </Suspense>
+
+            <Suspense fallback={null}>
+                <QuickAddBar
+                    trip={trip}
+                    topCategories={topCategories}
+                    allCategories={allCategories}
+                    onAddDetailed={() => onEditExpense({})}
+                />
+            </Suspense>
 
             {trip.enableCategoryBudgets && (
                 <Suspense fallback={null}>
@@ -46,7 +84,7 @@ const SummaryView: React.FC<{
     );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEditingExpense }) => {
+const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEditingExpense, onNavigate }) => {
     const { data, loading } = useData();
     
     const activeTrip = useMemo(() => {
@@ -70,18 +108,13 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEdi
                         trip={activeTrip}
                         allCategories={data.categories}
                         onEditExpense={setEditingExpense}
+                        onNavigate={onNavigate}
                     />
                 );
             case 'stats':
                 return (
                     <div className="p-4 pb-24 max-w-2xl mx-auto">
                         <Statistics trip={activeTrip} expenses={expenses} />
-                    </div>
-                );
-            case 'checklist':
-                 return (
-                    <div className="p-4 pb-24 max-w-2xl mx-auto">
-                        <Checklist trip={activeTrip} />
                     </div>
                 );
             case 'group':

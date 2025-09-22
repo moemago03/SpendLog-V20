@@ -20,16 +20,15 @@ const ItineraryView = lazy(() => import('./components/itinerary/ItineraryView'))
 const CurrencyConverterModal = lazy(() => import('./components/CurrencyConverter'));
 
 
-export type AppView = 'explore' | 'summary' | 'stats' | 'checklist' | 'itinerary' | 'group' | 'profile';
+export type AppView = 'explore' | 'summary' | 'stats' | 'itinerary' | 'group' | 'profile';
 
 const viewIndices: { [key in AppView]: number } = {
     explore: 0,
     summary: 1,
     stats: 2,
-    checklist: 3,
-    itinerary: 4,
-    group: 5,
-    profile: 6,
+    itinerary: 3,
+    group: 4,
+    profile: 5,
 };
 
 const AppContent: React.FC<{
@@ -41,7 +40,8 @@ const AppContent: React.FC<{
     const { data, loading, setDefaultTrip } = useData();
     const [isInitialized, setIsInitialized] = useState(false); // State to track initial load
     
-    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+    // FIX: Changed state to hold Partial<Expense> to allow creating new expenses without an ID.
+    const [editingExpense, setEditingExpense] = useState<Partial<Expense> | null>(null);
     const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
     const [isConverterModalOpen, setIsConverterModalOpen] = useState(false);
 
@@ -53,7 +53,8 @@ const AppContent: React.FC<{
             date: new Date().toISOString(),
         };
         const newExpenseData = { ...defaultExpense, ...prefill };
-        setEditingExpense(newExpenseData as Expense);
+        // FIX: Removed unsafe cast, as editingExpense state now correctly handles Partial<Expense>.
+        setEditingExpense(newExpenseData);
     }, [activeTrip]);
 
 
@@ -188,6 +189,7 @@ const AppContent: React.FC<{
                     activeTripId={activeTripId}
                     currentView={activeView}
                     setEditingExpense={setEditingExpense}
+                    onNavigate={handleNavigation}
                 />
             );
         }

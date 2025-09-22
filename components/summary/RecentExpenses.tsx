@@ -7,7 +7,8 @@ const AdvancedFilterPanel = lazy(() => import('../AdvancedFilterPanel'));
 interface RecentExpensesProps {
     trip: Trip;
     allCategories: Category[];
-    onEditExpense: (expense: Expense) => void;
+    // FIX: Changed type to Partial<Expense> to match the parent component's state.
+    onEditExpense: (expense: Partial<Expense> | null) => void;
 }
 
 interface Filters {

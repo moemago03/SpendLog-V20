@@ -7,7 +7,8 @@ import { useVirtualList } from '../hooks/useVirtualList';
 interface ExpenseListProps {
     expenses: Expense[];
     trip: Trip;
-    onEditExpense: (expense: Expense) => void;
+    // FIX: Changed type to Partial<Expense> to match the parent component's state.
+    onEditExpense: (expense: Partial<Expense> | null) => void;
 }
 
 const ITEM_HEIGHT = 84; // Altezza totale per slot, inclusa la spaziatura

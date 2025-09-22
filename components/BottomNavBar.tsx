@@ -16,7 +16,6 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeView, onNavigate, isT
         { id: 'explore', label: 'Esplora', icon: 'explore', requiresTrip: true },
         { id: 'summary', label: 'Home', icon: 'home', requiresTrip: true },
         { id: 'stats', label: 'Analisi', icon: 'bar_chart', requiresTrip: true },
-        { id: 'checklist', label: 'Checklist', icon: 'checklist', requiresTrip: true },
         { id: 'itinerary', label: 'Itinerario', icon: 'route', requiresTrip: true },
         { id: 'group', label: 'Gruppo', icon: 'group', requiresTrip: true },
         { id: 'profile', label: 'Profilo', icon: 'person', requiresTrip: false },

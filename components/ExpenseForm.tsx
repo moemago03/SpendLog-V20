@@ -18,7 +18,8 @@ const getLocalDateString = () => {
 
 interface ExpenseFormProps {
     trip: Trip;
-    expense: Expense; // Always provided, check expense.id to determine if new or editing
+    // FIX: Changed type to Partial<Expense> to allow for creating new expenses.
+    expense: Partial<Expense>;
     onClose: () => void;
 }
 
@@ -105,7 +106,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ trip, expense, onClose }) => 
         };
 
         if (isEditMode) {
-            updateExpense(trip.id, { ...expense, ...expenseData });
+            // FIX: Cast to Expense is safe here because isEditMode ensures an id exists.
+            updateExpense(trip.id, { ...expense, ...expenseData } as Expense);
         } else {
             addExpense(trip.id, expenseData);
         }

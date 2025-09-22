@@ -9,10 +9,12 @@ import ItineraryMapView, { MapFilterState } from './ItineraryMapView';
 import { useData } from '../../context/DataContext';
 import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
 import { getContrastColor } from '../../utils/colorUtils';
+import ExpenseListSkeleton from '../ExpenseListSkeleton';
 
 const EventForm = lazy(() => import('./EventForm'));
 const TodayView = lazy(() => import('./TodayView'));
 const TimelineView = lazy(() => import('./TimelineView'));
+const Checklist = lazy(() => import('../Checklist'));
 
 // --- Internal Month View Component ---
 const MonthView: React.FC<{
@@ -289,11 +291,14 @@ const getInitialMapDate = (trip: Trip) => {
     return trip.startDate.split('T')[0];
 };
 
-type ItineraryViewMode = 'today' | 'month' | 'week' | 'map' | 'timeline';
+type ItineraryAgendaViewMode = 'today' | 'month' | 'week' | 'map' | 'timeline';
+type ItinerarySubView = 'agenda' | 'checklist';
 
 // --- Main Itinerary View Component ---
 const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense>) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();
+    const [activeSubView, setActiveSubView] = useState<ItinerarySubView>('agenda');
+
     const tripStartDate = useMemo(() => new Date(trip.startDate.split('T')[0] + 'T00:00:00Z'), [trip.startDate]);
     const tripEndDate = useMemo(() => new Date(trip.endDate.split('T')[0] + 'T23:59:59Z'), [trip.endDate]);
 
@@ -302,7 +307,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
         return today >= tripStartDate && today <= tripEndDate;
     }, [tripStartDate, tripEndDate]);
 
-    const [viewMode, setViewMode] = useState<ItineraryViewMode>('today');
+    const [viewMode, setViewMode] = useState<ItineraryAgendaViewMode>('today');
     
     const initialDate = useMemo(() => {
         const today = new Date();
@@ -378,7 +383,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     const handleOpenAddEventForm = () => setIsAddingEvent(true);
     const handleCloseAddEventForm = () => setIsAddingEvent(false);
 
-    const mainHeaderTitle = useMemo(() => {
+    const agendaHeaderTitle = useMemo(() => {
         if (viewMode === 'map') return 'Mappa Itinerario';
         if (viewMode === 'today') return 'Programma di Oggi';
         if (viewMode === 'timeline') return 'Timeline del Viaggio';
@@ -388,81 +393,101 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     return (
         <div className="pb-24">
             <header className="pt-12 pb-4 px-4 max-w-7xl mx-auto">
-                <div className="flex justify-between items-center">
-                    <div>
-                         <h1 className="text-3xl font-bold text-on-background capitalize">
-                            {mainHeaderTitle}
-                         </h1>
-                         <p className="text-on-surface-variant">{trip.name}</p>
-                    </div>
-                    { (viewMode === 'month' || viewMode === 'week') && (
-                        <div className="flex items-center gap-1 sm:gap-2">
-                            <button onClick={() => handleNavigation(-1)} disabled={isPrevDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Periodo precedente"><span className="material-symbols-outlined">chevron_left</span></button>
-                            <button onClick={() => handleNavigation(1)} disabled={isNextDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Periodo successivo"><span className="material-symbols-outlined">chevron_right</span></button>
-                        </div>
-                    )}
-                </div>
-                <div className="mt-4 bg-surface-variant p-1 rounded-full flex max-w-lg">
-                    <button onClick={() => setViewMode('today')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'today' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Oggi</button>
-                    <button onClick={() => setViewMode('month')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'month' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mese</button>
-                    <button onClick={() => setViewMode('week')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'week' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Settimana</button>
-                    <button onClick={() => setViewMode('timeline')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'timeline' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Timeline</button>
-                    <button onClick={() => setViewMode('map')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'map' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mappa</button>
+                <h1 className="text-3xl font-bold text-on-background">Itinerario</h1>
+                <p className="text-on-surface-variant">{trip.name}</p>
+                 <div className="mt-4 border-b border-surface-variant flex">
+                    <button onClick={() => setActiveSubView('agenda')} className={`py-3 px-4 text-sm font-semibold transition-colors ${activeSubView === 'agenda' ? 'border-b-2 border-primary text-primary' : 'text-on-surface-variant'}`}>
+                        Agenda
+                    </button>
+                    <button onClick={() => setActiveSubView('checklist')} className={`py-3 px-4 text-sm font-semibold transition-colors ${activeSubView === 'checklist' ? 'border-b-2 border-primary text-primary' : 'text-on-surface-variant'}`}>
+                        Checklist
+                    </button>
                 </div>
             </header>
 
-            <main className="px-4 max-w-7xl mx-auto">
-                {viewMode === 'today' && (
-                     <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
-                        <TodayView trip={trip} onAddExpense={onAddExpense} onOpenDayDetail={handleOpenDayDetail} />
-                    </Suspense>
-                )}
-                {viewMode === 'month' && <MonthView displayDate={displayDate} trip={trip} categories={data.categories} onOpenDayDetail={handleOpenDayDetail} />}
-                {viewMode === 'week' && <WeekView displayDate={displayDate} trip={trip} categories={data.categories} onOpenDayDetail={handleOpenDayDetail} />}
-                {viewMode === 'timeline' && (
-                    <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
-                        <TimelineView trip={trip} onOpenDayDetail={handleOpenDayDetail} />
-                    </Suspense>
-                )}
-                {viewMode === 'map' && (
-                    <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
-                        <ItineraryMapView 
-                            trip={trip} 
-                            onOpenDayDetail={handleOpenDayDetail}
-                            filter={mapFilter}
-                            onFilterChange={setMapFilter}
-                        />
-                    </Suspense>
-                )}
-            </main>
-            
-            <button
-                onClick={handleOpenAddEventForm}
-                className="fixed bottom-24 right-6 h-16 w-16 bg-secondary-container text-on-secondary-container dark:bg-blue-800 dark:text-white rounded-2xl shadow-lg flex items-center justify-center transition-transform active:scale-90 z-30"
-                aria-label="Aggiungi nuovo evento"
-            >
-                <span className="material-symbols-outlined text-3xl">add</span>
-            </button>
-            
-            {selectedDateForDetail && (
-                <Suspense fallback={<div/>}>
-                    <DayDetailView 
-                        tripId={trip.id}
-                        selectedDate={selectedDateForDetail}
-                        onClose={handleCloseDayDetail}
-                        onAddExpense={onAddExpense}
-                    />
-                </Suspense>
+            {activeSubView === 'agenda' && (
+                <>
+                    <div className="px-4 max-w-7xl mx-auto">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-semibold text-on-background capitalize">
+                                    {agendaHeaderTitle}
+                                </h2>
+                            </div>
+                            { (viewMode === 'month' || viewMode === 'week') && (
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                    <button onClick={() => handleNavigation(-1)} disabled={isPrevDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Periodo precedente"><span className="material-symbols-outlined">chevron_left</span></button>
+                                    <button onClick={() => handleNavigation(1)} disabled={isNextDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Periodo successivo"><span className="material-symbols-outlined">chevron_right</span></button>
+                                </div>
+                            )}
+                        </div>
+                         <div className="mt-4 bg-surface-variant p-1 rounded-full flex max-w-lg">
+                            <button onClick={() => setViewMode('today')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'today' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Oggi</button>
+                            <button onClick={() => setViewMode('month')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'month' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mese</button>
+                            <button onClick={() => setViewMode('week')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'week' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Settimana</button>
+                            <button onClick={() => setViewMode('timeline')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'timeline' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Timeline</button>
+                            <button onClick={() => setViewMode('map')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'map' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mappa</button>
+                        </div>
+                    </div>
+                    <main className="px-4 max-w-7xl mx-auto">
+                        {viewMode === 'today' && (
+                             <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
+                                <TodayView trip={trip} onAddExpense={onAddExpense} onOpenDayDetail={handleOpenDayDetail} />
+                            </Suspense>
+                        )}
+                        {viewMode === 'month' && <MonthView displayDate={displayDate} trip={trip} categories={data.categories} onOpenDayDetail={handleOpenDayDetail} />}
+                        {viewMode === 'week' && <WeekView displayDate={displayDate} trip={trip} categories={data.categories} onOpenDayDetail={handleOpenDayDetail} />}
+                        {viewMode === 'timeline' && (
+                            <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
+                                <TimelineView trip={trip} onOpenDayDetail={handleOpenDayDetail} />
+                            </Suspense>
+                        )}
+                        {viewMode === 'map' && (
+                            <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
+                                <ItineraryMapView 
+                                    trip={trip} 
+                                    onOpenDayDetail={handleOpenDayDetail}
+                                    filter={mapFilter}
+                                    onFilterChange={setMapFilter}
+                                />
+                            </Suspense>
+                        )}
+                    </main>
+                     <button
+                        onClick={handleOpenAddEventForm}
+                        className="fixed bottom-24 right-6 h-16 w-16 bg-secondary-container text-on-secondary-container dark:bg-blue-800 dark:text-white rounded-2xl shadow-lg flex items-center justify-center transition-transform active:scale-90 z-30"
+                        aria-label="Aggiungi nuovo evento"
+                    >
+                        <span className="material-symbols-outlined text-3xl">add</span>
+                    </button>
+                    {selectedDateForDetail && (
+                        <Suspense fallback={<div/>}>
+                            <DayDetailView 
+                                tripId={trip.id}
+                                selectedDate={selectedDateForDetail}
+                                onClose={handleCloseDayDetail}
+                                onAddExpense={onAddExpense}
+                            />
+                        </Suspense>
+                    )}
+                    {isAddingEvent && (
+                        <Suspense fallback={<div />}>
+                            <EventForm
+                                selectedDate={dateToISOString(displayDate)}
+                                tripId={trip.id}
+                                onClose={handleCloseAddEventForm}
+                            />
+                        </Suspense>
+                    )}
+                </>
             )}
-            
-            {isAddingEvent && (
-                <Suspense fallback={<div />}>
-                    <EventForm
-                        selectedDate={dateToISOString(displayDate)}
-                        tripId={trip.id}
-                        onClose={handleCloseAddEventForm}
-                    />
-                </Suspense>
+
+            {activeSubView === 'checklist' && (
+                <main className="px-4 max-w-4xl mx-auto mt-4">
+                    <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
+                        <Checklist trip={trip} />
+                    </Suspense>
+                </main>
             )}
         </div>
     );
