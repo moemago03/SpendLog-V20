@@ -48,6 +48,11 @@ Questo file contiene una lista di funzionalità e comportamenti critici che DEVO
 - **Regola:** L'intestazione della vista Itinerario deve mostrare il nome del viaggio, le date di inizio/fine formattate e la durata totale in giorni.
 - **Rule:** The Itinerary view header must show the trip name, formatted start/end dates, and the total duration in days.
 
+### 4.2. Vista Mese (Month View)
+
+- **Regola:** Nella vista a calendario mensile, devono essere visibili solo i giorni del mese selezionato. I giorni dei mesi adiacenti (precedente/successivo) devono essere nascosti, a meno che non contengano un evento di viaggio programmato.
+- **Rule:** In the month calendar view, only the days of the selected month must be visible. Days from adjacent months (previous/next) must be hidden, unless they contain a scheduled trip event.
+
 ---
 **Non rimuovere o modificare queste regole senza il consenso esplicito dell'utente.**
 **Do not remove or modify these rules without explicit user consent.**

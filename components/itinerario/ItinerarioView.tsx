@@ -1,10 +1,9 @@
-
 import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
 import { Trip, Event, Expense } from '../../types';
 import DayDetailView from './DayDetailView';
-import { useItinerary } from '../../context/ItineraryContext';
+import { useItinerario } from '../../context/ItinerarioContext';
 import { getMonthGridDays, dateToISOString, isSameDay, getWeekRange, getDaysArray, getTripDurationDays, getMonthRange } from '../../utils/dateUtils';
-import ItineraryMapView, { MapFilterState } from './ItineraryMapView';
+import ItinerarioMapView, { MapFilterState } from './ItinerarioMapView';
 import { useData } from '../../context/DataContext';
 import { getContrastColor } from '../../utils/colorUtils';
 import ExpenseListSkeleton from '../ExpenseListSkeleton';
@@ -20,12 +19,12 @@ const MonthView: React.FC<{
     trip: Trip;
     categories: any[]; // Using any to avoid type issues with imported Category
     onOpenDayDetail: (date: Date) => void;
-    dateFilterRange: { start: Date; end: Date } | null;
-}> = ({ displayDate, trip, categories, onOpenDayDetail, dateFilterRange }) => {
-    const { getEventsByTrip } = useItinerary();
+}> = ({ displayDate, trip, categories, onOpenDayDetail }) => {
+    const { getEventsByTrip } = useItinerario();
     const tripStartDate = useMemo(() => new Date(trip.startDate.split('T')[0] + 'T00:00:00Z'), [trip.startDate]);
     const tripEndDate = useMemo(() => new Date(trip.endDate.split('T')[0] + 'T23:59:59Z'), [trip.endDate]);
     
+    // NEW: Get all events and create a Set of dates with events for quick lookup
     const eventDates = useMemo(() => {
         const allEvents = getEventsByTrip(trip.id);
         const dates = new Set<string>();
@@ -106,24 +105,23 @@ const MonthView: React.FC<{
             </div>
             <div className="relative grid grid-cols-7 border-t border-l border-outline/20">
                 {monthGridDays.map((date, index) => {
-                    let isVisible;
-                    if (dateFilterRange) {
-                        const normalizedDate = new Date(date);
-                        normalizedDate.setHours(12, 0, 0, 0); // Normalize to avoid DST/timezone issues
-                        isVisible = normalizedDate >= dateFilterRange.start && normalizedDate <= dateFilterRange.end;
-                    } else {
-                        const isCurrentMonth = date.getMonth() === displayDate.getMonth();
-                        const hasEvent = eventDates.has(dateToISOString(date));
-                        isVisible = isCurrentMonth || hasEvent;
-                    }
+                    const isCurrentMonth = date.getMonth() === displayDate.getMonth();
+                    
+                    // NEW: Check if the date has an event
+                    const hasEvent = eventDates.has(dateToISOString(date));
 
-                    if (!isVisible) {
-                        return <div key={index} className="relative min-h-24 md:min-h-32 border-b border-r border-outline/20 bg-surface-variant/10" />;
+                    // NEW: If the day is not in the current month AND has no event, render an empty cell
+                    if (!isCurrentMonth && !hasEvent) {
+                        return (
+                            <div 
+                                key={index} 
+                                className="relative min-h-24 md:min-h-32 border-b border-r border-outline/20 bg-surface-variant/10" 
+                            />
+                        );
                     }
                     
                     const isToday = isSameDay(new Date(), date);
                     const isInTrip = date >= tripStartDate && date <= tripEndDate;
-                    const isCurrentMonth = date.getMonth() === displayDate.getMonth();
 
                     let cellClasses = 'bg-surface hover:bg-surface-variant/70';
                     if (!isCurrentMonth) cellClasses = 'bg-surface-variant/30';
@@ -192,15 +190,14 @@ const getInitialMapDate = (trip: Trip) => {
     return trip.startDate.split('T')[0];
 };
 
-type ItineraryAgendaViewMode = 'day' | 'month' | 'map';
-type ItinerarySubView = 'agenda' | 'checklist';
-type DayStripQuickFilter = 'today' | 'week' | 'all';
-type CalendarQuickFilter = '3days' | '7days' | '10days' | 'all';
+type ItinerarioAgendaViewMode = 'day' | 'month' | 'map';
+type ItinerarioSubView = 'agenda' | 'checklist';
+type QuickFilter = 'today' | 'week' | 'all';
 
 // --- Main Itinerary View Component ---
-const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense>) => void; }> = ({ trip, onAddExpense }) => {
+const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense>) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();
-    const [activeSubView, setActiveSubView] = useState<ItinerarySubView>('agenda');
+    const [activeSubView, setActiveSubView] = useState<ItinerarioSubView>('agenda');
 
     const tripStartDate = useMemo(() => new Date(trip.startDate.split('T')[0] + 'T00:00:00Z'), [trip.startDate]);
     const tripEndDate = useMemo(() => new Date(trip.endDate.split('T')[0] + 'T23:59:59Z'), [trip.endDate]);
@@ -220,8 +217,8 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     }, [isTripActive, todayISO, trip.startDate]);
 
     const [selectedDateISO, setSelectedDateISO] = useState(initialAgendaDate);
-    const [viewMode, setViewMode] = useState<ItineraryAgendaViewMode>('day');
-    const [dayStripQuickFilter, setDayStripQuickFilter] = useState<DayStripQuickFilter>('all');
+    const [viewMode, setViewMode] = useState<ItinerarioAgendaViewMode>('day');
+    const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
     
     const [displayDateForMonth, setDisplayDateForMonth] = useState(() => new Date(selectedDateISO + 'T12:00:00Z'));
     const [isAddingEvent, setIsAddingEvent] = useState(false);
@@ -236,37 +233,13 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
         }
     }));
     
-    const [calendarQuickFilter, setCalendarQuickFilter] = useState<CalendarQuickFilter>('all');
-    const [calendarDateFilter, setCalendarDateFilter] = useState<{ start: Date; end: Date } | null>(null);
-
     const handleNavigation = (delta: number) => {
-        setCalendarQuickFilter('all');
-        setCalendarDateFilter(null);
         setDisplayDateForMonth(prev => {
             const newDate = new Date(prev);
             newDate.setMonth(newDate.getMonth() + delta, 1);
             return newDate;
         });
     };
-    
-    const handleCalendarFilterChange = useCallback((filter: CalendarQuickFilter) => {
-        setCalendarQuickFilter(filter);
-        if (filter === 'all') {
-            setCalendarDateFilter(null);
-        } else {
-            const today = new Date();
-            const startDate = new Date(today);
-            startDate.setHours(0, 0, 0, 0);
-
-            const endDate = new Date(today);
-            const daysToAdd = filter === '3days' ? 2 : filter === '7days' ? 6 : 9;
-            endDate.setDate(endDate.getDate() + daysToAdd);
-            endDate.setHours(23, 59, 59, 999);
-
-            setCalendarDateFilter({ start: startDate, end: endDate });
-            setDisplayDateForMonth(new Date());
-        }
-    }, []);
 
     const handleDateSelect = useCallback((isoDate: string) => {
         setSelectedDateISO(isoDate);
@@ -275,14 +248,15 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
         }
     }, [viewMode]);
 
-    const handleDayStripQuickFilter = (filter: DayStripQuickFilter) => {
-        setDayStripQuickFilter(filter);
+    const handleQuickFilter = (filter: QuickFilter) => {
+        setQuickFilter(filter);
         switch (filter) {
             case 'today':
                 const today = new Date();
                 if (today >= tripStartDate && today <= tripEndDate) {
                     setSelectedDateISO(dateToISOString(today));
                 } else {
+                    // If today is outside the trip, just go to the start
                     setSelectedDateISO(trip.startDate.split('T')[0]);
                 }
                 break;
@@ -308,28 +282,17 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     const formattedStartDate = new Date(trip.startDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
     const formattedEndDate = new Date(trip.endDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
     
-    const DayStripQuickFilterButton: React.FC<{filterType: DayStripQuickFilter, label: string}> = ({ filterType, label }) => (
+    const QuickFilterButton: React.FC<{filterType: QuickFilter, label: string}> = ({ filterType, label }) => (
         <button
-            onClick={() => handleDayStripQuickFilter(filterType)}
+            onClick={() => handleQuickFilter(filterType)}
             className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
-                dayStripQuickFilter === filterType ? 'bg-primary-container text-on-primary-container' : 'bg-surface-variant text-on-surface-variant'
+                quickFilter === filterType ? 'bg-primary-container text-on-primary-container' : 'bg-surface-variant text-on-surface-variant'
             }`}
         >
             {label}
         </button>
     );
 
-    const CalendarFilterButton: React.FC<{filterType: CalendarQuickFilter, label: string}> = ({ filterType, label }) => (
-        <button
-            onClick={() => handleCalendarFilterChange(filterType)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
-                calendarQuickFilter === filterType ? 'bg-primary text-on-primary' : 'text-on-surface-variant'
-            }`}
-        >
-            {label}
-        </button>
-    );
-    
     return (
         <div className="pb-24">
             <header className="pt-8 pb-4 px-4 max-w-7xl mx-auto">
@@ -361,9 +324,9 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
 
             <div className={activeSubView === 'agenda' ? '' : 'hidden'}>
                 <div className="px-4 max-w-7xl mx-auto mt-4 flex items-center gap-2">
-                    <DayStripQuickFilterButton filterType="today" label="Oggi" />
-                    <DayStripQuickFilterButton filterType="week" label="Questa Settimana" />
-                    <DayStripQuickFilterButton filterType="all" label="Tutto" />
+                    <QuickFilterButton filterType="today" label="Oggi" />
+                    <QuickFilterButton filterType="week" label="Questa Settimana" />
+                    <QuickFilterButton filterType="all" label="Tutto" />
                 </div>
                 <DayStrip
                     trip={trip}
@@ -371,14 +334,9 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                     onSelectDate={handleDateSelect}
                 />
                 <div className="px-4 mt-6 max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-bold text-on-surface">
-                            {viewMode !== 'month' ? 
-                                `${new Date(selectedDateISO + 'T12:00:00Z').toLocaleDateString('it-IT', { weekday: 'long' })}, ${new Date(selectedDateISO + 'T12:00:00Z').getDate()}`
-                                : 'Calendario'
-                            }
-                        </h2>
-                    </div>
+                    <h2 className="text-2xl font-bold text-on-surface">
+                        {new Date(selectedDateISO + 'T12:00:00Z').toLocaleDateString('it-IT', { weekday: 'long' })}, {new Date(selectedDateISO + 'T12:00:00Z').getDate()}
+                    </h2>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setIsAIGeneratorOpen(true)}
@@ -413,38 +371,16 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                         </Suspense>
                     )}
                     {viewMode === 'month' && (
-                        <div className="animate-fade-in">
-                            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 px-2">
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => handleNavigation(-1)} className="p-2 rounded-full hover:bg-surface-variant">
-                                        <span className="material-symbols-outlined">chevron_left</span>
-                                    </button>
-                                    <h3 className="text-lg font-bold text-center w-40 capitalize">
-                                        {displayDateForMonth.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}
-                                    </h3>
-                                    <button onClick={() => handleNavigation(1)} className="p-2 rounded-full hover:bg-surface-variant">
-                                        <span className="material-symbols-outlined">chevron_right</span>
-                                    </button>
-                                </div>
-                                <div className="flex items-center gap-2 p-1 bg-surface-variant rounded-full mt-3 sm:mt-0">
-                                    <CalendarFilterButton filterType="3days" label="3 giorni" />
-                                    <CalendarFilterButton filterType="7days" label="7 giorni" />
-                                    <CalendarFilterButton filterType="10days" label="10 giorni" />
-                                    <CalendarFilterButton filterType="all" label="Tutto" />
-                                </div>
-                            </div>
-                            <MonthView 
-                                displayDate={displayDateForMonth} 
-                                trip={trip} 
-                                categories={data.categories} 
-                                onOpenDayDetail={(d) => handleDateSelect(dateToISOString(d))} 
-                                dateFilterRange={calendarDateFilter}
-                            />
-                        </div>
+                        <MonthView 
+                            displayDate={displayDateForMonth} 
+                            trip={trip} 
+                            categories={data.categories} 
+                            onOpenDayDetail={(d) => handleDateSelect(dateToISOString(d))} 
+                        />
                     )}
                     {viewMode === 'map' && (
                         <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
-                            <ItineraryMapView 
+                            <ItinerarioMapView 
                                 trip={trip} 
                                 onOpenDayDetail={(d) => handleDateSelect(dateToISOString(d))}
                                 filter={mapFilter}
@@ -491,4 +427,4 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     );
 };
 
-export default ItineraryView;
+export default ItinerarioView;

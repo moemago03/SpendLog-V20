@@ -1,6 +1,6 @@
 // components/itinerary/DayDetailView.tsx
 
-import React, { useMemo, useState, lazy, Suspense, useRef, DragEvent, useCallback } from 'react';
+import React, { useMemo, useState, lazy, Suspense, useRef, DragEvent, useCallback, useEffect } from 'react';
 import { useItinerary } from '../../context/ItineraryContext';
 import { Event, Expense } from '../../types';
 import { useData } from '../../context/DataContext';
@@ -185,10 +185,35 @@ interface TimelineProps {
     onDragOver: (e: DragEvent<HTMLDivElement>) => void;
     onDrop: (e: DragEvent<HTMLDivElement>) => void;
     onDragLeave: (e: DragEvent<HTMLDivElement>) => void;
+    isToday: boolean;
 }
 
-const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, onDuplicateEvent, startHour, endHour, onStatusToggle, currentEvent, currentEventStatus, spentPerEvent, ...dragProps }) => {
+const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, onDuplicateEvent, startHour, endHour, onStatusToggle, currentEvent, currentEventStatus, spentPerEvent, isToday, ...dragProps }) => {
     const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
+    const [currentTimePosition, setCurrentTimePosition] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!isToday) {
+            setCurrentTimePosition(null);
+            return;
+        }
+
+        const calculatePosition = () => {
+            const now = new Date();
+            const minutes = now.getHours() * 60 + now.getMinutes();
+            const position = ((minutes / 60) - startHour) * HOUR_HEIGHT;
+            if (position >= 0 && position <= (endHour - startHour + 1) * HOUR_HEIGHT) {
+                setCurrentTimePosition(position);
+            } else {
+                setCurrentTimePosition(null);
+            }
+        };
+
+        calculatePosition();
+        const interval = setInterval(calculatePosition, 60000); // Update every minute
+
+        return () => clearInterval(interval);
+    }, [isToday, startHour, endHour]);
 
     return (
         <div 
@@ -211,27 +236,57 @@ const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, 
                     style={{ top: `${dragProps.dropIndicatorPosition}px` }}
                 />
             )}
+            
+            {currentTimePosition !== null && (
+                <div className="absolute left-14 right-0 h-0.5 bg-red-500 z-20 pointer-events-none transition-all duration-1000" style={{ top: `${currentTimePosition}px` }}>
+                    <div className="absolute -left-1.5 -top-1.5 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-surface"></div>
+                </div>
+            )}
 
             <div className="absolute top-0 left-0 right-0 bottom-0">
-                {events.map(event => {
+                {events.map((event, index) => {
                     const isCurrent = currentEvent?.eventId === event.eventId;
                     const statusLabel = isCurrent ? (currentEventStatus === 'LIVE' ? 'IN CORSO' : (currentEventStatus === 'NEXT' ? 'PROSSIMO' : null)) : null;
+                    const nextEvent = events[index + 1];
+                    const showTravelTime = event.location && nextEvent?.location && nextEvent?.startTime && event.startTime;
+
+                    const startMinutes = timeToMinutes(event.endTime || event.startTime!);
+                    const nextStartMinutes = timeToMinutes(nextEvent?.startTime || '00:00');
+                    const travelBlockTop = ((startMinutes / 60) - startHour) * HOUR_HEIGHT;
+                    const travelBlockHeight = ((nextStartMinutes - startMinutes) / 60) * HOUR_HEIGHT;
+
                     return (
-                         <TimelineEventCard 
-                            key={event.eventId} 
-                            event={event} 
-                            onEditEvent={onEditEvent} 
-                            onAddExpense={onAddExpense}
-                            onDuplicateEvent={onDuplicateEvent}
-                            timelineStartHour={startHour} 
-                            spentAmount={spentPerEvent.get(event.eventId)}
-                            isBeingDragged={dragProps.draggedEventId === event.eventId}
-                            onDragStart={dragProps.onDragStart}
-                            onDragEnd={dragProps.onDragEnd}
-                            onStatusToggle={onStatusToggle}
-                            isCurrent={isCurrent}
-                            statusLabel={statusLabel}
-                         />
+                        <React.Fragment key={event.eventId}>
+                            <TimelineEventCard 
+                                event={event} 
+                                onEditEvent={onEditEvent} 
+                                onAddExpense={onAddExpense}
+                                onDuplicateEvent={onDuplicateEvent}
+                                timelineStartHour={startHour} 
+                                spentAmount={spentPerEvent.get(event.eventId)}
+                                isBeingDragged={dragProps.draggedEventId === event.eventId}
+                                onDragStart={dragProps.onDragStart}
+                                onDragEnd={dragProps.onDragEnd}
+                                onStatusToggle={onStatusToggle}
+                                isCurrent={isCurrent}
+                                statusLabel={statusLabel}
+                            />
+                             {showTravelTime && travelBlockHeight > 10 && (
+                                <div
+                                    className="absolute left-0 w-16 flex justify-end pointer-events-none"
+                                    style={{ top: `${travelBlockTop}px`, height: `${travelBlockHeight}px` }}
+                                >
+                                    <div className="flex flex-col items-center justify-center h-full w-full pr-2">
+                                        <div className="w-px flex-grow border-l border-dashed border-on-surface-variant/50"></div>
+                                        <div className="text-on-surface-variant my-1">
+                                            <span className="material-symbols-outlined text-base">directions_car</span>
+                                        </div>
+                                        <p className="text-[10px] font-bold text-on-surface-variant -mt-1">~15m</p>
+                                        <div className="w-px flex-grow border-l border-dashed border-on-surface-variant/50"></div>
+                                    </div>
+                                </div>
+                            )}
+                        </React.Fragment>
                     );
                 })}
             </div>
@@ -244,9 +299,10 @@ interface AllDayEventPillProps {
     onEditEvent: (event: Event) => void;
     onAddExpense: (event: Event) => void;
     onDuplicateEvent: (event: Event) => void;
+    dayIndicator?: string;
 }
 
-const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent }) => {
+const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, dayIndicator }) => {
     const { data } = useData();
     const category = data.categories.find(c => c.name === event.type);
     const eventColor = category?.color || '#9E9E9E';
@@ -262,6 +318,7 @@ const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, o
             <div className="flex items-center gap-2 min-w-0">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor: eventColor}} />
                 <p className="font-bold text-sm text-on-surface truncate">{event.title}</p>
+                 {dayIndicator && <span className="text-xs font-semibold text-on-surface-variant flex-shrink-0">{dayIndicator}</span>}
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
                  <button
@@ -336,7 +393,13 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onA
 
     const { timedEvents, allDayEvents, timelineStartHour, timelineEndHour } = useMemo(() => {
         const allTripEvents = getEventsByTrip(tripId);
-        const eventsForDay = allTripEvents.filter(event => event.eventDate === selectedDate);
+        const currentDate = new Date(selectedDate + 'T12:00:00Z');
+        
+        const eventsForDay = allTripEvents.filter(event => {
+            const eventStart = new Date(event.eventDate + 'T00:00:00Z');
+            const eventEnd = event.endDate ? new Date(event.endDate + 'T23:59:59Z') : new Date(event.eventDate + 'T23:59:59Z');
+            return currentDate >= eventStart && currentDate <= eventEnd;
+        });
         
         const timed = eventsForDay
             .filter(event => !!event.startTime)
@@ -390,12 +453,12 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onA
     const handleAddExpenseForEvent = useCallback((event: Event) => {
         const prefill: Partial<Expense> = {
             description: event.title,
-            date: event.eventDate,
+            date: selectedDate,
             category: event.type,
             eventId: event.eventId,
         };
         onAddExpense(prefill);
-    }, [onAddExpense]);
+    }, [onAddExpense, selectedDate]);
 
     const handleOpenForm = useCallback((event: Event | 'new') => setEditingEvent(event), []);
     const handleCloseForm = useCallback(() => setEditingEvent(null), []);
@@ -460,6 +523,26 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onA
         setDropIndicatorPosition(null);
     }, []);
 
+    const getDayIndicator = (event: Event) => {
+        if (!event.endDate || event.eventDate === event.endDate) return undefined;
+        const start = new Date(event.eventDate + 'T00:00:00Z');
+        const end = new Date(event.endDate + 'T00:00:00Z');
+        const current = new Date(selectedDate + 'T00:00:00Z');
+        const totalDays = Math.round((end.getTime() - start.getTime()) / (1000 * 3600 * 24)) + 1;
+        const currentDay = Math.round((current.getTime() - start.getTime()) / (1000 * 3600 * 24)) + 1;
+        return `(Giorno ${currentDay} di ${totalDays})`;
+    };
+    
+    const EmptyStateSuggestion: React.FC<{icon: string, text: string, onClick: () => void}> = ({icon, text, onClick}) => (
+        <button onClick={onClick} className="flex items-center gap-4 p-4 bg-surface-variant rounded-2xl w-full text-left hover:bg-primary-container/50 transition-colors">
+            <span className="material-symbols-outlined text-primary text-3xl">{icon}</span>
+            <div>
+                <p className="font-semibold text-on-surface">{text}</p>
+                <p className="text-sm text-on-surface-variant">Aggiungi al programma</p>
+            </div>
+        </button>
+    );
+
     return (
         <div className="animate-fade-in">
              <style>{`
@@ -479,6 +562,7 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onA
                                     onEditEvent={() => handleOpenForm(event)}
                                     onAddExpense={() => handleAddExpenseForEvent(event)}
                                     onDuplicateEvent={() => handleOpenDuplicateModal(event)}
+                                    dayIndicator={getDayIndicator(event)}
                                 />
                             ))}
                         </div>
@@ -487,17 +571,31 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onA
 
                 <div className="px-2 pt-4" ref={timelineRef}>
                     {timedEvents.length === 0 && allDayEvents.length === 0 ? (
-                        <div className="text-center py-16 px-6 bg-surface-variant/50 rounded-3xl flex flex-col items-center">
+                        <div className="text-center py-12 px-6 bg-surface-variant/50 rounded-3xl flex flex-col items-center">
                             <span className="material-symbols-outlined text-6xl text-on-surface-variant/50">partly_cloudy_day</span>
                             <h2 className="text-2xl font-semibold text-on-surface mt-4">Nessun evento</h2>
-                            <p className="mt-2 text-on-surface-variant max-w-xs mx-auto">Questa giornata è libera. Aggiungi un nuovo evento per iniziare a pianificare.</p>
+                            <p className="mt-2 text-on-surface-variant max-w-xs mx-auto">Questa giornata è libera. Usa i suggerimenti qui sotto per iniziare a pianificare.</p>
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8 w-full max-w-lg">
+                                <EmptyStateSuggestion icon="restaurant" text="Pianifica un pasto" onClick={() => handleOpenForm('new')} />
+                                <EmptyStateSuggestion icon="attractions" text="Cerca un'attività" onClick={() => handleOpenForm('new')} />
+                                <EmptyStateSuggestion icon="flight" text="Aggiungi un volo" onClick={() => handleOpenForm('new')} />
+                                <EmptyStateSuggestion icon="hotel" text="Prenota alloggio" onClick={() => handleOpenForm('new')} />
+                            </div>
                         </div>
                     ) : (
-                        <Timeline events={timedEvents} onEditEvent={handleOpenForm} onAddExpense={handleAddExpenseForEvent} onDuplicateEvent={handleOpenDuplicateModal} startHour={timelineStartHour} endHour={timelineEndHour} expenses={expenses}
+                        <Timeline
+                            events={timedEvents}
+                            onEditEvent={handleOpenForm}
+                            onAddExpense={handleAddExpenseForEvent}
+                            onDuplicateEvent={handleOpenDuplicateModal}
+                            startHour={timelineStartHour}
+                            endHour={timelineEndHour}
+                            expenses={expenses}
                             onStatusToggle={handleStatusToggle}
                             currentEvent={currentEvent}
                             currentEventStatus={currentEventStatus}
                             spentPerEvent={spentPerEvent}
+                            isToday={isToday}
                             draggedEventId={draggedEventId}
                             dropIndicatorPosition={dropIndicatorPosition}
                             onDragStart={handleDragStart}
