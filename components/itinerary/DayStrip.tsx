@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef, useEffect } from 'react';
 import { Trip } from '../../types';
 import { getDaysArray } from '../../utils/dateUtils';
@@ -23,7 +24,6 @@ const DayStrip: React.FC<DayStripProps> = ({ trip, selectedDate, onSelectDate })
             const containerRect = container.getBoundingClientRect();
             const itemRect = item.getBoundingClientRect();
 
-            // Calculate the desired scroll position to center the item
             const scrollPosition = item.offsetLeft - (containerRect.width / 2) + (itemRect.width / 2);
             
             container.scrollTo({ left: scrollPosition, behavior: 'smooth' });
@@ -33,27 +33,27 @@ const DayStrip: React.FC<DayStripProps> = ({ trip, selectedDate, onSelectDate })
     return (
         <div 
             ref={scrollContainerRef}
-            className="flex space-x-3 overflow-x-auto p-4 no-scrollbar"
+            className="flex space-x-3 overflow-x-auto p-4 -mx-4 no-scrollbar"
         >
-            {tripDays.map(({ iso, date }) => {
+            {tripDays.map(({ iso, date }, index) => {
                 const isSelected = selectedDate === iso;
                 const dayOfWeek = date.toLocaleDateString('it-IT', { weekday: 'short' }).toUpperCase();
-                const month = date.toLocaleDateString('it-IT', { month: 'short' }).toUpperCase();
+                const dayOfMonth = date.getDate();
 
                 return (
                     <button
                         key={iso}
                         ref={isSelected ? selectedItemRef : null}
                         onClick={() => onSelectDate(iso)}
-                        className={`flex-shrink-0 flex flex-col items-center justify-between w-[68px] h-[92px] rounded-3xl transition-all duration-300 transform active:scale-95 p-2 shadow-sm ${
+                        className={`flex-shrink-0 flex flex-col items-center justify-center w-16 h-20 rounded-2xl transition-all duration-300 transform active:scale-95 p-2 shadow-sm ${
                             isSelected 
-                                ? 'bg-[#3C3866] text-white' 
-                                : 'bg-white dark:bg-surface-variant/50 text-gray-500 dark:text-on-surface-variant/80 border border-gray-200 dark:border-surface-variant'
+                                ? 'bg-primary text-on-primary' 
+                                : 'bg-surface text-on-surface-variant'
                         }`}
+                        style={{ marginLeft: index === 0 ? '1rem' : '', marginRight: index === tripDays.length - 1 ? '1rem' : '' }}
                     >
-                        <span className={`text-xs font-semibold ${isSelected ? 'text-white/80' : 'text-gray-400 dark:text-on-surface-variant/60'}`}>{month}</span>
-                        <span className="text-2xl font-bold">{date.getDate()}</span>
-                        <span className={`text-xs font-semibold ${isSelected ? 'text-white/80' : 'text-gray-400 dark:text-on-surface-variant/60'}`}>{dayOfWeek}</span>
+                        <span className={`text-xs font-semibold ${isSelected ? 'text-on-primary/80' : 'text-on-surface-variant/70'}`}>{dayOfWeek}</span>
+                        <span className={`text-2xl font-bold mt-1 ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>{dayOfMonth}</span>
                     </button>
                 );
             })}
