@@ -1,3 +1,4 @@
+
 // components/itinerary/ItineraryView.tsx
 
 import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
@@ -424,12 +425,19 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     const handleCloseAddEventForm = () => setIsAddingEvent(false);
 
     const agendaHeaderTitle = useMemo(() => {
+        const today = new Date();
         if (viewMode === 'today') {
-            return new Date().toLocaleString('it-IT', { day: 'numeric', month: 'long' });
+            return today.toLocaleString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+         if (viewMode === 'week') {
+            return headerDateString;
+        }
+        if (viewMode === 'month') {
+             return displayDate.toLocaleString('it-IT', { month: 'long', year: 'numeric' });
         }
         if (viewMode === 'map') return 'Mappa Itinerario';
-        return headerDateString;
-    }, [viewMode, headerDateString]);
+        return '';
+    }, [viewMode, headerDateString, displayDate]);
 
     const tripDuration = useMemo(() => getTripDurationDays(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
     const formattedStartDate = new Date(trip.startDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
@@ -439,7 +447,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
 
     return (
         <div className="pb-24">
-            <header className="pt-8 pb-4 px-4">
+            <header className="pt-8 pb-4 px-4 max-w-7xl mx-auto">
                 <h1 className="text-3xl font-bold text-on-background">{trip.name}</h1>
                 <p className="text-on-surface-variant">{formattedStartDate} - {formattedEndDate} ({tripDuration} giorni)</p>
                 <div className="mt-6 flex border-b border-surface-variant">
@@ -468,33 +476,31 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
 
             {activeSubView === 'agenda' && (
                 <>
-                    <div className="px-2">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h2 className="text-xl font-semibold text-on-background capitalize">
-                                    {agendaHeaderTitle}
-                                </h2>
-                                {totalSpentForPeriod !== null && totalSpentForPeriod > 0 && (
-                                    <p className="text-sm font-semibold text-primary -mt-1">
-                                        {formatCurrency(totalSpentForPeriod, trip.mainCurrency)} spesi
-                                    </p>
-                                )}
-                            </div>
-                            { (viewMode === 'month' || viewMode === 'week') && (
-                                <div className="flex items-center gap-1 sm:gap-2">
-                                    <button onClick={() => handleNavigation(-1)} disabled={isPrevDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Periodo precedente"><span className="material-symbols-outlined">chevron_left</span></button>
-                                    <button onClick={() => handleNavigation(1)} disabled={isNextDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Periodo successivo"><span className="material-symbols-outlined">chevron_right</span></button>
-                                </div>
+                    <div className="px-2 max-w-7xl mx-auto relative h-16 flex items-center justify-center">
+                        <div className="text-center">
+                            <h2 className="text-xl font-semibold text-on-background capitalize">
+                                {agendaHeaderTitle}
+                            </h2>
+                            {totalSpentForPeriod !== null && (viewMode === 'today' || viewMode === 'week' || viewMode === 'month') && (
+                                <p className="text-sm font-semibold text-primary -mt-1">
+                                    {totalSpentForPeriod > 0 ? `${formatCurrency(totalSpentForPeriod, trip.mainCurrency)} spesi` : 'Nessuna spesa'}
+                                </p>
                             )}
                         </div>
-                         <div className="mt-4 bg-surface-variant p-1 rounded-full flex max-w-lg">
-                            <button onClick={() => setViewMode('today')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'today' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Oggi</button>
-                            <button onClick={() => setViewMode('week')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'week' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>7 Giorni</button>
-                            <button onClick={() => setViewMode('month')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'month' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mese</button>
-                            <button onClick={() => setViewMode('map')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'map' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mappa</button>
-                        </div>
+                        {(viewMode === 'month' || viewMode === 'week') && (
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-2">
+                                <button onClick={() => handleNavigation(-1)} disabled={isPrevDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Periodo precedente"><span className="material-symbols-outlined">chevron_left</span></button>
+                                <button onClick={() => handleNavigation(1)} disabled={isNextDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed" aria-label="Periodo successivo"><span className="material-symbols-outlined">chevron_right</span></button>
+                            </div>
+                        )}
                     </div>
-                    <main className="px-2">
+                     <div className="mt-4 bg-surface-variant p-1 rounded-full flex max-w-lg mx-auto">
+                        <button onClick={() => setViewMode('today')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'today' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Oggi</button>
+                        <button onClick={() => setViewMode('week')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'week' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>7 Giorni</button>
+                        <button onClick={() => setViewMode('month')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'month' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mese</button>
+                        <button onClick={() => setViewMode('map')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'map' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mappa</button>
+                    </div>
+                    <main className="px-2 max-w-7xl mx-auto">
                         {viewMode === 'today' && (
                             <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
                                 <DayDetailView 

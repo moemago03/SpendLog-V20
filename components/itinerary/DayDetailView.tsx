@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, lazy, Suspense, useRef, DragEvent, useCallback } from 'react';
 import { useItinerary } from '../../context/ItineraryContext';
 import { Event, Expense } from '../../types';
@@ -32,15 +33,17 @@ const TimelineEventCard: React.FC<{
     onAddExpense: (event: Event) => void;
     onDuplicateEvent: (event: Event) => void;
     timelineStartHour: number;
-    hasExpense: boolean;
+    spentAmount: number | undefined;
     isBeingDragged: boolean;
     onDragStart: (e: DragEvent<HTMLDivElement>, eventId: string) => void;
     onDragEnd: (e: DragEvent<HTMLDivElement>) => void;
     onStatusToggle: (eventId: string, currentStatus: 'planned' | 'completed') => void;
     isCurrent: boolean;
     statusLabel: string | null;
-}> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, timelineStartHour, hasExpense, isBeingDragged, onDragStart, onDragEnd, onStatusToggle, isCurrent, statusLabel }) => {
+}> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, timelineStartHour, spentAmount, isBeingDragged, onDragStart, onDragEnd, onStatusToggle, isCurrent, statusLabel }) => {
     const { data } = useData();
+    const { formatCurrency } = useCurrencyConverter();
+    const tripData = data.trips.find(t => t.id === event.tripId);
     if (!event.startTime) return null;
 
     const startMinutes = timeToMinutes(event.startTime);
@@ -95,7 +98,11 @@ const TimelineEventCard: React.FC<{
                         </button>
                         <p className={`font-bold text-sm leading-tight flex-1 ${isCompleted ? 'line-through' : ''}`}>{event.title}</p>
                     </div>
-                    {hasExpense && <span className="text-xs font-bold bg-white/80 text-black px-1.5 py-0.5 rounded-full -mr-1 -mt-1 flex-shrink-0">€</span>}
+                     {spentAmount && spentAmount > 0 ? (
+                        <span className="text-xs font-bold bg-white/80 text-black px-1.5 py-0.5 rounded-full -mr-1 -mt-1 flex-shrink-0">
+                            {formatCurrency(spentAmount, tripData!.mainCurrency).replace(/\.00$/, '')}
+                        </span>
+                    ) : null}
                 </div>
                 <p className="text-xs opacity-80 pl-7">{event.startTime}{event.endTime ? ` - ${event.endTime}` : ''}</p>
                  {event.description && <p className="text-xs opacity-70 mt-1 truncate pl-7">{event.description}</p>}
@@ -195,6 +202,7 @@ interface TimelineProps {
     onStatusToggle: (eventId: string, currentStatus: 'planned' | 'completed') => void;
     currentEvent: Event | null;
     currentEventStatus: string | null;
+    spentPerEvent: Map<string, number>;
     // Drag & Drop props
     draggedEventId: string | null;
     dropIndicatorPosition: number | null;
@@ -205,7 +213,7 @@ interface TimelineProps {
     onDragLeave: (e: DragEvent<HTMLDivElement>) => void;
 }
 
-const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, onDuplicateEvent, startHour, endHour, expenses, travelTimes, onCalculateTravelTime, onStatusToggle, currentEvent, currentEventStatus, ...dragProps }) => {
+const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, onDuplicateEvent, startHour, endHour, expenses, travelTimes, onCalculateTravelTime, onStatusToggle, currentEvent, currentEventStatus, spentPerEvent, ...dragProps }) => {
     const hours = Array.from({ length: endHour - startHour }, (_, i) => i + startHour);
 
     return (
@@ -232,7 +240,6 @@ const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, 
 
             <div className="absolute top-0 left-0 right-0 bottom-0">
                 {events.map(event => {
-                    const hasExpense = expenses.some(e => e.eventId === event.eventId);
                     const isCurrent = currentEvent?.eventId === event.eventId;
                     const statusLabel = isCurrent ? (currentEventStatus === 'LIVE' ? 'IN CORSO' : (currentEventStatus === 'NEXT' ? 'PROSSIMO' : null)) : null;
                     return (
@@ -243,7 +250,7 @@ const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, 
                             onAddExpense={onAddExpense}
                             onDuplicateEvent={onDuplicateEvent}
                             timelineStartHour={startHour} 
-                            hasExpense={hasExpense}
+                            spentAmount={spentPerEvent.get(event.eventId)}
                             isBeingDragged={dragProps.draggedEventId === event.eventId}
                             onDragStart={dragProps.onDragStart}
                             onDragEnd={dragProps.onDragEnd}
@@ -282,12 +289,14 @@ interface AllDayEventPillProps {
     onEditEvent: (event: Event) => void;
     onAddExpense: (event: Event) => void;
     onDuplicateEvent: (event: Event) => void;
-    hasExpense: boolean;
+    spentAmount: number | undefined;
     onStatusToggle: (eventId: string, currentStatus: 'planned' | 'completed') => void;
 }
 
-const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, hasExpense, onStatusToggle }) => {
+const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, spentAmount, onStatusToggle }) => {
     const { data } = useData();
+    const { formatCurrency } = useCurrencyConverter();
+    const tripData = data.trips.find(t => t.id === event.tripId);
     const category = data.categories.find(c => c.name === event.type);
     const bgColor = category?.color || '#9E9E9E';
     const textColor = getContrastColor(bgColor);
@@ -306,7 +315,11 @@ const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, o
                 {isCompleted && <span className="material-symbols-outlined text-xs" style={{ color: bgColor }}>check</span>}
             </button>
             <div onClick={() => onEditEvent(event)} className="flex-grow cursor-pointer flex items-center gap-2 min-w-0">
-                {hasExpense && <span className="text-xs font-bold bg-white/80 text-black px-1.5 py-0.5 rounded-full">€</span>}
+                {spentAmount && spentAmount > 0 ? (
+                    <span className="text-xs font-bold bg-white/80 text-black px-1.5 py-0.5 rounded-full">
+                        {formatCurrency(spentAmount, tripData!.mainCurrency).replace(/\.00$/, '')}
+                    </span>
+                 ) : null}
                 <p className={`font-bold text-sm truncate ${isCompleted ? 'line-through' : ''}`}>{event.title}</p>
             </div>
              <div className="flex items-center gap-1">
@@ -370,6 +383,20 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
     const date = useMemo(() => new Date(selectedDate + 'T12:00:00Z'), [selectedDate]);
     const todayISO = useMemo(() => dateToISOString(new Date()), []);
     const isToday = selectedDate === todayISO;
+
+    const spentPerEvent = useMemo(() => {
+        const eventSpending = new Map<string, number>();
+        if (!tripData) return eventSpending;
+
+        const expensesForDay = expenses.filter(e => e.date.startsWith(selectedDate) && e.eventId);
+        
+        for (const expense of expensesForDay) {
+            const amountInMain = convert(expense.amount, expense.currency, tripData.mainCurrency);
+            const currentTotal = eventSpending.get(expense.eventId!) || 0;
+            eventSpending.set(expense.eventId!, currentTotal + amountInMain);
+        }
+        return eventSpending;
+    }, [expenses, selectedDate, tripData, convert]);
 
 
     const { timedEvents, allDayEvents, timelineStartHour, timelineEndHour, dayTotal } = useMemo(() => {
@@ -585,8 +612,7 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
                     </div>
                     <div className="flex-1 space-y-1.5 min-w-0">
                         {allDayEvents.map(event => {
-                             const hasExpense = expenses.some(e => e.eventId === event.eventId);
-                            return <AllDayEventPill key={event.eventId} event={event} onEditEvent={() => handleOpenForm(event)} onAddExpense={handleAddExpenseForEvent} onDuplicateEvent={handleOpenDuplicateModal} hasExpense={hasExpense} onStatusToggle={handleStatusToggle} />
+                            return <AllDayEventPill key={event.eventId} event={event} onEditEvent={() => handleOpenForm(event)} onAddExpense={handleAddExpenseForEvent} onDuplicateEvent={handleOpenDuplicateModal} spentAmount={spentPerEvent.get(event.eventId)} onStatusToggle={handleStatusToggle} />
                         })}
                          <div className="h-8 border-2 border-primary/50 border-dashed rounded-lg flex items-center justify-center text-primary/70 cursor-pointer hover:bg-primary-container/20" onClick={() => handleOpenForm('new')}>
                             <span className="text-sm font-medium">Aggiungi evento</span>
@@ -601,6 +627,7 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
                         onStatusToggle={handleStatusToggle}
                         currentEvent={currentEvent}
                         currentEventStatus={currentEventStatus}
+                        spentPerEvent={spentPerEvent}
                         draggedEventId={draggedEventId}
                         dropIndicatorPosition={dropIndicatorPosition}
                         onDragStart={handleDragStart}
