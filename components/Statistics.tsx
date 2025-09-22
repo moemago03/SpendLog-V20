@@ -102,7 +102,8 @@ const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expen
             return acc;
         }, {} as { [key: string]: { name: string; value: number } });
 
-        return Object.values(grouped).sort((a, b) => b.value - a.value);
+        // FIX: Explicitly cast the result of Object.values to prevent errors on `sort`.
+        return (Object.values(grouped) as { name: string; value: number }[]).sort((a, b) => b.value - a.value);
     }, [filteredExpenses, trip.mainCurrency, convert]);
 
     const trendChartData = useMemo(() => {
@@ -116,7 +117,8 @@ const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expen
             return acc;
         }, {} as { [key: string]: { date: string; amount: number } });
         
-        return Object.values(grouped).sort((a, b) => a.date.localeCompare(b.date));
+        // FIX: Explicitly cast the result of Object.values to prevent errors on `sort`.
+        return (Object.values(grouped) as { date: string; amount: number }[]).sort((a, b) => a.date.localeCompare(b.date));
     }, [filteredExpenses, trip.mainCurrency, convert]);
 
     const formatChartCurrency = (value: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: trip.mainCurrency, notation: 'compact' }).format(value);

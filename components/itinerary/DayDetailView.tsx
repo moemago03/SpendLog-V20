@@ -279,9 +279,10 @@ interface DayDetailViewProps {
     selectedDate: string; // YYYY-MM-DD
     onClose: () => void;
     onAddExpense: (prefill: Partial<Expense>) => void;
+    isEmbedded?: boolean;
 }
 
-const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onClose, onAddExpense }) => {
+const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onClose, onAddExpense, isEmbedded = false }) => {
     const { getEventsByTrip, updateEvent } = useItinerary();
     const { data } = useData();
     const { convert, formatCurrency } = useCurrencyConverter();
@@ -443,19 +444,24 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
         setDropIndicatorPosition(null);
     }, []);
 
+    const containerClasses = isEmbedded
+        ? "mt-4"
+        : "fixed inset-0 bg-background z-40 flex flex-col animate-[slide-in-up_0.4s_cubic-bezier(0.25,1,0.5,1)]";
 
     return (
-        <div className="fixed inset-0 bg-background z-40 flex flex-col animate-[slide-in-up_0.4s_cubic-bezier(0.25,1,0.5,1)]">
+        <div className={containerClasses}>
              <style>{`
                 @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
                 @keyframes slide-in-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
             `}</style>
 
-            <header className="flex items-center p-4 flex-shrink-0 border-b border-surface-variant">
-                <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-variant">
-                    <span className="material-symbols-outlined">arrow_back</span>
-                </button>
-                <div className="ml-4">
+            <header className={`flex items-center p-4 flex-shrink-0 ${!isEmbedded && 'border-b border-surface-variant'}`}>
+                {!isEmbedded && (
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-variant">
+                        <span className="material-symbols-outlined">arrow_back</span>
+                    </button>
+                )}
+                <div className={!isEmbedded ? "ml-4" : ""}>
                     <h1 className="text-xl font-bold capitalize">
                         {date.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}
                     </h1>
@@ -463,7 +469,7 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
                 </div>
             </header>
             
-            <main className="flex-1 overflow-y-auto">
+            <main className={isEmbedded ? "" : "flex-1 overflow-y-auto"}>
                 <div className="flex items-start gap-2 p-4 border-b border-surface-variant">
                     <div className="w-16 text-center flex-shrink-0">
                         <p className="text-sm font-semibold uppercase text-on-surface-variant">
@@ -499,13 +505,15 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
                 </div>
             </main>
             
-            <button
-                onClick={() => handleOpenForm('new')}
-                className="fixed bottom-6 right-6 h-14 w-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-90 z-20"
-                aria-label="Aggiungi evento"
-            >
-                <span className="material-symbols-outlined text-2xl">add</span>
-            </button>
+            {!isEmbedded && (
+                <button
+                    onClick={() => handleOpenForm('new')}
+                    className="fixed bottom-6 right-6 h-14 w-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center transition-transform active:scale-90 z-20"
+                    aria-label="Aggiungi evento"
+                >
+                    <span className="material-symbols-outlined text-2xl">add</span>
+                </button>
+            )}
             
             {editingEvent && (
                 <Suspense fallback={<div/>}>

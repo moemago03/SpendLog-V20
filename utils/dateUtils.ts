@@ -129,3 +129,25 @@ export const getMonthRange = (date: Date): { start: Date, end: Date } => {
 
     return { start, end };
 };
+
+
+/**
+ * Calculates the duration of a trip in days, inclusive of start and end dates.
+ * @param startDateStr ISO string for the start date.
+ * @param endDateStr ISO string for the end date.
+ * @returns The total number of days for the trip.
+ */
+export const getTripDurationDays = (startDateStr: string, endDateStr:string): number => {
+    const startDate = new Date(startDateStr.split('T')[0] + 'T00:00:00Z');
+    const endDate = new Date(endDateStr.split('T')[0] + 'T00:00:00Z');
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+        return 0;
+    }
+    
+    // Calculate the difference in milliseconds and convert to days. Add 1 to include both start and end dates.
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays + 1;
+};

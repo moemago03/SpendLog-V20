@@ -33,7 +33,8 @@ const AIInsights: React.FC<AIInsightsProps> = ({ expenses, trip }) => {
             numberOfExpenses: expenses.length,
             durationDays,
             spendingByCategory: Object.fromEntries(
-                Object.entries(spendingByCategory).map(([key, value]) => [key, parseFloat(value.toFixed(2))])
+                // FIX: Cast `value` to `number` to resolve 'toFixed' error due to failed type inference.
+                Object.entries(spendingByCategory).map(([key, value]) => [key, parseFloat((value as number).toFixed(2))])
             ),
         };
     }, [expenses, trip.mainCurrency, convert]);

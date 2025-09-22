@@ -32,7 +32,8 @@ const TimelineView: React.FC<TimelineViewProps> = ({ trip, onOpenDayDetail }) =>
 
         events.forEach(event => {
             const startDayIndex = dayIndexMap.get(event.eventDate);
-            if (startDayIndex === undefined) return;
+            // FIX: Use a `typeof` check as a stronger type guard for TypeScript's inference engine.
+            if (typeof startDayIndex !== 'number') return;
             
             const endDate = event.endDate ? new Date(event.endDate + 'T12:00:00Z') : new Date(event.eventDate + 'T12:00:00Z');
             const startDate = new Date(event.eventDate + 'T12:00:00Z');
