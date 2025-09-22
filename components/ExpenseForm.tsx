@@ -100,6 +100,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ trip, expense, onClose }) => 
             category,
             date: new Date(date).toISOString(),
             description: description.trim() || undefined,
+            eventId: expense.eventId, // FIX: Ensure eventId is passed when creating an expense.
             paidById: finalPaidById,
             splitType: 'equally' as 'equally',
             splitBetweenMemberIds: finalSplitParticipantIds,
