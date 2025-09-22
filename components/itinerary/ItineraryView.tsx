@@ -4,7 +4,7 @@ import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
 import { Trip, Event, Expense, Category } from '../../types';
 import DayDetailView from './DayDetailView';
 import { useItinerary } from '../../context/ItineraryContext';
-import { getMonthGridDays, dateToISOString, isSameDay, getWeekRange, getDaysArray, getTripDurationDays } from '../../utils/dateUtils';
+import { getMonthGridDays, dateToISOString, isSameDay, getWeekRange, getDaysArray, getTripDurationDays, getMonthRange } from '../../utils/dateUtils';
 import ItineraryMapView, { MapFilterState } from './ItineraryMapView';
 import { useData } from '../../context/DataContext';
 import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
@@ -296,6 +296,8 @@ type ItinerarySubView = 'agenda' | 'checklist';
 // --- Main Itinerary View Component ---
 const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense>) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();
+    const { convert, formatCurrency } = useCurrencyConverter();
+    const tripData = useMemo(() => data.trips.find(t => t.id === trip.id), [data.trips, trip.id]);
     const [activeSubView, setActiveSubView] = useState<ItinerarySubView>('agenda');
 
     const tripStartDate = useMemo(() => new Date(trip.startDate.split('T')[0] + 'T00:00:00Z'), [trip.startDate]);
@@ -354,6 +356,45 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
         }
         return { isPrevDisabled: isPrev, isNextDisabled: isNext, headerDateString: headerStr };
     }, [displayDate, viewMode, tripStartDate, tripEndDate]);
+
+    const totalSpentForPeriod = useMemo(() => {
+        if (!tripData) return null;
+
+        const expenses = tripData.expenses || [];
+        if (expenses.length === 0) return 0;
+
+        let start: Date;
+        let end: Date;
+
+        const today = new Date();
+        switch (viewMode) {
+            case 'today':
+                start = new Date(today.setHours(0, 0, 0, 0));
+                end = new Date(today.setHours(23, 59, 59, 999));
+                break;
+            case 'week':
+                const weekRange = getWeekRange(displayDate);
+                start = weekRange.start;
+                end = weekRange.end;
+                break;
+            case 'month':
+                const monthRange = getMonthRange(displayDate);
+                start = monthRange.start;
+                end = monthRange.end;
+                break;
+            default:
+                return null;
+        }
+
+        const total = expenses
+            .filter(exp => {
+                const expDate = new Date(exp.date);
+                return expDate >= start && expDate <= end;
+            })
+            .reduce((sum, exp) => sum + convert(exp.amount, exp.currency, trip.mainCurrency), 0);
+
+        return total;
+    }, [viewMode, displayDate, tripData, convert, trip.mainCurrency]);
     
     const handleNavigation = (delta: number) => {
         setDisplayDate(prev => {
@@ -383,7 +424,9 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     const handleCloseAddEventForm = () => setIsAddingEvent(false);
 
     const agendaHeaderTitle = useMemo(() => {
-        if (viewMode === 'today') return '';
+        if (viewMode === 'today') {
+            return new Date().toLocaleString('it-IT', { day: 'numeric', month: 'long' });
+        }
         if (viewMode === 'map') return 'Mappa Itinerario';
         return headerDateString;
     }, [viewMode, headerDateString]);
@@ -396,7 +439,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
 
     return (
         <div className="pb-24">
-            <header className="pt-8 pb-4 px-4 max-w-7xl mx-auto">
+            <header className="pt-8 pb-4 px-4">
                 <h1 className="text-3xl font-bold text-on-background">{trip.name}</h1>
                 <p className="text-on-surface-variant">{formattedStartDate} - {formattedEndDate} ({tripDuration} giorni)</p>
                 <div className="mt-6 flex border-b border-surface-variant">
@@ -425,12 +468,17 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
 
             {activeSubView === 'agenda' && (
                 <>
-                    <div className="px-4 max-w-7xl mx-auto">
+                    <div className="px-2">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h2 className="text-xl font-semibold text-on-background capitalize">
                                     {agendaHeaderTitle}
                                 </h2>
+                                {totalSpentForPeriod !== null && totalSpentForPeriod > 0 && (
+                                    <p className="text-sm font-semibold text-primary -mt-1">
+                                        {formatCurrency(totalSpentForPeriod, trip.mainCurrency)} spesi
+                                    </p>
+                                )}
                             </div>
                             { (viewMode === 'month' || viewMode === 'week') && (
                                 <div className="flex items-center gap-1 sm:gap-2">
@@ -441,12 +489,12 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                         </div>
                          <div className="mt-4 bg-surface-variant p-1 rounded-full flex max-w-lg">
                             <button onClick={() => setViewMode('today')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'today' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Oggi</button>
-                            <button onClick={() => setViewMode('week')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'week' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Settimana</button>
+                            <button onClick={() => setViewMode('week')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'week' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>7 Giorni</button>
                             <button onClick={() => setViewMode('month')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'month' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mese</button>
                             <button onClick={() => setViewMode('map')} className={`flex-1 py-1.5 rounded-full font-semibold text-sm transition-all ${viewMode === 'map' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>Mappa</button>
                         </div>
                     </div>
-                    <main className="px-4 max-w-7xl mx-auto">
+                    <main className="px-2">
                         {viewMode === 'today' && (
                             <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
                                 <DayDetailView 

@@ -51,8 +51,9 @@ const TimelineEventCard: React.FC<{
     const height = (durationMinutes / 60) * HOUR_HEIGHT - 2;
 
     const category = data.categories.find(c => c.name === event.type);
-    const bgColor = category ? hexToRgba(category.color, 0.4) : 'rgba(128,128,128,0.4)';
-    const borderColor = category?.color || '#8884d8';
+    const eventColor = category?.color || '#757780';
+    const textColor = getContrastColor(eventColor);
+    const buttonBg = textColor === '#FFFFFF' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
     
     const isCompleted = event.status === 'completed';
 
@@ -62,14 +63,14 @@ const TimelineEventCard: React.FC<{
             onDragStart={(e) => onDragStart(e, event.eventId)}
             onDragEnd={onDragEnd}
             onClick={() => onEditEvent(event)}
-            className={`absolute left-14 right-0 rounded-lg p-2.5 border-l-4 overflow-hidden transition-all duration-200 hover:shadow-lg text-on-surface dark:text-on-surface cursor-grab active:cursor-grabbing ${isBeingDragged ? 'opacity-50 shadow-2xl scale-105' : ''} ${isCompleted ? 'opacity-60' : ''} ${isCurrent ? 'ring-2 ring-offset-2 ring-offset-background' : ''}`}
+            className={`absolute left-12 right-0 rounded-lg p-2.5 overflow-hidden transition-all duration-200 hover:shadow-lg cursor-grab active:cursor-grabbing ${isBeingDragged ? 'opacity-50 shadow-2xl scale-105' : ''} ${isCompleted ? 'opacity-60' : ''} ${isCurrent ? 'ring-2 ring-offset-2 ring-offset-background' : ''}`}
             style={{
                 top: `${top}px`,
                 height: `${height}px`,
                 animation: 'zoomIn 0.3s ease-out forwards',
-                backgroundColor: bgColor,
-                borderColor: borderColor,
-                '--tw-ring-color': borderColor
+                backgroundColor: eventColor,
+                color: textColor,
+                '--tw-ring-color': eventColor
             } as React.CSSProperties}
             role="button"
             aria-label={`Edit event: ${event.title} at ${event.startTime}`}
@@ -84,25 +85,30 @@ const TimelineEventCard: React.FC<{
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                         <button 
                              onClick={(e) => { e.stopPropagation(); onStatusToggle(event.eventId, event.status); }}
-                             className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${isCompleted ? 'bg-primary border-primary text-on-primary' : 'border-outline hover:bg-primary-container/50'}`}
+                             className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200`}
+                             style={{
+                                borderColor: textColor,
+                                backgroundColor: isCompleted ? textColor : 'transparent'
+                             }}
                         >
-                            {isCompleted && <span className="material-symbols-outlined text-xs">check</span>}
+                            {isCompleted && <span className="material-symbols-outlined text-xs" style={{ color: eventColor }}>check</span>}
                         </button>
                         <p className={`font-bold text-sm leading-tight flex-1 ${isCompleted ? 'line-through' : ''}`}>{event.title}</p>
                     </div>
-                    {hasExpense && <span className="text-xs font-bold bg-green-200 text-green-800 px-1.5 py-0.5 rounded-full -mr-1 -mt-1 flex-shrink-0">€</span>}
+                    {hasExpense && <span className="text-xs font-bold bg-white/80 text-black px-1.5 py-0.5 rounded-full -mr-1 -mt-1 flex-shrink-0">€</span>}
                 </div>
                 <p className="text-xs opacity-80 pl-7">{event.startTime}{event.endTime ? ` - ${event.endTime}` : ''}</p>
                  {event.description && <p className="text-xs opacity-70 mt-1 truncate pl-7">{event.description}</p>}
             </div>
-             <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity">
+             <div className="absolute bottom-2 right-2 flex items-center gap-1">
                  {event.location && (
                     <a
                         href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
-                        className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow"
+                        className="w-7 h-7 rounded-full flex items-center justify-center shadow"
+                        style={{ backgroundColor: buttonBg, color: textColor }}
                         aria-label="Naviga"
                     >
                          <span className="material-symbols-outlined text-sm">navigation</span>
@@ -110,14 +116,16 @@ const TimelineEventCard: React.FC<{
                  )}
                  <button
                     onClick={(e) => { e.stopPropagation(); onDuplicateEvent(event); }}
-                    className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow"
+                    className="w-7 h-7 rounded-full flex items-center justify-center shadow"
+                    style={{ backgroundColor: buttonBg, color: textColor }}
                     aria-label="Duplica evento"
                 >
                     <span className="material-symbols-outlined text-sm">content_copy</span>
                 </button>
                  <button
                     onClick={(e) => { e.stopPropagation(); onAddExpense(event); }}
-                    className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow"
+                    className="w-7 h-7 rounded-full flex items-center justify-center shadow"
+                    style={{ backgroundColor: buttonBg, color: textColor }}
                     aria-label="Aggiungi spesa"
                 >
                     <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
@@ -147,11 +155,11 @@ const TravelTimeCard: React.FC<{
 
     return (
         <div
-            className="absolute left-14 right-0 flex items-center justify-center"
+            className="absolute left-12 right-0 flex items-center justify-center"
             style={{ top: `${top}px`, height: `${height}px` }}
         >
             <div className="relative w-full h-full">
-                <div className="absolute top-2 bottom-2 left-[-29px] w-0.5 border-l-2 border-dashed border-primary/50"></div>
+                <div className="absolute top-2 bottom-2 left-[-21px] w-0.5 border-l-2 border-dashed border-primary/50"></div>
                 <div className="flex items-center justify-center h-full">
                     {calculatedTime === null ? (
                         <button
@@ -209,15 +217,15 @@ const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, 
         >
             {hours.map(hour => (
                 <div key={hour} className="relative" style={{ height: `${HOUR_HEIGHT}px` }}>
-                    <div className="absolute -left-1 top-[-8px] text-xs font-medium text-on-surface-variant w-12 text-right pr-2">
+                    <div className="absolute -left-1 top-[-8px] text-xs font-medium text-on-surface-variant w-10 text-right pr-2">
                         {hour < 10 ? `0${hour}` : hour}:00
                     </div>
-                    <div className="h-px bg-surface-variant ml-12"></div>
+                    <div className="h-px bg-surface-variant ml-10"></div>
                 </div>
             ))}
              {dragProps.dropIndicatorPosition !== null && (
                 <div 
-                    className="absolute left-12 right-0 h-0.5 bg-primary z-10 pointer-events-none"
+                    className="absolute left-10 right-0 h-0.5 bg-primary z-10 pointer-events-none"
                     style={{ top: `${dragProps.dropIndicatorPosition}px` }}
                 />
             )}
@@ -551,23 +559,23 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
                 @keyframes slide-in-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
             `}</style>
 
-            <header className={`flex items-center p-4 flex-shrink-0 ${!isEmbedded && 'border-b border-surface-variant'}`}>
-                {!isEmbedded && (
+            {!isEmbedded && (
+                <header className={`flex items-center p-4 flex-shrink-0 ${!isEmbedded && 'border-b border-surface-variant'}`}>
                     <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-variant">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
-                )}
-                <div className={!isEmbedded ? "ml-4" : ""}>
-                    <h1 className="text-xl font-bold capitalize">
-                        {date.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}
-                    </h1>
-                     {dayTotal > 0 && <p className="text-sm font-semibold text-primary -mt-1">{formatCurrency(dayTotal, tripData!.mainCurrency)} spesi</p>}
-                </div>
-            </header>
+                    <div className="ml-4">
+                        <h1 className="text-xl font-bold capitalize">
+                            {date.toLocaleString('it-IT', { day:'numeric', month: 'long', year: 'numeric' })}
+                        </h1>
+                        {dayTotal > 0 && <p className="text-sm font-semibold text-primary -mt-1">{formatCurrency(dayTotal, tripData!.mainCurrency)} spesi</p>}
+                    </div>
+                </header>
+            )}
             
             <main className={isEmbedded ? "" : "flex-1 overflow-y-auto"}>
-                <div className="flex items-start gap-2 p-4 border-b border-surface-variant">
-                    <div className="w-16 text-center flex-shrink-0">
+                <div className="flex items-start gap-2 px-2 py-4 border-b border-surface-variant">
+                    <div className="w-12 text-center flex-shrink-0">
                         <p className="text-sm font-semibold uppercase text-on-surface-variant">
                             {date.toLocaleDateString('it-IT', { weekday: 'short' })}
                         </p>
@@ -586,7 +594,7 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
                     </div>
                 </div>
 
-                <div className="px-4" ref={timelineRef}>
+                <div className="px-2" ref={timelineRef}>
                     <Timeline events={timedEvents} onEditEvent={handleOpenForm} onAddExpense={handleAddExpenseForEvent} onDuplicateEvent={handleOpenDuplicateModal} startHour={timelineStartHour} endHour={timelineEndHour} expenses={expenses}
                         travelTimes={travelTimes}
                         onCalculateTravelTime={handleCalculateTravelTime}
