@@ -4,6 +4,7 @@ import { Event, Expense } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
 import { getContrastColor, hexToRgba } from '../../utils/colorUtils';
+import { dateToISOString } from '../../utils/dateUtils';
 
 const EventForm = lazy(() => import('./EventForm'));
 const DuplicateEventModal = lazy(() => import('./DuplicateEventModal'));
@@ -35,7 +36,10 @@ const TimelineEventCard: React.FC<{
     isBeingDragged: boolean;
     onDragStart: (e: DragEvent<HTMLDivElement>, eventId: string) => void;
     onDragEnd: (e: DragEvent<HTMLDivElement>) => void;
-}> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, timelineStartHour, hasExpense, isBeingDragged, onDragStart, onDragEnd }) => {
+    onStatusToggle: (eventId: string, currentStatus: 'planned' | 'completed') => void;
+    isCurrent: boolean;
+    statusLabel: string | null;
+}> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, timelineStartHour, hasExpense, isBeingDragged, onDragStart, onDragEnd, onStatusToggle, isCurrent, statusLabel }) => {
     const { data } = useData();
     if (!event.startTime) return null;
 
@@ -50,31 +54,60 @@ const TimelineEventCard: React.FC<{
     const bgColor = category ? hexToRgba(category.color, 0.4) : 'rgba(128,128,128,0.4)';
     const borderColor = category?.color || '#8884d8';
     
+    const isCompleted = event.status === 'completed';
+
     return (
         <div
             draggable="true"
             onDragStart={(e) => onDragStart(e, event.eventId)}
             onDragEnd={onDragEnd}
-            className={`absolute left-14 right-0 rounded-lg p-2.5 border-l-4 overflow-hidden transition-all duration-200 hover:shadow-lg group text-on-surface dark:text-on-surface cursor-grab active:cursor-grabbing ${isBeingDragged ? 'opacity-50 shadow-2xl scale-105' : ''}`}
+            onClick={() => onEditEvent(event)}
+            className={`absolute left-14 right-0 rounded-lg p-2.5 border-l-4 overflow-hidden transition-all duration-200 hover:shadow-lg text-on-surface dark:text-on-surface cursor-grab active:cursor-grabbing ${isBeingDragged ? 'opacity-50 shadow-2xl scale-105' : ''} ${isCompleted ? 'opacity-60' : ''} ${isCurrent ? 'ring-2 ring-offset-2 ring-offset-background' : ''}`}
             style={{
                 top: `${top}px`,
                 height: `${height}px`,
                 animation: 'zoomIn 0.3s ease-out forwards',
                 backgroundColor: bgColor,
                 borderColor: borderColor,
-            }}
+                '--tw-ring-color': borderColor
+            } as React.CSSProperties}
             role="button"
             aria-label={`Edit event: ${event.title} at ${event.startTime}`}
         >
-            <div className="flex flex-col h-full" onClick={() => onEditEvent(event)}>
-                <div className="flex items-start justify-between">
-                    <p className="font-bold text-sm leading-tight flex-1">{event.title}</p>
-                    {hasExpense && <span className="text-xs font-bold bg-green-200 text-green-800 px-1.5 py-0.5 rounded-full -mr-1 -mt-1">€</span>}
+             {statusLabel && (
+                <div className="absolute top-2 right-2 text-xs font-bold bg-primary text-on-primary px-2 py-0.5 rounded-full animate-fade-in z-10">
+                    {statusLabel}
                 </div>
-                <p className="text-xs opacity-80">{event.startTime}{event.endTime ? ` - ${event.endTime}` : ''}</p>
-                 {event.description && <p className="text-xs opacity-70 mt-1 truncate">{event.description}</p>}
+            )}
+            <div className="flex flex-col h-full">
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <button 
+                             onClick={(e) => { e.stopPropagation(); onStatusToggle(event.eventId, event.status); }}
+                             className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${isCompleted ? 'bg-primary border-primary text-on-primary' : 'border-outline hover:bg-primary-container/50'}`}
+                        >
+                            {isCompleted && <span className="material-symbols-outlined text-xs">check</span>}
+                        </button>
+                        <p className={`font-bold text-sm leading-tight flex-1 ${isCompleted ? 'line-through' : ''}`}>{event.title}</p>
+                    </div>
+                    {hasExpense && <span className="text-xs font-bold bg-green-200 text-green-800 px-1.5 py-0.5 rounded-full -mr-1 -mt-1 flex-shrink-0">€</span>}
+                </div>
+                <p className="text-xs opacity-80 pl-7">{event.startTime}{event.endTime ? ` - ${event.endTime}` : ''}</p>
+                 {event.description && <p className="text-xs opacity-70 mt-1 truncate pl-7">{event.description}</p>}
             </div>
-             <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+             <div className="absolute bottom-1 right-1 flex items-center gap-1 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                 {event.location && (
+                    <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow"
+                        aria-label="Naviga"
+                    >
+                         <span className="material-symbols-outlined text-sm">navigation</span>
+                    </a>
+                 )}
                  <button
                     onClick={(e) => { e.stopPropagation(); onDuplicateEvent(event); }}
                     className="w-7 h-7 bg-surface rounded-full flex items-center justify-center shadow"
@@ -151,6 +184,9 @@ interface TimelineProps {
     expenses: Expense[];
     travelTimes: Record<string, number | null>;
     onCalculateTravelTime: (fromEventId: string, toEventId: string) => void;
+    onStatusToggle: (eventId: string, currentStatus: 'planned' | 'completed') => void;
+    currentEvent: Event | null;
+    currentEventStatus: string | null;
     // Drag & Drop props
     draggedEventId: string | null;
     dropIndicatorPosition: number | null;
@@ -161,7 +197,7 @@ interface TimelineProps {
     onDragLeave: (e: DragEvent<HTMLDivElement>) => void;
 }
 
-const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, onDuplicateEvent, startHour, endHour, expenses, travelTimes, onCalculateTravelTime, ...dragProps }) => {
+const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, onDuplicateEvent, startHour, endHour, expenses, travelTimes, onCalculateTravelTime, onStatusToggle, currentEvent, currentEventStatus, ...dragProps }) => {
     const hours = Array.from({ length: endHour - startHour }, (_, i) => i + startHour);
 
     return (
@@ -189,6 +225,8 @@ const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, 
             <div className="absolute top-0 left-0 right-0 bottom-0">
                 {events.map(event => {
                     const hasExpense = expenses.some(e => e.eventId === event.eventId);
+                    const isCurrent = currentEvent?.eventId === event.eventId;
+                    const statusLabel = isCurrent ? (currentEventStatus === 'LIVE' ? 'IN CORSO' : (currentEventStatus === 'NEXT' ? 'PROSSIMO' : null)) : null;
                     return (
                          <TimelineEventCard 
                             key={event.eventId} 
@@ -201,6 +239,9 @@ const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, 
                             isBeingDragged={dragProps.draggedEventId === event.eventId}
                             onDragStart={dragProps.onDragStart}
                             onDragEnd={dragProps.onDragEnd}
+                            onStatusToggle={onStatusToggle}
+                            isCurrent={isCurrent}
+                            statusLabel={statusLabel}
                          />
                     );
                 })}
@@ -234,35 +275,57 @@ interface AllDayEventPillProps {
     onAddExpense: (event: Event) => void;
     onDuplicateEvent: (event: Event) => void;
     hasExpense: boolean;
+    onStatusToggle: (eventId: string, currentStatus: 'planned' | 'completed') => void;
 }
 
-const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, hasExpense }) => {
+const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, onAddExpense, onDuplicateEvent, hasExpense, onStatusToggle }) => {
     const { data } = useData();
     const category = data.categories.find(c => c.name === event.type);
     const bgColor = category?.color || '#9E9E9E';
     const textColor = getContrastColor(bgColor);
+    const isCompleted = event.status === 'completed';
 
     return (
         <div
-            className="w-full p-2 rounded-lg flex items-center gap-2 group"
+            className={`w-full p-2 rounded-lg flex items-center gap-2 transition-opacity ${isCompleted ? 'opacity-60' : ''}`}
             style={{ backgroundColor: bgColor, color: textColor }}
         >
-            <div onClick={() => onEditEvent(event)} className="flex-grow cursor-pointer flex items-center gap-2">
-                {hasExpense && <span className="text-xs font-bold bg-green-200 text-green-800 px-1.5 py-0.5 rounded-full">€</span>}
-                <p className="font-bold text-sm truncate">{event.title}</p>
+             <button 
+                onClick={(e) => { e.stopPropagation(); onStatusToggle(event.eventId, event.status); }}
+                className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200`}
+                style={{ borderColor: textColor, backgroundColor: isCompleted ? textColor : 'transparent' }}
+            >
+                {isCompleted && <span className="material-symbols-outlined text-xs" style={{ color: bgColor }}>check</span>}
+            </button>
+            <div onClick={() => onEditEvent(event)} className="flex-grow cursor-pointer flex items-center gap-2 min-w-0">
+                {hasExpense && <span className="text-xs font-bold bg-white/80 text-black px-1.5 py-0.5 rounded-full">€</span>}
+                <p className={`font-bold text-sm truncate ${isCompleted ? 'line-through' : ''}`}>{event.title}</p>
             </div>
-             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+             <div className="flex items-center gap-1">
+                {event.location && (
+                    <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="w-7 h-7 flex-shrink-0 flex items-center justify-center bg-white/20 dark:bg-black/20 rounded-full hover:bg-white/40"
+                        aria-label="Naviga"
+                        style={{ color: textColor }}
+                    >
+                        <span className="material-symbols-outlined text-sm">navigation</span>
+                    </a>
+                )}
                 <button 
-                    onClick={() => onDuplicateEvent(event)}
-                    className="w-7 h-7 flex-shrink-0 flex items-center justify-center bg-white/50 dark:bg-black/20 rounded-full"
+                    onClick={(e) => { e.stopPropagation(); onDuplicateEvent(event); }}
+                    className="w-7 h-7 flex-shrink-0 flex items-center justify-center bg-white/20 dark:bg-black/20 rounded-full hover:bg-white/40"
                     aria-label="Duplica evento"
                     style={{ color: textColor }}
                 >
                     <span className="material-symbols-outlined text-sm">content_copy</span>
                 </button>
                 <button 
-                    onClick={() => onAddExpense(event)} 
-                    className="w-7 h-7 flex-shrink-0 flex items-center justify-center bg-white/50 dark:bg-black/20 rounded-full"
+                    onClick={(e) => { e.stopPropagation(); onAddExpense(event); }}
+                    className="w-7 h-7 flex-shrink-0 flex items-center justify-center bg-white/20 dark:bg-black/20 rounded-full hover:bg-white/40"
                     aria-label="Aggiungi spesa"
                     style={{ color: textColor }}
                 >
@@ -297,6 +360,9 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
     const expenses = tripData?.expenses || [];
 
     const date = useMemo(() => new Date(selectedDate + 'T12:00:00Z'), [selectedDate]);
+    const todayISO = useMemo(() => dateToISOString(new Date()), []);
+    const isToday = selectedDate === todayISO;
+
 
     const { timedEvents, allDayEvents, timelineStartHour, timelineEndHour, dayTotal } = useMemo(() => {
         const allTripEvents = getEventsByTrip(tripId);
@@ -329,6 +395,33 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
 
         return { timedEvents: timed, allDayEvents: allDay, timelineStartHour: startHour, timelineEndHour: endHour, dayTotal: total };
     }, [getEventsByTrip, tripId, selectedDate, expenses, convert, tripData]);
+
+     const { currentEvent, currentEventStatus } = useMemo(() => {
+        if (!isToday) return { currentEvent: null, currentEventStatus: null };
+
+        const now = new Date();
+        const nowInMinutes = now.getHours() * 60 + now.getMinutes();
+        
+        if (timedEvents.length === 0) {
+            return { currentEvent: allDayEvents[0] || null, currentEventStatus: 'ALL_DAY' };
+        }
+
+        const relevantEvent = timedEvents.find(e => {
+            const startMinutes = timeToMinutes(e.startTime!);
+            const endMinutes = e.endTime ? timeToMinutes(e.endTime) : startMinutes + 60;
+            return endMinutes > nowInMinutes; 
+        });
+        
+        if (relevantEvent) {
+            const startMinutes = timeToMinutes(relevantEvent.startTime!);
+            const status = nowInMinutes >= startMinutes ? 'LIVE' : 'NEXT';
+            return { currentEvent: relevantEvent, currentEventStatus: status };
+        }
+        
+        const lastEvent = timedEvents[timedEvents.length - 1];
+        return { currentEvent: lastEvent || null, currentEventStatus: 'DONE' };
+
+    }, [isToday, timedEvents, allDayEvents]);
     
     const handleAddExpenseForEvent = useCallback((event: Event) => {
         const prefill: Partial<Expense> = {
@@ -345,10 +438,13 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
     const handleOpenDuplicateModal = useCallback((event: Event) => setDuplicatingEvent(event), []);
     const handleCloseDuplicateModal = useCallback(() => setDuplicatingEvent(null), []);
 
+     const handleStatusToggle = useCallback((eventId: string, currentStatus: 'planned' | 'completed') => {
+        const newStatus = currentStatus === 'planned' ? 'completed' : 'planned';
+        updateEvent(eventId, { status: newStatus });
+    }, [updateEvent]);
+
     const handleCalculateTravelTime = useCallback((fromEventId: string, toEventId: string) => {
-        // This would be an API call in a real app.
-        // For now, we simulate it with a random time.
-        const mockMinutes = Math.floor(Math.random() * 35) + 10; // 10 to 45 mins
+        const mockMinutes = Math.floor(Math.random() * 35) + 10;
         const key = `${fromEventId}_${toEventId}`;
         setTravelTimes(prev => ({ ...prev, [key]: mockMinutes }));
     }, []);
@@ -482,7 +578,7 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
                     <div className="flex-1 space-y-1.5 min-w-0">
                         {allDayEvents.map(event => {
                              const hasExpense = expenses.some(e => e.eventId === event.eventId);
-                            return <AllDayEventPill key={event.eventId} event={event} onEditEvent={() => handleOpenForm(event)} onAddExpense={handleAddExpenseForEvent} onDuplicateEvent={handleOpenDuplicateModal} hasExpense={hasExpense}/>
+                            return <AllDayEventPill key={event.eventId} event={event} onEditEvent={() => handleOpenForm(event)} onAddExpense={handleAddExpenseForEvent} onDuplicateEvent={handleOpenDuplicateModal} hasExpense={hasExpense} onStatusToggle={handleStatusToggle} />
                         })}
                          <div className="h-8 border-2 border-primary/50 border-dashed rounded-lg flex items-center justify-center text-primary/70 cursor-pointer hover:bg-primary-container/20" onClick={() => handleOpenForm('new')}>
                             <span className="text-sm font-medium">Aggiungi evento</span>
@@ -494,6 +590,9 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onC
                     <Timeline events={timedEvents} onEditEvent={handleOpenForm} onAddExpense={handleAddExpenseForEvent} onDuplicateEvent={handleOpenDuplicateModal} startHour={timelineStartHour} endHour={timelineEndHour} expenses={expenses}
                         travelTimes={travelTimes}
                         onCalculateTravelTime={handleCalculateTravelTime}
+                        onStatusToggle={handleStatusToggle}
+                        currentEvent={currentEvent}
+                        currentEventStatus={currentEventStatus}
                         draggedEventId={draggedEventId}
                         dropIndicatorPosition={dropIndicatorPosition}
                         onDragStart={handleDragStart}
