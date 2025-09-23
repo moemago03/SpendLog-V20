@@ -1,8 +1,9 @@
+
 import React, { useMemo } from 'react';
-import { Trip, TripMember, Expense } from '../../types';
-import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
-import { useData } from '../../context/DataContext';
-import { ADJUSTMENT_CATEGORY } from '../../constants';
+import { Trip, TripMember, Expense } from '../types';
+import { useCurrencyConverter } from '../hooks/useCurrencyConverter';
+import { useData } from '../context/DataContext';
+import { ADJUSTMENT_CATEGORY } from '../constants';
 
 interface GroupBalancesProps {
     trip: Trip;
