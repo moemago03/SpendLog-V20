@@ -2,11 +2,18 @@
 <html lang="en">
   <head>
     <script>
-      // Polyfill for process.env to prevent crashes in browser-only environments
-      // where this is not defined. The Gemini API calls will gracefully fail
-      // later if the API_KEY is not actually provided by the host environment.
+      // Polyfill for process.env.
       if (typeof process === 'undefined') {
         window.process = { env: {} };
+      }
+      // WARNING: This is a temporary solution for deployment environments like Vercel
+      // where browser-side environment variables are not natively supported for static sites.
+      // Hardcoding keys in client-side code is insecure and should be avoided in production.
+      // The recommended approach is to use a server-side proxy (e.g., a Vercel Serverless Function)
+      // to handle API requests securely.
+      // This key was provided by the user to make the application functional.
+      if (!process.env.API_KEY) {
+        process.env.API_KEY = 'AIzaSyAeqI3-ka0exTgpleTqQQ1ttxsml37cLZo';
       }
     </script>
     <meta charset="UTF-8" />
