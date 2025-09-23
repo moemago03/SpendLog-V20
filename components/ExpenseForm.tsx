@@ -3,6 +3,8 @@ import { useData } from '../context/DataContext';
 import { Trip, Expense, FrequentExpense } from '../types';
 import { useCurrencyConverter } from '../hooks/useCurrencyConverter';
 import { useNotification } from '../context/NotificationContext';
+import { useLocation } from '../context/LocationContext';
+import { COUNTRIES_CURRENCIES } from '../constants';
 
 const triggerHapticFeedback = () => {
     if (navigator.vibrate) navigator.vibrate(10);
@@ -27,6 +29,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ trip, expense, onClose }) => 
     const { addExpense, updateExpense, data } = useData();
     const { convert, formatCurrency } = useCurrencyConverter();
     const { addNotification } = useNotification();
+    const { location } = useLocation();
 
     const isEditMode = !!expense.id;
 
@@ -52,6 +55,18 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ trip, expense, onClose }) => 
     useEffect(() => {
         amountInputRef.current?.focus();
     }, []);
+
+    useEffect(() => {
+        // Smart currency pre-fill based on location for NEW expenses only.
+        if (!isEditMode && location?.country && trip.countries.includes(location.country)) {
+            const countryCurrency = COUNTRIES_CURRENCIES[location.country];
+            // Ensure the detected currency is one of the preferred currencies for the trip.
+            if (countryCurrency && trip.preferredCurrencies.includes(countryCurrency)) {
+                setCurrency(countryCurrency);
+            }
+        }
+        // This effect should run only once when the form mounts for a new expense.
+    }, [isEditMode, location, trip.countries, trip.preferredCurrencies]);
     
      const handleToggleParticipant = (memberId: string) => {
         setSplitParticipantIds(prev => {

@@ -1,11 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useItinerary } from '../../context/ItineraryContext';
 import { useData } from '../../context/DataContext';
 import { useNotification } from '../../context/NotificationContext';
-// FIX: The API key must be obtained from process.env.API_KEY as per the guidelines.
 import { GoogleGenAI, Type } from "@google/genai";
-// FIX: Import getContrastColor to resolve missing name error.
 import { getContrastColor } from '../../utils/colorUtils';
+import { useLocation } from '../../context/LocationContext';
 
 interface AIItineraryGeneratorProps {
     tripId: string;
@@ -26,12 +25,21 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
     const { addEvent } = useItinerary();
     const { addNotification } = useNotification();
     const { data } = useData();
+    const { location } = useLocation();
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [generatedEvents, setGeneratedEvents] = useState<GeneratedEvent[]>([]);
     const [selectedEvents, setSelectedEvents] = useState<GeneratedEvent[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [dayStyle, setDayStyle] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Pre-fill prompt with location context, but only if it's empty
+        // to avoid overwriting user input.
+        if (location?.city && !prompt) {
+            setPrompt(`Una giornata a ${location.city}, visitando i luoghi più famosi.`);
+        }
+    }, [location?.city, prompt]);
 
     const itineraryCategories = useMemo(() => {
         return data.categories.filter(c => c.isItineraryCategory).map(c => c.name);
@@ -45,16 +53,22 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
         setSelectedEvents([]);
 
         try {
-            // FIX: The API key must be obtained from process.env.API_KEY as per the guidelines.
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-            const finalPrompt = dayStyle
-                ? `Crea un itinerario con uno stile: "${dayStyle}". Richiesta utente: "${prompt}"`
-                : `Basandoti sulla richiesta "${prompt}", genera una lista di eventi per un itinerario di viaggio.`;
+            let contextPrompt = `Basandoti sulla richiesta "${prompt}", genera una lista di eventi per un itinerario di viaggio.`;
+            if (location?.city) {
+                contextPrompt = `Crea un itinerario per la città di ${location.city}. Richiesta utente: "${prompt}"`;
+            }
+            if (dayStyle) {
+                contextPrompt = `${contextPrompt} Lo stile della giornata deve essere: "${dayStyle}".`;
+            }
             
+            const baseInstruction = `Gli orari devono essere plausibili. Il tipo di evento deve essere uno dei seguenti: ${itineraryCategories.join(', ')}. Rispondi in italiano.`;
+            const finalContents = `${contextPrompt} ${baseInstruction}`;
+
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
-                contents: `${finalPrompt} Gli orari devono essere plausibili. Il tipo di evento deve essere uno dei seguenti: ${itineraryCategories.join(', ')}. Rispondi in italiano.`,
+                contents: finalContents,
                 config: {
                     responseMimeType: "application/json",
                     responseSchema: {
@@ -176,15 +190,15 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
                     <textarea
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Es: una mattinata con visita a un museo, seguita da un pranzo tipico e un pomeriggio di shopping..."
+                        placeholder="Es: una mattinata con visita a un museo, seguita da un pranzo tipico..."
                         rows={3}
                         className="w-full bg-surface-variant rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={isLoading}
                     />
                     <div className="flex flex-wrap gap-2 my-4">
+                        <SuggestionChip text={location?.city ? `Tour dei templi di ${location.city}` : "Tour dei templi principali"} />
+                        <SuggestionChip text={location?.city ? `Pomeriggio di shopping a ${location.city}` : "Pomeriggio di shopping"} />
                         <SuggestionChip text="Mattinata in spiaggia" />
-                        <SuggestionChip text="Tour dei templi principali" />
-                        <SuggestionChip text="Pomeriggio di shopping" />
                     </div>
 
                     <button onClick={handleGenerate} disabled={isLoading || !prompt.trim()} className="w-full py-3 bg-primary text-on-primary font-bold rounded-full shadow-md hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
