@@ -238,6 +238,21 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     const [calendarQuickFilter, setCalendarQuickFilter] = useState<CalendarQuickFilter>('all');
     const [calendarDateFilter, setCalendarDateFilter] = useState<{ start: Date; end: Date } | null>(null);
 
+    const { isPrevMonthNavDisabled, isNextMonthNavDisabled } = useMemo(() => {
+        const tripStartMonth = tripStartDate.getMonth();
+        const tripStartYear = tripStartDate.getFullYear();
+        const tripEndMonth = tripEndDate.getMonth();
+        const tripEndYear = tripEndDate.getFullYear();
+
+        const displayMonth = displayDateForMonth.getMonth();
+        const displayYear = displayDateForMonth.getFullYear();
+
+        const isPrevDisabled = (displayYear < tripStartYear) || (displayYear === tripStartYear && displayMonth <= tripStartMonth);
+        const isNextDisabled = (displayYear > tripEndYear) || (displayYear === tripEndYear && displayMonth >= tripEndMonth);
+
+        return { isPrevMonthNavDisabled: isPrevDisabled, isNextMonthNavDisabled: isNextDisabled };
+    }, [displayDateForMonth, tripStartDate, tripEndDate]);
+
     const handleNavigation = (delta: number) => {
         setCalendarQuickFilter('all');
         setCalendarDateFilter(null);
@@ -359,20 +374,20 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                         <div className="animate-fade-in">
                             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 px-2">
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => handleNavigation(-1)} className="p-2 rounded-full hover:bg-surface-variant">
+                                    <button onClick={() => handleNavigation(-1)} disabled={isPrevMonthNavDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed">
                                         <span className="material-symbols-outlined">chevron_left</span>
                                     </button>
                                     <h3 className="text-lg font-bold text-center w-40 capitalize">
                                         {displayDateForMonth.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}
                                     </h3>
-                                    <button onClick={() => handleNavigation(1)} className="p-2 rounded-full hover:bg-surface-variant">
+                                    <button onClick={() => handleNavigation(1)} disabled={isNextMonthNavDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30 disabled:cursor-not-allowed">
                                         <span className="material-symbols-outlined">chevron_right</span>
                                     </button>
                                 </div>
                                 <div className="flex items-center gap-2 p-1 bg-surface-variant rounded-full mt-3 sm:mt-0">
-                                    <CalendarFilterButton filterType="3days" label="3 giorni" />
-                                    <CalendarFilterButton filterType="7days" label="7 giorni" />
-                                    <CalendarFilterButton filterType="10days" label="10 giorni" />
+                                    <CalendarFilterButton filterType="3days" label="3d" />
+                                    <CalendarFilterButton filterType="7days" label="7d" />
+                                    <CalendarFilterButton filterType="10days" label="10d" />
                                     <CalendarFilterButton filterType="all" label="Tutto" />
                                 </div>
                             </div>

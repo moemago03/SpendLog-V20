@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Trip } from '../types';
 import ThemeToggle from './ThemeToggle';
@@ -104,7 +105,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
                      <h2 className="text-sm font-medium text-on-surface-variant px-2 uppercase tracking-wider">App</h2>
                     <div className="bg-surface rounded-3xl divide-y divide-outline/20 overflow-hidden shadow-sm">
                         <SettingsItem icon="my_location" label="Posizione Rilevata">
-                            <span className="text-sm text-on-surface-variant font-medium">
+                            <span className={`text-sm font-medium ${locationError ? 'text-error' : 'text-on-surface-variant'}`}>
                                 {isLoadingLocation ? (
                                     'Rilevamento...'
                                 ) : locationError ? (

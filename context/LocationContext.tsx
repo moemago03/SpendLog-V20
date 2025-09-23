@@ -37,32 +37,23 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
                     const { latitude, longitude } = position.coords;
                     
                     try {
-                        // Using Google's Geocoding API
-                        const apiKey = process.env.API_KEY;
-                        if (!apiKey) {
-                             throw new Error("API key for geocoding is missing.");
-                        }
-
-                        const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}&result_type=locality&language=it`);
+                        // Using OpenStreetMap's Nominatim for reverse geocoding (no API key needed)
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=it`);
                         if (!response.ok) {
-                            throw new Error('Failed to fetch location data.');
+                            throw new Error('Impossibile contattare il servizio di geolocalizzazione.');
                         }
                         const data = await response.json();
 
-                        if (data.status === 'OK' && data.results.length > 0) {
-                            const result = data.results[0];
-                            const cityComponent = result.address_components.find((c: any) => c.types.includes('locality'));
-                            const countryComponent = result.address_components.find((c: any) => c.types.includes('country'));
-                            
+                        if (data && data.address) {
                             const newLocation: LocationData = {
-                                city: cityComponent?.long_name || null,
-                                country: countryComponent?.long_name || null
+                                city: data.address.city || data.address.town || data.address.village || null,
+                                country: data.address.country || null,
                             };
                             
                             setLocation(newLocation);
                             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ ...newLocation, timestamp: Date.now() }));
                         } else {
-                            throw new Error(data.error_message || 'No results found from geocoding API.');
+                            throw new Error('Risposta di geolocalizzazione non valida.');
                         }
                     } catch (err: any) {
                         setLocationError(err.message || "Impossibile determinare la città.");
