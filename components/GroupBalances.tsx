@@ -1,5 +1,3 @@
-
-
 import React, { useMemo } from 'react';
 import { Trip, TripMember, Expense } from '../types';
 import { useCurrencyConverter } from '../hooks/useCurrencyConverter';
@@ -67,6 +65,16 @@ const TransactionRow: React.FC<{ expense: Expense; trip: Trip }> = ({ expense, t
 const GroupBalances: React.FC<GroupBalancesProps> = ({ trip }) => {
     const { members, expenses, mainCurrency } = trip;
     const { convert, formatCurrency } = useCurrencyConverter();
+
+    // NEW: Colorful palette for the summary cards, inspired by the Dribbble design
+    const CARD_COLORS = [
+        'bg-orange-500', 
+        'bg-yellow-500', 
+        'bg-violet-500', 
+        'bg-cyan-500',
+        'bg-pink-500',
+        'bg-lime-500'
+    ];
 
     const balanceData = useMemo(() => {
         if (!members || members.length < 1) return null;
@@ -182,12 +190,11 @@ const GroupBalances: React.FC<GroupBalancesProps> = ({ trip }) => {
                     {simplifiedDebts.length > 0 ? (
                         simplifiedDebts.map((debt, index) => {
                             const isUserDebtor = debt.from.id === members[0].id;
-                            const isUserCreditor = debt.to.id === members[0].id;
                             const fromName = isUserDebtor ? 'Tu' : debt.from.name.split(' ')[0];
-                            const toName = isUserCreditor ? 'Tu' : debt.to.name.split(' ')[0];
+                            const toName = debt.to.id === members[0].id ? 'te' : debt.to.name.split(' ')[0];
                             
-                            // Color coding inspired by the dribbble shot
-                            const cardColor = isUserCreditor ? 'bg-orange-500' : (isUserDebtor ? 'bg-yellow-500' : 'bg-gray-500');
+                            // UPDATE: Cycle through the colorful palette for each card
+                            const cardColor = CARD_COLORS[index % CARD_COLORS.length];
 
                             return (
                                 <div key={`${debt.from.id}-${debt.to.id}-${index}`} className={`${cardColor} text-white p-5 rounded-3xl shadow-lg`}>
@@ -199,8 +206,8 @@ const GroupBalances: React.FC<GroupBalancesProps> = ({ trip }) => {
                                             </p>
                                         </div>
                                         <div className="flex -space-x-4">
-                                            <MemberAvatar member={debt.from} className="border-2 border-orange-400" />
-                                            <MemberAvatar member={debt.to} className="border-2 border-yellow-300" />
+                                            <MemberAvatar member={debt.from} className={`border-2 ${cardColor}`} />
+                                            <MemberAvatar member={debt.to} className={`border-2 ${cardColor}`} />
                                         </div>
                                     </div>
                                 </div>

@@ -1,5 +1,3 @@
-// components/itinerary/DayDetailView.tsx
-
 import React, { useMemo, useState, lazy, Suspense, useRef, DragEvent, useCallback, useEffect } from 'react';
 import { useItinerary } from '../../context/ItineraryContext';
 import { Event, Expense } from '../../types';
@@ -10,6 +8,7 @@ import { dateToISOString } from '../../utils/dateUtils';
 
 const EventForm = lazy(() => import('./EventForm'));
 const DuplicateEventModal = lazy(() => import('./DuplicateEventModal'));
+const TravelTimeEstimator = lazy(() => import('./TravelTimeEstimator'));
 
 // --- START: Timeline sub-components ---
 const HOUR_HEIGHT = 80; // pixels per hour
@@ -244,50 +243,58 @@ const Timeline: React.FC<TimelineProps> = ({ events, onEditEvent, onAddExpense, 
             )}
 
             <div className="absolute top-0 left-0 right-0 bottom-0">
-                {events.map((event, index) => {
+                {events.flatMap((event, index) => {
+                    const elements = [];
                     const isCurrent = currentEvent?.eventId === event.eventId;
                     const statusLabel = isCurrent ? (currentEventStatus === 'LIVE' ? 'IN CORSO' : (currentEventStatus === 'NEXT' ? 'PROSSIMO' : null)) : null;
+                    
+                    elements.push(
+                        <TimelineEventCard 
+                            key={event.eventId}
+                            event={event} 
+                            onEditEvent={onEditEvent} 
+                            onAddExpense={onAddExpense}
+                            onDuplicateEvent={onDuplicateEvent}
+                            timelineStartHour={startHour} 
+                            spentAmount={spentPerEvent.get(event.eventId)}
+                            isBeingDragged={dragProps.draggedEventId === event.eventId}
+                            onDragStart={dragProps.onDragStart}
+                            onDragEnd={dragProps.onDragEnd}
+                            onStatusToggle={onStatusToggle}
+                            isCurrent={isCurrent}
+                            statusLabel={statusLabel}
+                        />
+                    );
+
                     const nextEvent = events[index + 1];
                     const showTravelTime = event.location && nextEvent?.location && nextEvent?.startTime && event.startTime;
 
-                    const startMinutes = timeToMinutes(event.endTime || event.startTime!);
-                    const nextStartMinutes = timeToMinutes(nextEvent?.startTime || '00:00');
-                    const travelBlockTop = ((startMinutes / 60) - startHour) * HOUR_HEIGHT;
-                    const travelBlockHeight = ((nextStartMinutes - startMinutes) / 60) * HOUR_HEIGHT;
-
-                    return (
-                        <React.Fragment key={event.eventId}>
-                            <TimelineEventCard 
-                                event={event} 
-                                onEditEvent={onEditEvent} 
-                                onAddExpense={onAddExpense}
-                                onDuplicateEvent={onDuplicateEvent}
-                                timelineStartHour={startHour} 
-                                spentAmount={spentPerEvent.get(event.eventId)}
-                                isBeingDragged={dragProps.draggedEventId === event.eventId}
-                                onDragStart={dragProps.onDragStart}
-                                onDragEnd={dragProps.onDragEnd}
-                                onStatusToggle={onStatusToggle}
-                                isCurrent={isCurrent}
-                                statusLabel={statusLabel}
-                            />
-                             {showTravelTime && travelBlockHeight > 10 && (
+                    if (showTravelTime) {
+                        const startMinutes = timeToMinutes(event.endTime || event.startTime!);
+                        const nextStartMinutes = timeToMinutes(nextEvent.startTime!);
+                        
+                        if (nextStartMinutes > startMinutes) {
+                            const travelBlockTop = ((startMinutes / 60) - startHour) * HOUR_HEIGHT;
+                            const travelBlockHeight = ((nextStartMinutes - startMinutes) / 60) * HOUR_HEIGHT;
+                            
+                            elements.push(
                                 <div
-                                    className="absolute left-0 w-16 flex justify-end pointer-events-none"
+                                    key={`travel-${event.eventId}`}
+                                    className="absolute left-0 w-16 pointer-events-none"
                                     style={{ top: `${travelBlockTop}px`, height: `${travelBlockHeight}px` }}
                                 >
-                                    <div className="flex flex-col items-center justify-center h-full w-full pr-2">
-                                        <div className="w-px flex-grow border-l border-dashed border-on-surface-variant/50"></div>
-                                        <div className="text-on-surface-variant my-1">
-                                            <span className="material-symbols-outlined text-base">directions_car</span>
-                                        </div>
-                                        <p className="text-[10px] font-bold text-on-surface-variant -mt-1">~15m</p>
-                                        <div className="w-px flex-grow border-l border-dashed border-on-surface-variant/50"></div>
-                                    </div>
+                                    <Suspense fallback={null}>
+                                        <TravelTimeEstimator
+                                            origin={event.location!}
+                                            destination={nextEvent.location!}
+                                        />
+                                    </Suspense>
                                 </div>
-                            )}
-                        </React.Fragment>
-                    );
+                            );
+                        }
+                    }
+
+                    return elements;
                 })}
             </div>
         </div>

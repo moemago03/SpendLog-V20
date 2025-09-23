@@ -4,13 +4,14 @@ import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from
 import { Trip, Event, Expense } from '../../types';
 import DayDetailView from './DayDetailView';
 import { useItinerary } from '../../context/ItineraryContext';
-import { getMonthGridDays, dateToISOString, isSameDay } from '../../utils/dateUtils';
+import { getMonthGridDays, dateToISOString, isSameDay, getDaysArray } from '../../utils/dateUtils';
 import ItineraryMapView, { MapFilterState } from './ItineraryMapView';
 import { useData } from '../../context/DataContext';
 import { getContrastColor } from '../../utils/colorUtils';
 import ExpenseListSkeleton from '../ExpenseListSkeleton';
 import DayStrip from './DayStrip';
 import { WeatherInfo, getWeatherIconFromWmoCode } from '../../utils/weatherUtils';
+import { useLocation } from '../../context/LocationContext';
 
 const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
@@ -92,8 +93,7 @@ const MonthView: React.FC<{
     }, [monthGridDays, weeks, getEventsByTrip, trip.id]);
 
     const weekdays = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
-    const getDaysArray = (start: string, end: string) => { const arr = []; for(let dt=new Date(start); dt<=new Date(end); dt.setDate(dt.getDate()+1)){ arr.push({iso: new Date(dt).toISOString().slice(0,10)}); } return arr; };
-
+    
     return (
         <div className="mt-4 p-2 bg-surface rounded-3xl">
             <div className="grid grid-cols-7 text-center text-xs font-medium uppercase text-on-surface-variant/70">
@@ -171,6 +171,7 @@ type CalendarQuickFilter = '3days' | '7days' | '10days' | 'all';
 
 const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense>) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();
+    const { location } = useLocation();
     const [activeSubView, setActiveSubView] = useState<ItinerarySubView>('agenda');
     const [weatherData, setWeatherData] = useState<Map<string, WeatherInfo> | null>(null);
 
@@ -199,11 +200,16 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     
     useEffect(() => {
         const fetchWeatherData = async () => {
-            if (!trip?.countries?.[0]) return;
+            if (!location?.country) {
+                console.warn("Location context not available or no country found. Skipping weather fetch.");
+                setWeatherData(null);
+                return;
+            }
             try {
-                const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(trip.countries[0])}&format=json&limit=1&accept-language=it`);
+                const query = location.city ? `${location.city}, ${location.country}` : location.country;
+                const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=it`);
                 const geoData = await geoResponse.json();
-                if (!geoData || geoData.length === 0) { console.warn(`Could not geocode ${trip.countries[0]}`); return; }
+                if (!geoData || geoData.length === 0) { console.warn(`Could not geocode location: ${query}`); return; }
                 const { lat, lon } = geoData[0];
 
                 const startDate = trip.startDate.split('T')[0];
@@ -211,7 +217,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
                 const weatherResponse = await fetch(weatherUrl);
                 const weatherApiData = await weatherResponse.json();
-                if (!weatherApiData?.daily?.time) { console.warn(`No weather data found.`); return; }
+                if (!weatherApiData?.daily?.time) { console.warn(`No weather data found for location: ${query}`); return; }
 
                 const newWeatherData = new Map<string, WeatherInfo>();
                 const { time, weather_code, temperature_2m_max } = weatherApiData.daily;
@@ -222,7 +228,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
             } catch (error) { console.error("Failed to fetch weather data:", error); setWeatherData(null); }
         };
         fetchWeatherData();
-    }, [trip.id, trip.countries, trip.startDate, trip.endDate]);
+    }, [trip.id, trip.startDate, trip.endDate, location]);
 
     const handleNavigation = (delta: number) => {
         setCalendarQuickFilter('all');
