@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Trip } from '../types';
 import ThemeToggle from './ThemeToggle';
@@ -43,7 +39,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const [isFrequentExpenseManagerOpen, setIsFrequentExpenseManagerOpen] = useState(false);
     const [isTripManagerOpen, setIsTripManagerOpen] = useState(false);
-    const { location, isLoadingLocation, locationError } = useLocation();
+    const { location, isLoadingLocation, locationError, refreshLocation } = useLocation();
     
     const activeTrip = trips.find(t => t.id === activeTripId) || null;
 
@@ -104,18 +100,19 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
                 <section className="space-y-3">
                      <h2 className="text-sm font-medium text-on-surface-variant px-2 uppercase tracking-wider">App</h2>
                     <div className="bg-surface rounded-3xl divide-y divide-outline/20 overflow-hidden shadow-sm">
-                        <SettingsItem icon="my_location" label="Posizione Rilevata">
-                            <span className={`text-sm font-medium ${locationError ? 'text-error' : 'text-on-surface-variant'}`}>
-                                {isLoadingLocation ? (
-                                    'Rilevamento...'
-                                ) : locationError ? (
-                                    <span title={locationError}>Non disponibile</span>
-                                ) : location?.city ? (
-                                    location.city
-                                ) : (
-                                    'Sconosciuta'
-                                )}
-                            </span>
+                        <SettingsItem
+                            icon="my_location"
+                            label={
+                                isLoadingLocation
+                                ? 'Rilevamento...'
+                                : location?.city || (locationError ? 'Non disponibile' : 'Sconosciuta')
+                            }
+                            onClick={isLoadingLocation ? undefined : refreshLocation}
+                            color={locationError ? 'text-error' : 'text-on-surface'}
+                        >
+                            {isLoadingLocation && (
+                                <div className="w-5 h-5 border-2 border-t-primary border-surface-variant rounded-full animate-spin"></div>
+                            )}
                         </SettingsItem>
                         <SettingsItem icon="contrast" label="Tema Scuro">
                             <ThemeToggle />

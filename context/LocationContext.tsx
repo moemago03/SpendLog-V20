@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useContext, useCallback } from 'react';
 
 interface LocationData {
     city: string | null;
@@ -9,6 +9,7 @@ interface LocationContextProps {
     location: LocationData | null;
     isLoadingLocation: boolean;
     locationError: string | null;
+    refreshLocation: () => void;
 }
 
 const LocationContext = createContext<LocationContextProps | undefined>(undefined);
@@ -21,56 +22,54 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [isLoadingLocation, setIsLoadingLocation] = useState(true);
     const [locationError, setLocationError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchAndSetLocation = async () => {
-            setIsLoadingLocation(true);
-            setLocationError(null);
+    const refreshLocation = useCallback(() => {
+        setIsLoadingLocation(true);
+        setLocationError(null);
 
-            if (!navigator.geolocation) {
-                setLocationError("La geolocalizzazione non è supportata da questo browser.");
-                setIsLoadingLocation(false);
-                return;
-            }
+        if (!navigator.geolocation) {
+            setLocationError("La geolocalizzazione non è supportata da questo browser.");
+            setIsLoadingLocation(false);
+            return;
+        }
 
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const { latitude, longitude } = position.coords;
-                    
-                    try {
-                        // Using OpenStreetMap's Nominatim for reverse geocoding (no API key needed)
-                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=it`);
-                        if (!response.ok) {
-                            throw new Error('Impossibile contattare il servizio di geolocalizzazione.');
-                        }
-                        const data = await response.json();
-
-                        if (data && data.address) {
-                            const newLocation: LocationData = {
-                                city: data.address.city || data.address.town || data.address.village || null,
-                                country: data.address.country || null,
-                            };
-                            
-                            setLocation(newLocation);
-                            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ ...newLocation, timestamp: Date.now() }));
-                        } else {
-                            throw new Error('Risposta di geolocalizzazione non valida.');
-                        }
-                    } catch (err: any) {
-                        setLocationError(err.message || "Impossibile determinare la città.");
-                    } finally {
-                        setIsLoadingLocation(false);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=it`);
+                    if (!response.ok) {
+                        throw new Error('Impossibile contattare il servizio di geolocalizzazione.');
                     }
-                },
-                (error) => {
-                    setLocationError(`Accesso alla posizione negato: ${error.message}`);
-                    setIsLoadingLocation(false);
-                    // Still update timestamp to avoid asking again too soon if user permanently denied
-                    const storedData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
-                    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ ...storedData, timestamp: Date.now() }));
-                }
-            );
-        };
+                    const data = await response.json();
 
+                    if (data && data.address) {
+                        const newLocation: LocationData = {
+                            city: data.address.city || data.address.town || data.address.village || null,
+                            country: data.address.country || null,
+                        };
+                        
+                        setLocation(newLocation);
+                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ ...newLocation, timestamp: Date.now() }));
+                    } else {
+                        throw new Error('Risposta di geolocalizzazione non valida.');
+                    }
+                } catch (err: any) {
+                    setLocationError(err.message || "Impossibile determinare la città.");
+                } finally {
+                    setIsLoadingLocation(false);
+                }
+            },
+            (error) => {
+                setLocationError(`Accesso alla posizione negato: ${error.message}`);
+                setIsLoadingLocation(false);
+                const storedData = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ ...storedData, timestamp: Date.now() }));
+            }
+        );
+    }, []);
+
+    useEffect(() => {
         const checkLocation = () => {
             try {
                 const storedDataRaw = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -79,25 +78,22 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
                     const lastCheck = storedData.timestamp || 0;
                     
                     if (Date.now() - lastCheck < LOCATION_CHECK_INTERVAL) {
-                        // Data is recent, use it
                         setLocation({ city: storedData.city, country: storedData.country });
                         setIsLoadingLocation(false);
-                        return; // Don't fetch new data
+                        return;
                     }
                 }
-                // Data is old or doesn't exist, fetch new
-                fetchAndSetLocation();
+                refreshLocation();
             } catch (e) {
                 console.error("Failed to read location from storage.", e);
-                // Fallback to fetching
-                fetchAndSetLocation();
+                refreshLocation();
             }
         };
 
         checkLocation();
-    }, []);
+    }, [refreshLocation]);
 
-    const value = { location, isLoadingLocation, locationError };
+    const value = { location, isLoadingLocation, locationError, refreshLocation };
 
     return (
         <LocationContext.Provider value={value}>
