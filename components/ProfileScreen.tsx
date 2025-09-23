@@ -1,8 +1,10 @@
 
 
+
 import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Trip } from '../types';
 import ThemeToggle from './ThemeToggle';
+import { useLocation } from '../context/LocationContext';
 
 const CategoryManager = lazy(() => import('./CategoryManager'));
 const FrequentExpenseManager = lazy(() => import('./FrequentExpenseManager'));
@@ -40,6 +42,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const [isFrequentExpenseManagerOpen, setIsFrequentExpenseManagerOpen] = useState(false);
     const [isTripManagerOpen, setIsTripManagerOpen] = useState(false);
+    const { location, isLoadingLocation, locationError } = useLocation();
     
     const activeTrip = trips.find(t => t.id === activeTripId) || null;
 
@@ -100,6 +103,19 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
                 <section className="space-y-3">
                      <h2 className="text-sm font-medium text-on-surface-variant px-2 uppercase tracking-wider">App</h2>
                     <div className="bg-surface rounded-3xl divide-y divide-outline/20 overflow-hidden shadow-sm">
+                        <SettingsItem icon="my_location" label="Posizione Rilevata">
+                            <span className="text-sm text-on-surface-variant font-medium">
+                                {isLoadingLocation ? (
+                                    'Rilevamento...'
+                                ) : locationError ? (
+                                    <span title={locationError}>Non disponibile</span>
+                                ) : location?.city ? (
+                                    location.city
+                                ) : (
+                                    'Sconosciuta'
+                                )}
+                            </span>
+                        </SettingsItem>
                         <SettingsItem icon="contrast" label="Tema Scuro">
                             <ThemeToggle />
                         </SettingsItem>

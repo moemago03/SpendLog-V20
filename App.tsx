@@ -4,6 +4,7 @@ import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ItineraryProvider } from './context/ItineraryContext';
+import { LocationProvider } from './context/LocationContext';
 import NotificationContainer from './components/NotificationContainer';
 import LoginScreen from './components/LoginScreen';
 import Dashboard from './components/Dashboard';
@@ -283,15 +284,17 @@ const App: React.FC = () => {
     return (
         <ThemeProvider>
             <NotificationProvider>
-                <DataProvider user={user}>
-                    <CurrencyProvider>
-                        <ItineraryProvider>
-                            <AppContent 
-                                onLogout={handleLogout} 
-                            />
-                        </ItineraryProvider>
-                    </CurrencyProvider>
-                </DataProvider>
+                <LocationProvider>
+                    <DataProvider user={user}>
+                        <CurrencyProvider>
+                            <ItineraryProvider>
+                                <AppContent 
+                                    onLogout={handleLogout} 
+                                />
+                            </ItineraryProvider>
+                        </CurrencyProvider>
+                    </DataProvider>
+                </LocationProvider>
                 <NotificationContainer />
             </NotificationProvider>
         </ThemeProvider>
