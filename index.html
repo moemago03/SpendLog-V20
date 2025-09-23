@@ -139,13 +139,23 @@
       (function() {
         try {
           const theme = localStorage.getItem('vsc_theme');
-          const systemIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          const isDark = theme === 'dark' || (theme === null && systemIsDark);
-          
-          if (isDark) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
+          const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+          // Case 1: User has explicitly chosen a theme.
+          if (theme) {
+            if (theme === 'dark') {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+          } 
+          // Case 2: No user preference, use system setting.
+          else {
+            if (systemPrefersDark) {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
           }
         } catch (e) {
           // Failsafe for environments where localStorage or matchMedia is not available.
