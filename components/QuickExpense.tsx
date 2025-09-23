@@ -23,8 +23,8 @@ const QuickExpense: React.FC<QuickExpenseProps> = ({ trip }) => {
             // Dynamically import the module only when needed to prevent load-time errors
             const { GoogleGenAI, Type } = await import('@google/genai');
             
-            // FIX: The API key must be obtained from process.env.API_KEY as per the guidelines.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            // FIX: The API key is sourced from a global window variable set in index.html to ensure availability.
+            const ai = new GoogleGenAI({ apiKey: (window as any).GEMINI_API_KEY });
 
             const availableCategories = data.categories.map(c => c.name);
 

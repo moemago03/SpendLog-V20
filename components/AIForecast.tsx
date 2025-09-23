@@ -67,8 +67,8 @@ const AIForecast: React.FC<AIForecastProps> = ({ expenses, trip }) => {
 
         try {
             const { GoogleGenAI, Type } = await import('@google/genai');
-            // FIX: The API key must be obtained from process.env.API_KEY as per the guidelines.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            // FIX: The API key is sourced from a global window variable set in index.html to ensure availability.
+            const ai = new GoogleGenAI({ apiKey: (window as any).GEMINI_API_KEY });
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",

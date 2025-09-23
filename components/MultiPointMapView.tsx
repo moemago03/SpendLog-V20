@@ -7,8 +7,8 @@ interface MultiPointMapViewProps {
 const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
     // Switched to Google Static Maps API to provide a clean map with only the required pins,
     // solving the issues of clutter (POIs) and missing pins from the previous implementation.
-    // NOTE: This assumes process.env.API_KEY is also valid for the Google Maps Static API.
-    const apiKey = process.env.API_KEY;
+    // NOTE: This assumes window.GEMINI_API_KEY is also valid for the Google Maps Static API.
+    const apiKey = (window as any).GEMINI_API_KEY;
     
     const markersQuery = locations
         .slice(0, 15) // Static API has a URL length limit, so cap the markers

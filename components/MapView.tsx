@@ -7,8 +7,8 @@ interface MapViewProps {
 const MapView: React.FC<MapViewProps> = ({ location }) => {
     // Switched to Google Static Maps API to hide POIs and provide a cleaner view.
     // The map is non-interactive but links to the full interactive Google Maps.
-    // NOTE: This assumes process.env.API_KEY is also valid for the Google Maps Static API.
-    const apiKey = process.env.API_KEY;
+    // NOTE: This assumes window.GEMINI_API_KEY is also valid for the Google Maps Static API.
+    const apiKey = (window as any).GEMINI_API_KEY;
     
     // URL-encode all parts for safety
     const encodedLocation = encodeURIComponent(location);
