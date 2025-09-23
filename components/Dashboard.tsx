@@ -119,9 +119,13 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEdi
                 );
             case 'group':
                 return (
-                    <div className="p-4 pb-24 max-w-2xl mx-auto">
-                        <header className="pt-8 pb-4">
-                            <h1 className="text-4xl font-bold text-on-background">Cruscotto di Gruppo</h1>
+                    <div className="p-4 md:p-6 pb-24 bg-[#F3F6FD] dark:bg-background min-h-screen">
+                         <header className="flex justify-between items-center mb-6">
+                            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+                             <button className="relative p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
+                                <span className="material-symbols-outlined">notifications</span>
+                                <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
+                            </button>
                         </header>
                         <Suspense fallback={<ExpenseListSkeleton />}>
                             <GroupBalances trip={activeTrip} />

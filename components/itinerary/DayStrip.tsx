@@ -1,36 +1,18 @@
 
+
 import React, { useMemo, useRef, useEffect } from 'react';
 import { Trip } from '../../types';
 import { getDaysArray } from '../../utils/dateUtils';
+import { WeatherInfo } from '../../utils/weatherUtils';
 
 interface DayStripProps {
     trip: Trip;
     selectedDate: string;
     onSelectDate: (date: string) => void;
+    weatherData: Map<string, WeatherInfo> | null;
 }
 
-// --- NEW: Simulated Weather Function ---
-const getSimulatedWeather = (dateStr: string) => {
-    // Use a simple hash from the date to get consistent "random" weather for a given day
-    let hash = 0;
-    for (let i = 0; i < dateStr.length; i++) {
-        const char = dateStr.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash |= 0; // Convert to 32bit integer
-    }
-
-    const temp = 20 + (Math.abs(hash) % 15); // Temp between 20°C and 34°C
-    const condition = Math.abs(hash) % 4;
-    
-    let icon = 'sunny';
-    if (condition === 1) icon = 'partly_cloudy_day';
-    if (condition === 2) icon = 'cloudy';
-    if (condition === 3) icon = 'rainy';
-
-    return { icon, temp };
-};
-
-const DayStrip: React.FC<DayStripProps> = ({ trip, selectedDate, onSelectDate }) => {
+const DayStrip: React.FC<DayStripProps> = ({ trip, selectedDate, onSelectDate, weatherData }) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const selectedItemRef = useRef<HTMLButtonElement>(null);
 
@@ -60,7 +42,7 @@ const DayStrip: React.FC<DayStripProps> = ({ trip, selectedDate, onSelectDate })
                 const isSelected = selectedDate === iso;
                 const dayOfWeek = date.toLocaleDateString('it-IT', { weekday: 'short' }).toUpperCase();
                 const dayOfMonth = date.getDate();
-                const weather = getSimulatedWeather(iso);
+                const weather = weatherData?.get(iso);
 
                 return (
                     <button
@@ -76,9 +58,16 @@ const DayStrip: React.FC<DayStripProps> = ({ trip, selectedDate, onSelectDate })
                     >
                         <span className={`text-xs font-semibold ${isSelected ? 'text-on-primary/80' : 'text-on-surface-variant/70'}`}>{dayOfWeek}</span>
                         <span className={`text-2xl font-bold ${isSelected ? 'text-on-primary' : 'text-on-surface'}`}>{dayOfMonth}</span>
-                        <div className={`flex items-center gap-1 text-xs ${isSelected ? 'text-on-primary/90' : 'text-on-surface-variant/90'}`}>
-                            <span className="material-symbols-outlined text-sm">{weather.icon}</span>
-                            <span className="font-semibold">{weather.temp}°</span>
+                        <div className={`flex items-center gap-1 text-xs h-5 ${isSelected ? 'text-on-primary/90' : 'text-on-surface-variant/90'}`}>
+                            {weather ? (
+                                <>
+                                    <span className="material-symbols-outlined text-sm">{weather.icon}</span>
+                                    <span className="font-semibold">{weather.temp}°</span>
+                                </>
+                            ) : (
+                                // Placeholder for when weather is loading or unavailable
+                                <div className="w-8 h-4 bg-gray-400/20 rounded-full animate-pulse"></div>
+                            )}
                         </div>
                     </button>
                 );
