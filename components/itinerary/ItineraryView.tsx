@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
 import { Trip, Event, Expense } from '../../types';
 import DayDetailView from './DayDetailView';
@@ -194,7 +195,6 @@ const getInitialMapDate = (trip: Trip) => {
 
 type ItineraryAgendaViewMode = 'day' | 'month' | 'map';
 type ItinerarySubView = 'agenda' | 'checklist';
-type DayStripQuickFilter = 'today' | 'week' | 'all';
 type CalendarQuickFilter = '3days' | '7days' | '10days' | 'all';
 
 // --- Main Itinerary View Component ---
@@ -221,7 +221,6 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
 
     const [selectedDateISO, setSelectedDateISO] = useState(initialAgendaDate);
     const [viewMode, setViewMode] = useState<ItineraryAgendaViewMode>('day');
-    const [dayStripQuickFilter, setDayStripQuickFilter] = useState<DayStripQuickFilter>('all');
     
     const [displayDateForMonth, setDisplayDateForMonth] = useState(() => new Date(selectedDateISO + 'T12:00:00Z'));
     const [isAddingEvent, setIsAddingEvent] = useState(false);
@@ -275,50 +274,9 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
         }
     }, [viewMode]);
 
-    const handleDayStripQuickFilter = (filter: DayStripQuickFilter) => {
-        setDayStripQuickFilter(filter);
-        switch (filter) {
-            case 'today':
-                const today = new Date();
-                if (today >= tripStartDate && today <= tripEndDate) {
-                    setSelectedDateISO(dateToISOString(today));
-                } else {
-                    setSelectedDateISO(trip.startDate.split('T')[0]);
-                }
-                break;
-            case 'week':
-                const weekStart = getWeekRange(new Date()).start;
-                 if (weekStart <= tripEndDate && getWeekRange(new Date()).end >= tripStartDate) {
-                    const firstDayOfWeekInTrip = weekStart < tripStartDate ? tripStartDate : weekStart;
-                    setSelectedDateISO(dateToISOString(firstDayOfWeekInTrip));
-                } else {
-                    setSelectedDateISO(trip.startDate.split('T')[0]);
-                }
-                break;
-            case 'all':
-                setSelectedDateISO(trip.startDate.split('T')[0]);
-                break;
-        }
-    };
-    
     const handleOpenAddEventForm = () => setIsAddingEvent(true);
     const handleCloseAddEventForm = () => setIsAddingEvent(false);
-
-    const tripDuration = useMemo(() => getTripDurationDays(trip.startDate, trip.endDate), [trip.startDate, trip.endDate]);
-    const formattedStartDate = new Date(trip.startDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
-    const formattedEndDate = new Date(trip.endDate).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
     
-    const DayStripQuickFilterButton: React.FC<{filterType: DayStripQuickFilter, label: string}> = ({ filterType, label }) => (
-        <button
-            onClick={() => handleDayStripQuickFilter(filterType)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${
-                dayStripQuickFilter === filterType ? 'bg-primary-container text-on-primary-container' : 'bg-surface-variant text-on-surface-variant'
-            }`}
-        >
-            {label}
-        </button>
-    );
-
     const CalendarFilterButton: React.FC<{filterType: CalendarQuickFilter, label: string}> = ({ filterType, label }) => (
         <button
             onClick={() => handleCalendarFilterChange(filterType)}
@@ -332,10 +290,8 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     
     return (
         <div className="pb-24">
-            <header className="pt-8 pb-4 px-4 max-w-7xl mx-auto">
-                <h1 className="text-3xl font-bold text-on-background">{trip.name}</h1>
-                <p className="text-on-surface-variant">{formattedStartDate} - {formattedEndDate} ({tripDuration} giorni)</p>
-                <div className="mt-6 flex border-b border-surface-variant">
+            <header className="pt-8 px-4 max-w-7xl mx-auto">
+                <div className="flex border-b border-surface-variant">
                     <button
                         onClick={() => setActiveSubView('agenda')}
                         className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${
@@ -360,25 +316,12 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
             </header>
 
             <div className={activeSubView === 'agenda' ? '' : 'hidden'}>
-                <div className="px-4 max-w-7xl mx-auto mt-4 flex items-center gap-2">
-                    <DayStripQuickFilterButton filterType="today" label="Oggi" />
-                    <DayStripQuickFilterButton filterType="week" label="Questa Settimana" />
-                    <DayStripQuickFilterButton filterType="all" label="Tutto" />
-                </div>
                 <DayStrip
                     trip={trip}
                     selectedDate={selectedDateISO}
                     onSelectDate={handleDateSelect}
                 />
-                <div className="px-4 mt-6 max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <h2 className="text-2xl font-bold text-on-surface">
-                            {viewMode !== 'month' ? 
-                                `${new Date(selectedDateISO + 'T12:00:00Z').toLocaleDateString('it-IT', { weekday: 'long' })}, ${new Date(selectedDateISO + 'T12:00:00Z').getDate()}`
-                                : 'Calendario'
-                            }
-                        </h2>
-                    </div>
+                <div className="px-4 mt-6 max-w-7xl mx-auto flex justify-end items-center">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => setIsAIGeneratorOpen(true)}
