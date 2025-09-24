@@ -12,19 +12,19 @@ Questo file documenta le API esterne necessarie per il funzionamento completo de
 - **Modelli usati:** `gemini-2.5-flash`.
 - **Stato attuale:** **Attiva** (richiede una `API_KEY` valida nell'ambiente di esecuzione).
 
-## 2. Google Maps Static API
+## 2. OpenStreetMap APIs (via Leaflet.js)
 
-- **Scopo:** Utilizzata per visualizzare mappe statiche (non interattive) per singole o multiple location.
-  - Mappa per un singolo luogo (`MapView.tsx`).
-  - Mappa con il percorso di più eventi (`MultiPointMapView.tsx`).
-- **Endpoint:** `https://maps.googleapis.com/maps/api/staticmap`.
-- **Stato attuale:** **Attiva** (richiede una `API_KEY` valida che sia abilitata anche per l'API Maps Static).
+- **Scopo:** Fornire mappe interattive e dati geografici.
+  - **Tile Server:** Utilizzato da Leaflet.js per visualizzare le mattonelle della mappa. L'URL predefinito `https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png` è usato in tutta l'app.
+  - **Nominatim Geocoding:** Utilizzato per convertire indirizzi testuali (es. "Colosseo, Roma") in coordinate geografiche (latitudine/longitudine) per posizionare i marcatori sulla mappa.
+- **Componenti interessati:** `MapView.tsx`, `MultiPointMapView.tsx`, e di conseguenza `ItineraryMapView.tsx` e `ExpenseMapView.tsx`.
+- **Stato attuale:** **Attiva**. Non richiede una API key, ma è soggetta a una policy di utilizzo equo.
 
-## 3. API Meteo (Es. OpenWeatherMap, WeatherAPI)
+## 3. API Meteo (Open-Meteo)
 
 - **Scopo:** Fornire previsioni meteo giornaliere reali per le date selezionate nell'itinerario.
-- **Endpoint:** Da definire (es. `api.openweathermap.org`).
-- **Stato attuale:** **Simulata**. Attualmente, viene mostrato un meteo generato casualmente in `ItineraryView.tsx`. Sarà necessario sostituire la funzione di simulazione con una vera chiamata API.
+- **Endpoint:** `api.open-meteo.com`.
+- **Stato attuale:** **Attiva**. Utilizza l'API di Open-Meteo, che non richiede chiave per uso base, per recuperare i dati meteorologici.
 
 ## 4. API Tassi di Cambio (Es. exchangerate-api.com)
 

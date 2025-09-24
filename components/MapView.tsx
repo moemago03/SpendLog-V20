@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
+declare var L: any; // Declare Leaflet global
 
 interface MapViewProps {
     location: string;
@@ -9,9 +11,10 @@ interface Coords {
     lon: string;
 }
 
+// Keep the same geocoding function
 const geocodeLocation = async (location: string): Promise<Coords | null> => {
     try {
-        const response = await fetch(`httpshttps://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&accept-language=it`);
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&accept-language=it`);
         if (!response.ok) return null;
         const data = await response.json();
         if (data && data.length > 0) {
@@ -24,8 +27,9 @@ const geocodeLocation = async (location: string): Promise<Coords | null> => {
     }
 };
 
-
 const MapView: React.FC<MapViewProps> = ({ location }) => {
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<any>(null); // To hold the map instance
     const [coords, setCoords] = useState<Coords | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -38,6 +42,36 @@ const MapView: React.FC<MapViewProps> = ({ location }) => {
         };
         geocode();
     }, [location]);
+
+    useEffect(() => {
+        if (isLoading || !coords || !mapContainerRef.current) {
+            return;
+        }
+        
+        // Prevent re-initialization
+        if (mapRef.current) {
+             mapRef.current.remove();
+        }
+
+        const lat = parseFloat(coords.lat);
+        const lon = parseFloat(coords.lon);
+
+        const map = L.map(mapContainerRef.current).setView([lat, lon], 15);
+        mapRef.current = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        L.marker([lat, lon]).addTo(map);
+
+        return () => {
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+            }
+        };
+    }, [isLoading, coords]);
 
     const navigateUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location)}`;
 
@@ -58,20 +92,8 @@ const MapView: React.FC<MapViewProps> = ({ location }) => {
                 </div>
             );
         }
-
-        const staticMapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${coords.lat},${coords.lon}&zoom=15&size=600x400&maptype=mapnik&markers=${coords.lat},${coords.lon},red-pushpin`;
-
-        return (
-            <img
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                alt={`Mappa di ${location}`}
-                src={staticMapUrl}
-                className="object-cover w-full h-full"
-            />
-        );
+        // Leaflet will populate this div
+        return <div ref={mapContainerRef} className="w-full h-full z-0"></div>;
     };
 
     return (

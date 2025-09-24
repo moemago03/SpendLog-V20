@@ -1,7 +1,8 @@
+
 import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
 import { Trip, Event, Expense } from '../../types';
 import DayDetailView from '../itinerary/DayDetailView';
-// FIX: Corrected import path and hook name
+// FIX: Corrected import path for useItinerary hook.
 import { useItinerary } from '../../context/ItineraryContext';
 import { getMonthGridDays, dateToISOString, isSameDay, getWeekRange, getDaysArray, getTripDurationDays, getMonthRange } from '../../utils/dateUtils';
 import ItineraryMapView, { MapFilterState } from '../itinerary/ItineraryMapView';
@@ -21,7 +22,6 @@ const MonthView: React.FC<{
     categories: any[]; // Using any to avoid type issues with imported Category
     onOpenDayDetail: (date: Date) => void;
 }> = ({ displayDate, trip, categories, onOpenDayDetail }) => {
-    // FIX: Corrected hook name from useItinerario to useItinerary
     const { getEventsByTrip } = useItinerary();
     const tripStartDate = useMemo(() => new Date(trip.startDate.split('T')[0] + 'T00:00:00Z'), [trip.startDate]);
     const tripEndDate = useMemo(() => new Date(trip.endDate.split('T')[0] + 'T23:59:59Z'), [trip.endDate]);

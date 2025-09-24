@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+
+declare var L: any; // Declare Leaflet global
 
 interface MultiPointMapViewProps {
     locations: string[];
@@ -26,6 +28,8 @@ const geocodeLocation = async (location: string): Promise<Coords | null> => {
 
 
 const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
+    const mapContainerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<any>(null);
     const [coordsList, setCoordsList] = useState<Coords[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -37,7 +41,7 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
                 return;
             }
             setIsLoading(true);
-            const uniqueLocations = [...new Set(locations)]; // Avoid duplicate API calls
+            const uniqueLocations = [...new Set(locations)];
             const promises = uniqueLocations.map(geocodeLocation);
             const results = await Promise.all(promises);
             const validCoords = results.filter((c): c is Coords => c !== null);
@@ -47,13 +51,46 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
         geocodeAll();
     }, [locations]);
 
-    const navigateUrl = useMemo(() => {
-        const url = new URL('https://www.google.com/maps/dir/?api=1');
-        if (locations.length > 0) {
-            url.searchParams.append('destination', locations[locations.length - 1]);
-            if (locations.length > 1) {
-                url.searchParams.append('waypoints', locations.slice(0, -1).join('|'));
+    useEffect(() => {
+        if (isLoading || coordsList.length === 0 || !mapContainerRef.current) {
+            return;
+        }
+
+        if (mapRef.current) {
+            mapRef.current.remove();
+        }
+
+        const map = L.map(mapContainerRef.current);
+        mapRef.current = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        const markers = coordsList.map(coords => {
+            return L.marker([parseFloat(coords.lat), parseFloat(coords.lon)]);
+        });
+
+        if (markers.length > 0) {
+            const featureGroup = L.featureGroup(markers).addTo(map);
+            map.fitBounds(featureGroup.getBounds().pad(0.1));
+        }
+        
+        return () => {
+            if(mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
             }
+        };
+
+    }, [isLoading, coordsList]);
+
+    const navigateUrl = useMemo(() => {
+        if (locations.length < 1) return '#';
+        const url = new URL('https://www.google.com/maps/dir/?api=1');
+        url.searchParams.append('destination', locations[locations.length - 1]);
+        if (locations.length > 1) {
+            url.searchParams.append('waypoints', locations.slice(0, -1).join('|'));
         }
         return url.toString();
     }, [locations]);
@@ -87,28 +124,9 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
             );
         }
 
-        const markersQuery = coordsList
-            .map(coords => `${coords.lat},${coords.lon},red-pushpin`)
-            .join('|');
-        
-        // This service does not auto-fit bounds, so we center on the first location
-        // which is sufficient for a daily or weekly itinerary overview.
-        const center = `${coordsList[0].lat},${coordsList[0].lon}`;
-        const zoom = coordsList.length > 1 ? '11' : '15'; // Zoom out if there are multiple points
-
-        const staticMapUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${center}&zoom=${zoom}&size=600x400&maptype=mapnik&markers=${markersQuery}`;
-
         return (
             <>
-                <img
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    alt="Mappa con più luoghi"
-                    src={staticMapUrl}
-                    className="object-cover w-full h-full"
-                />
+                <div ref={mapContainerRef} className="w-full h-full z-0"></div>
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="flex items-center gap-2 px-4 py-2 bg-black/50 text-white rounded-full text-sm font-semibold">
                         <span className="material-symbols-outlined text-base">open_in_new</span>
