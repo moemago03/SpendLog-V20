@@ -1,11 +1,6 @@
-
-
-
-
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
 import { Trip, Event, Expense } from '../../types';
 import DayDetailView from '../itinerary/DayDetailView';
-// FIX: Corrected import path for useItinerary hook.
 import { useItinerary } from '../../context/ItineraryContext';
 import { getMonthGridDays, dateToISOString, isSameDay, getWeekRange, getDaysArray, getTripDurationDays, getMonthRange } from '../../utils/dateUtils';
 import ItineraryMapView, { MapFilterState } from '../itinerary/ItineraryMapView';
@@ -14,24 +9,22 @@ import { getContrastColor } from '../../utils/colorUtils';
 import ExpenseListSkeleton from '../ExpenseListSkeleton';
 import DayStrip from '../itinerary/DayStrip';
 import { WeatherInfo, getWeatherIconFromWmoCode } from '../../utils/weatherUtils';
-import { useLocation } from '../../context/LocationContext';
+import WeatherDebugWidget from '../itinerary/WeatherDebugWidget'; // Import the new debug widget
 
 const EventForm = lazy(() => import('../itinerary/EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
 const AIItineraryGenerator = lazy(() => import('../itinerary/AIItineraryGenerator'));
 
-// --- Internal Month View Component (Refreshed Style) ---
 const MonthView: React.FC<{
     displayDate: Date;
     trip: Trip;
-    categories: any[]; // Using any to avoid type issues with imported Category
+    categories: any[];
     onOpenDayDetail: (date: Date) => void;
 }> = ({ displayDate, trip, categories, onOpenDayDetail }) => {
     const { getEventsByTrip } = useItinerary();
     const tripStartDate = useMemo(() => new Date(trip.startDate.split('T')[0] + 'T00:00:00Z'), [trip.startDate]);
     const tripEndDate = useMemo(() => new Date(trip.endDate.split('T')[0] + 'T23:59:59Z'), [trip.endDate]);
     
-    // NEW: Get all events and create a Set of dates with events for quick lookup
     const eventDates = useMemo(() => {
         const allEvents = getEventsByTrip(trip.id);
         const dates = new Set<string>();
@@ -58,7 +51,6 @@ const MonthView: React.FC<{
 
         const visibleEvents = allEvents.filter(event => {
             const eventStart = new Date(event.eventDate + 'T00:00:00Z');
-            // FIX: Ensure end date for events is inclusive by setting time to end of day.
             const eventEnd = event.endDate ? new Date(event.endDate + 'T23:59:59Z') : new Date(event.eventDate + 'T23:59:59Z');
             return eventStart <= monthEnd && eventEnd >= monthStart;
         }).sort((a, b) => {
@@ -75,7 +67,6 @@ const MonthView: React.FC<{
             const lanes: (Event | null)[][] = [[], [], []];
             const eventsInWeek = visibleEvents.filter(event => {
                 const eventStart = new Date(event.eventDate + 'T00:00:00Z');
-                // FIX: Ensure end date for events is inclusive by setting time to end of day.
                 const eventEnd = event.endDate ? new Date(event.endDate + 'T23:59:59Z') : new Date(event.eventDate + 'T23:59:59Z');
                 return eventStart <= week[6] && eventEnd >= week[0];
             });
@@ -116,10 +107,7 @@ const MonthView: React.FC<{
                 {monthGridDays.map((date, index) => {
                     const isCurrentMonth = date.getMonth() === displayDate.getMonth();
                     
-                    // NEW: Check if the date has an event
                     const hasEvent = eventDates.has(dateToISOString(date));
-
-                    // NEW: If the day is not in the current month AND has no event, render an empty cell
                     if (!isCurrentMonth && !hasEvent) {
                         return (
                             <div 
@@ -188,7 +176,6 @@ const MonthView: React.FC<{
     );
 };
 
-
 const getInitialMapDate = (trip: Trip) => {
     const today = new Date();
     const tripStart = new Date(trip.startDate.split('T')[0] + 'T12:00:00Z');
@@ -199,14 +186,29 @@ const getInitialMapDate = (trip: Trip) => {
     return trip.startDate.split('T')[0];
 };
 
+// Helper to geocode a location string to lat/lon using Nominatim
+const geocodeLocation = async (location: string): Promise<{ lat: number; lon: number } | null> => {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&accept-language=it`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (data && data.length > 0) {
+            return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+        }
+        return null;
+    } catch (error) {
+        console.error(`Geocoding failed for ${location}:`, error);
+        return null;
+    }
+};
+
+
 type ItinerarioAgendaViewMode = 'day' | 'month' | 'map';
 type ItinerarioSubView = 'agenda' | 'checklist';
 type QuickFilter = 'today' | 'week' | 'all';
 
-// --- Main Itinerary View Component ---
 const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense>) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();
-    const { location } = useLocation();
     const [weatherData, setWeatherData] = useState<Map<string, WeatherInfo> | null>(null);
     const [activeSubView, setActiveSubView] = useState<ItinerarioSubView>('agenda');
 
@@ -246,28 +248,31 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
 
      useEffect(() => {
         const fetchWeatherData = async () => {
-            // 1. Guard Clause: Wait until location coordinates are available.
-            if (!location?.latitude || !location?.longitude) {
-                // Do nothing and wait for the location context to update.
-                // The UI will show a loading state because weatherData is null.
+            if (!trip.countries || trip.countries.length === 0) {
+                setWeatherData(new Map());
                 return;
             }
+            const locationForWeather = trip.countries[0];
+            const coords = await geocodeLocation(locationForWeather);
 
+            if (!coords) {
+                console.error(`Could not geocode location: ${locationForWeather}`);
+                setWeatherData(new Map());
+                return;
+            }
+            
             try {
-                const { latitude, longitude } = location;
+                const { lat, lon } = coords;
                 const startDate = trip.startDate.split('T')[0];
                 const endDate = trip.endDate.split('T')[0];
-                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
                 const weatherResponse = await fetch(weatherUrl);
 
-                if (!weatherResponse.ok) {
-                    throw new Error(`Weather API request failed with status ${weatherResponse.status}`);
-                }
+                if (!weatherResponse.ok) throw new Error(`Weather API request failed`);
                 
                 const weatherApiData = await weatherResponse.json();
                 if (!weatherApiData?.daily?.time) {
-                    console.warn(`No weather data found for location: ${latitude},${longitude}`);
-                    setWeatherData(new Map()); // Set to empty to signify "no data found"
+                    setWeatherData(new Map());
                     return;
                 }
 
@@ -279,13 +284,11 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
                 setWeatherData(newWeatherData);
             } catch (error) {
                 console.error("Failed to fetch weather data:", error);
-                setWeatherData(new Map()); // On error, set to empty map to stop loading state
+                setWeatherData(new Map());
             }
         };
-
         fetchWeatherData();
-    // 2. Dependencies: Depend on the specific coordinates. The effect re-runs when they change.
-    }, [trip.id, trip.startDate, trip.endDate, location?.latitude, location?.longitude]);
+    }, [trip.id, trip.countries, trip.startDate, trip.endDate]);
     
     const handleNavigation = (delta: number) => {
         setDisplayDateForMonth(prev => {
@@ -310,7 +313,6 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
                 if (today >= tripStartDate && today <= tripEndDate) {
                     setSelectedDateISO(dateToISOString(today));
                 } else {
-                    // If today is outside the trip, just go to the start
                     setSelectedDateISO(trip.startDate.split('T')[0]);
                 }
                 break;
@@ -388,6 +390,9 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
                     onSelectDate={handleDateSelect}
                     weatherData={weatherData}
                 />
+                <div className="px-4 mt-4 max-w-7xl mx-auto">
+                    <WeatherDebugWidget trip={trip} />
+                </div>
                 <div className="px-4 mt-6 max-w-7xl mx-auto flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-on-surface">
                         {new Date(selectedDateISO + 'T12:00:00Z').toLocaleDateString('it-IT', { weekday: 'long' })}, {new Date(selectedDateISO + 'T12:00:00Z').getDate()}
