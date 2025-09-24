@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trip } from '../../types';
 import { getWeatherIconFromWmoCode, WeatherInfo } from '../../utils/weatherUtils';
-import { dateToISOString } from '../../utils/dateUtils';
+import { useLocation } from '../../context/LocationContext';
 
 interface WeatherDebugWidgetProps {
     trip: Trip;
@@ -26,6 +26,7 @@ const geocodeLocation = async (location: string): Promise<{ lat: number; lon: nu
 };
 
 const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
+    const { location: userLocation } = useLocation();
     const [status, setStatus] = useState<Status>('Idle');
     const [debugLog, setDebugLog] = useState<string[]>([]);
     const [weatherPreview, setWeatherPreview] = useState<WeatherInfo | null>(null);
@@ -41,14 +42,15 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
             setWeatherPreview(null);
             log('Inizio processo recupero meteo...');
             
-            if (!trip.countries || trip.countries.length === 0) {
+            const location = userLocation?.city || trip.countries?.[0];
+
+            if (!location) {
                 setStatus('Error');
-                log('ERRORE: Nessuna nazione definita nel viaggio.');
+                log('ERRORE: Nessuna posizione disponibile (né utente né viaggio).');
                 setLocationUsed('Nessuna');
                 return;
             }
 
-            const location = trip.countries[0];
             setLocationUsed(location);
             log(`Posizione da usare: ${location}`);
             setStatus('Geocoding');
@@ -110,7 +112,7 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
         };
 
         fetchAndLog();
-    }, [trip, log]);
+    }, [trip, log, userLocation]);
 
     const getStatusColor = () => {
         switch (status) {

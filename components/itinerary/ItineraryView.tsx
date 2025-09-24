@@ -14,6 +14,7 @@ import ExpenseListSkeleton from '../ExpenseListSkeleton';
 import DayStrip from './DayStrip';
 import { WeatherInfo, getWeatherIconFromWmoCode } from '../../utils/weatherUtils';
 import WeatherDebugWidget from './WeatherDebugWidget'; // Import the new debug widget
+import { useLocation } from '../../context/LocationContext';
 
 const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
@@ -191,6 +192,7 @@ const geocodeLocation = async (location: string): Promise<{ lat: number; lon: nu
 
 const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense> & { checklistItemId?: string }) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();
+    const { location: userLocation } = useLocation();
     const [activeSubView, setActiveSubView] = useState<ItinerarySubView>('agenda');
     const [weatherData, setWeatherData] = useState<Map<string, WeatherInfo> | null>(null);
 
@@ -219,11 +221,13 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     
     useEffect(() => {
         const fetchWeatherData = async () => {
-            if (!trip.countries || trip.countries.length === 0) {
+            const locationForWeather = userLocation?.city || trip.countries?.[0];
+
+            if (!locationForWeather) {
                 setWeatherData(new Map());
                 return;
             }
-            const locationForWeather = trip.countries[0];
+
             const coords = await geocodeLocation(locationForWeather);
 
             if (!coords) {
@@ -296,7 +300,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
         };
 
         fetchWeatherData();
-    }, [trip.id, trip.countries, trip.startDate, trip.endDate]);
+    }, [trip.id, trip.countries, trip.startDate, trip.endDate, userLocation]);
 
     const handleNavigation = (delta: number) => {
         setCalendarQuickFilter('all');
