@@ -1,4 +1,6 @@
 
+
+
 // components/itinerary/ItineraryView.tsx
 
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
@@ -51,7 +53,8 @@ const MonthView: React.FC<{
         const monthEnd = monthGridDays[monthGridDays.length - 1];
         const visibleEvents = getEventsByTrip(trip.id).filter(event => {
             const eventStart = new Date(event.eventDate + 'T00:00:00Z');
-            const eventEnd = event.endDate ? new Date(event.endDate + 'T00:00:00Z') : eventStart;
+            // FIX: Ensure end date for events is inclusive by setting time to end of day.
+            const eventEnd = event.endDate ? new Date(event.endDate + 'T23:59:59Z') : new Date(event.eventDate + 'T23:59:59Z');
             return eventStart <= monthEnd && eventEnd >= monthStart;
         }).sort((a, b) => {
             const startDiff = new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime();
@@ -67,13 +70,14 @@ const MonthView: React.FC<{
             const lanes: (Event | null)[][] = [[], [], []];
             const eventsInWeek = visibleEvents.filter(event => {
                 const eventStart = new Date(event.eventDate + 'T00:00:00Z');
-                const eventEnd = event.endDate ? new Date(event.endDate + 'T00:00:00Z') : eventStart;
+                // FIX: Ensure end date for events is inclusive by setting time to end of day.
+                const eventEnd = event.endDate ? new Date(event.endDate + 'T23:59:59Z') : new Date(event.eventDate + 'T23:59:59Z');
                 return eventStart <= week[6] && eventEnd >= week[0];
             });
 
             eventsInWeek.forEach(event => {
                 const eventStart = new Date(event.eventDate + 'T00:00:00Z');
-                const eventEnd = event.endDate ? new Date(event.endDate + 'T00:00:00Z') : eventStart;
+                const eventEnd = event.endDate ? new Date(event.endDate + 'T23:59:59Z') : new Date(event.eventDate + 'T23:59:59Z');
                 const startDay = eventStart < week[0] ? week[0] : eventStart;
                 const endDay = eventEnd > week[6] ? week[6] : eventEnd;
                 const startCol = (startDay.getDay() + 6) % 7;
@@ -138,7 +142,7 @@ const MonthView: React.FC<{
                         const showTitle = isStartOfEvent || startCol === 0;
                         let roundedClass = 'rounded';
                         if(!isStartOfEvent) roundedClass = 'rounded-r';
-                        const eventEnd = new Date((event.endDate || event.eventDate) + 'T00:00:00Z');
+                        const eventEnd = new Date((event.endDate || event.eventDate) + 'T23:59:59Z');
                         if(!isSameDay(eventEnd, week[startCol + span - 1])) {
                             if(roundedClass === 'rounded-r') roundedClass = '';
                             else roundedClass = 'rounded-l';
@@ -204,7 +208,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
         const fetchWeatherData = async () => {
             if (!location?.latitude || !location?.longitude) {
                 console.warn("Location context does not have coordinates. Skipping weather fetch.");
-                setWeatherData(null);
+                setWeatherData(new Map()); // Set to empty map to stop loading
                 return;
             }
             try {
@@ -216,6 +220,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 const weatherApiData = await weatherResponse.json();
                 if (!weatherApiData?.daily?.time) {
                     console.warn(`No weather data found for location: ${latitude},${longitude}`);
+                    setWeatherData(new Map());
                     return;
                 }
 
@@ -227,11 +232,11 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 setWeatherData(newWeatherData);
             } catch (error) {
                 console.error("Failed to fetch weather data:", error);
-                setWeatherData(null);
+                setWeatherData(new Map());
             }
         };
         fetchWeatherData();
-    }, [trip.id, trip.startDate, trip.endDate, location?.latitude, location?.longitude]);
+    }, [trip.id, trip.startDate, trip.endDate, location]);
 
     const handleNavigation = (delta: number) => {
         setCalendarQuickFilter('all');

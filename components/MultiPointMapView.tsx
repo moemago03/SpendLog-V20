@@ -32,8 +32,10 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
     const mapRef = useRef<any>(null);
     const [coordsList, setCoordsList] = useState<Coords[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isMapReady, setIsMapReady] = useState(false);
 
     useEffect(() => {
+        setIsMapReady(false); // Reset map readiness when locations change
         const geocodeAll = async () => {
             if (locations.length === 0) {
                 setIsLoading(false);
@@ -60,7 +62,7 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
             mapRef.current.remove();
         }
 
-        const map = L.map(mapContainerRef.current);
+        const map = L.map(mapContainerRef.current, { zoomControl: true });
         mapRef.current = map;
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -73,8 +75,16 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
 
         if (markers.length > 0) {
             const featureGroup = L.featureGroup(markers).addTo(map);
-            map.fitBounds(featureGroup.getBounds().pad(0.1));
+            map.fitBounds(featureGroup.getBounds().pad(0.2));
         }
+        
+        map.whenReady(() => {
+            const timer = setTimeout(() => {
+                map.invalidateSize();
+                setIsMapReady(true);
+            }, 100);
+             return () => clearTimeout(timer);
+        });
         
         return () => {
             if(mapRef.current) {
@@ -84,16 +94,6 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
         };
 
     }, [isLoading, coordsList]);
-
-    const navigateUrl = useMemo(() => {
-        if (locations.length < 1) return '#';
-        const url = new URL('https://www.google.com/maps/dir/?api=1');
-        url.searchParams.append('destination', locations[locations.length - 1]);
-        if (locations.length > 1) {
-            url.searchParams.append('waypoints', locations.slice(0, -1).join('|'));
-        }
-        return url.toString();
-    }, [locations]);
 
     if (!locations || locations.length === 0) {
         return (
@@ -106,46 +106,29 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
         );
     }
     
-    const renderContent = () => {
-        if (isLoading) {
-             return (
-                <div className="w-full h-full bg-surface-variant flex items-center justify-center animate-pulse">
-                    <span className="material-symbols-outlined text-4xl text-on-surface-variant/50">map</span>
-                </div>
-            );
-        }
-
-        if (coordsList.length === 0) {
-            return (
-                 <div className="w-full h-full bg-surface-variant flex flex-col items-center justify-center p-4 text-center">
-                    <span className="material-symbols-outlined text-4xl text-on-surface-variant/50 mb-2">wrong_location</span>
-                    <p className="text-sm font-semibold text-on-surface-variant">Impossibile caricare la mappa.</p>
-                </div>
-            );
-        }
-
+    if (!isLoading && coordsList.length === 0) {
         return (
-            <>
-                <div ref={mapContainerRef} className="w-full h-full z-0"></div>
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-black/50 text-white rounded-full text-sm font-semibold">
-                        <span className="material-symbols-outlined text-base">open_in_new</span>
-                        <span>Visualizza Percorso</span>
-                    </div>
-                </div>
-            </>
+             <div className="w-full h-full rounded-xl bg-surface-variant flex flex-col items-center justify-center p-4 text-center">
+                <span className="material-symbols-outlined text-4xl text-on-surface-variant/50 mb-2">wrong_location</span>
+                <p className="text-sm font-semibold text-on-surface-variant">Impossibile caricare la mappa.</p>
+            </div>
         );
-    };
+    }
 
     return (
-        <a 
-            href={navigateUrl}
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="block w-full h-full rounded-xl overflow-hidden border border-outline/20 group relative"
-        >
-            {renderContent()}
-        </a>
+        <div className="w-full h-full rounded-xl overflow-hidden border border-outline/20 relative">
+            <div 
+                ref={mapContainerRef} 
+                className={`w-full h-full z-10 transition-opacity duration-500 ${isMapReady ? 'opacity-100' : 'opacity-0'}`}
+            />
+            
+            {/* Skeleton loader overlays the map container until map is ready */}
+            {!isMapReady && (
+                <div className="absolute inset-0 w-full h-full bg-surface-variant flex items-center justify-center animate-pulse z-20">
+                    <span className="material-symbols-outlined text-4xl text-on-surface-variant/50">map</span>
+                </div>
+            )}
+        </div>
     );
 };
 
