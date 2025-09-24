@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, lazy, Suspense } from 'react';
 import { Trip, Event, Document as DocType } from '../../types';
 import { useData } from '../../context/DataContext';
@@ -104,7 +105,8 @@ const DocumentHub: React.FC<{ trip: Trip }> = ({ trip }) => {
                             <div key={eventId}>
                                 <h3 className="font-bold text-on-surface mb-2">{event?.title || 'Evento Sconosciuto'}</h3>
                                 <div className="space-y-2">
-                                    {docs.map(doc => <DocumentItem key={doc.id} doc={doc} />)}
+                                    {/* FIX: Cast `docs` to DocType[] to resolve TypeScript error where it's inferred as 'unknown'. */}
+                                    {(docs as DocType[]).map(doc => <DocumentItem key={doc.id} doc={doc} />)}
                                 </div>
                             </div>
                         );

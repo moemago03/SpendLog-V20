@@ -1,18 +1,18 @@
-import React, { lazy, Suspense } from 'react';
+
+import React from 'react';
 import { Trip, Expense } from '../types';
 import { useData } from '../context/DataContext';
 import { AppView } from '../App';
 import LoadingScreen from './LoadingScreen';
-import ExpenseListSkeleton from './ExpenseListSkeleton';
 
-// Lazy load main view components
-const SummaryHeader = lazy(() => import('./summary/SummaryHeader'));
-const BudgetProgress = lazy(() => import('./summary/BudgetProgress'));
-const RecentExpenses = lazy(() => import('./summary/RecentExpenses'));
-const TodaysItineraryWidget = lazy(() => import('./summary/TodaysItineraryWidget'));
-const QuickAddBar = lazy(() => import('./summary/QuickAddBar'));
-const Statistics = lazy(() => import('./Statistics'));
-const GroupBalances = lazy(() => import('./GroupBalances'));
+// Eagerly load components for instant tab switching
+import SummaryHeader from './summary/SummaryHeader';
+import BudgetProgress from './summary/BudgetProgress';
+import RecentExpenses from './summary/RecentExpenses';
+import TodaysItineraryWidget from './summary/TodaysItineraryWidget';
+import QuickAddBar from './summary/QuickAddBar';
+import Statistics from './Statistics';
+import GroupBalances from './GroupBalances';
 
 interface DashboardProps {
     activeTripId: string;
@@ -42,42 +42,28 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEdi
 
     const renderSummaryView = () => (
         <div className="space-y-6">
-            <Suspense fallback={<div className="h-[240px] bg-surface-variant rounded-3xl animate-pulse" />}>
-                <SummaryHeader trip={activeTrip} />
-            </Suspense>
-            <Suspense fallback={null}>
-                <QuickAddBar trip={activeTrip} onEditExpense={setEditingExpense} />
-            </Suspense>
-             <Suspense fallback={<div className="h-[158px] bg-surface-variant rounded-3xl animate-pulse" />}>
-                <BudgetProgress trip={activeTrip} />
-            </Suspense>
-            <Suspense fallback={<div className="h-[150px] bg-surface-variant rounded-3xl animate-pulse" />}>
-                <TodaysItineraryWidget
-                    tripId={activeTrip.id}
-                    allCategories={data?.categories || []}
-                    onNavigateToItinerary={() => onNavigate('itinerary')}
-                />
-            </Suspense>
-             <Suspense fallback={<ExpenseListSkeleton />}>
-                <RecentExpenses
-                    trip={activeTrip}
-                    allCategories={data?.categories || []}
-                    onEditExpense={setEditingExpense}
-                />
-            </Suspense>
+            <SummaryHeader trip={activeTrip} />
+            <QuickAddBar trip={activeTrip} onEditExpense={setEditingExpense} />
+            <BudgetProgress trip={activeTrip} />
+            <TodaysItineraryWidget
+                tripId={activeTrip.id}
+                allCategories={data?.categories || []}
+                onNavigateToItinerary={() => onNavigate('itinerary')}
+            />
+            <RecentExpenses
+                trip={activeTrip}
+                allCategories={data?.categories || []}
+                onEditExpense={setEditingExpense}
+            />
         </div>
     );
 
     const renderStatsView = () => (
-        <Suspense fallback={<LoadingScreen />}>
-            <Statistics trip={activeTrip} expenses={activeTrip.expenses || []} />
-        </Suspense>
+        <Statistics trip={activeTrip} expenses={activeTrip.expenses || []} />
     );
     
     const renderGroupView = () => (
-        <Suspense fallback={<LoadingScreen />}>
-            <GroupBalances trip={activeTrip} />
-        </Suspense>
+        <GroupBalances trip={activeTrip} />
     );
 
 

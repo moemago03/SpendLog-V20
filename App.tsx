@@ -99,9 +99,7 @@ const AppContent: React.FC = () => {
     return (
         <>
             <MainLayout activeView={currentView} onNavigate={setCurrentView} isTripActive={!!activeTrip}>
-                <Suspense fallback={<LoadingScreen />}>
-                    {renderView()}
-                </Suspense>
+                {renderView()}
             </MainLayout>
 
             {currentView === 'summary' && activeTrip && (
