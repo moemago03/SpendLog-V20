@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 
-declare var L: any; // Declare Leaflet global
+declare var maplibregl: any; // Declare MapLibre global
 
 interface MultiPointMapViewProps {
     locations: string[];
@@ -54,36 +54,37 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
     }, [locations]);
 
     useEffect(() => {
-        if (isLoading || coordsList.length === 0 || !mapContainerRef.current) {
+        if (isLoading || !mapContainerRef.current) {
+            if (mapRef.current) mapRef.current.remove();
             return;
         }
 
-        if (mapRef.current) {
-            mapRef.current.remove();
-        }
+        if (mapRef.current) mapRef.current.remove();
 
-        const map = L.map(mapContainerRef.current, { zoomControl: true });
+        const map = new maplibregl.Map({
+            container: mapContainerRef.current,
+            style: 'https://demotiles.maplibre.org/style.json',
+            center: [0, 0], // Default center, will be overridden by fitBounds
+            zoom: 1
+        });
         mapRef.current = map;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        const markers = coordsList.map(coords => {
-            return L.marker([parseFloat(coords.lat), parseFloat(coords.lon)]);
-        });
-
-        if (markers.length > 0) {
-            const featureGroup = L.featureGroup(markers).addTo(map);
-            map.fitBounds(featureGroup.getBounds().pad(0.2));
+        if (coordsList.length > 0) {
+            const bounds = new maplibregl.LngLatBounds();
+            coordsList.forEach(coords => {
+                const lon = parseFloat(coords.lon);
+                const lat = parseFloat(coords.lat);
+                new maplibregl.Marker()
+                    .setLngLat([lon, lat])
+                    .addTo(map);
+                bounds.extend([lon, lat]);
+            });
+            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
         }
         
-        map.whenReady(() => {
-            const timer = setTimeout(() => {
-                map.invalidateSize();
-                setIsMapReady(true);
-            }, 100);
-             return () => clearTimeout(timer);
+        map.on('load', () => {
+            map.resize();
+            setIsMapReady(true);
         });
         
         return () => {

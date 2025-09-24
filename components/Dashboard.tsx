@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Trip, Expense } from '../types';
 import { useData } from '../context/DataContext';
@@ -11,6 +12,7 @@ import BudgetProgress from './summary/BudgetProgress';
 import RecentExpenses from './summary/RecentExpenses';
 import TodaysItineraryWidget from './summary/TodaysItineraryWidget';
 import QuickAddBar from './summary/QuickAddBar';
+import RecentExpensesMap from './summary/RecentExpensesMap';
 import Statistics from './Statistics';
 import GroupBalances from './GroupBalances';
 
@@ -45,6 +47,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEdi
             <SummaryHeader trip={activeTrip} />
             <QuickAddBar trip={activeTrip} onEditExpense={setEditingExpense} />
             <BudgetProgress trip={activeTrip} />
+            <RecentExpensesMap trip={activeTrip} />
             <TodaysItineraryWidget
                 tripId={activeTrip.id}
                 allCategories={data?.categories || []}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-declare var L: any; // Declare Leaflet global
+declare var maplibregl: any; // Declare MapLibre global
 
 interface MapViewProps {
     location: string;
@@ -56,21 +56,21 @@ const MapView: React.FC<MapViewProps> = ({ location }) => {
         const lat = parseFloat(coords.lat);
         const lon = parseFloat(coords.lon);
 
-        const map = L.map(mapContainerRef.current).setView([lat, lon], 15);
+        const map = new maplibregl.Map({
+            container: mapContainerRef.current,
+            style: 'https://demotiles.maplibre.org/style.json',
+            center: [lon, lat],
+            zoom: 14
+        });
         mapRef.current = map;
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        new maplibregl.Marker()
+            .setLngLat([lon, lat])
+            .addTo(map);
 
-        L.marker([lat, lon]).addTo(map);
-
-        map.whenReady(() => {
-            const timer = setTimeout(() => {
-                map.invalidateSize();
-                setIsMapReady(true);
-            }, 100);
-            return () => clearTimeout(timer);
+        map.on('load', () => {
+            map.resize();
+            setIsMapReady(true);
         });
 
         return () => {

@@ -1,6 +1,7 @@
 
 
-import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
+
+import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
 import { Trip, Event, Expense } from '../../types';
 import DayDetailView from '../itinerary/DayDetailView';
 // FIX: Corrected import path for useItinerary hook.
@@ -11,6 +12,8 @@ import { useData } from '../../context/DataContext';
 import { getContrastColor } from '../../utils/colorUtils';
 import ExpenseListSkeleton from '../ExpenseListSkeleton';
 import DayStrip from '../itinerary/DayStrip';
+import { WeatherInfo, getWeatherIconFromWmoCode } from '../../utils/weatherUtils';
+import { useLocation } from '../../context/LocationContext';
 
 const EventForm = lazy(() => import('../itinerary/EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
@@ -202,6 +205,8 @@ type QuickFilter = 'today' | 'week' | 'all';
 // --- Main Itinerary View Component ---
 const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense>) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();
+    const { location } = useLocation();
+    const [weatherData, setWeatherData] = useState<Map<string, WeatherInfo> | null>(null);
     const [activeSubView, setActiveSubView] = useState<ItinerarioSubView>('agenda');
 
     const tripStartDate = useMemo(() => new Date(trip.startDate.split('T')[0] + 'T00:00:00Z'), [trip.startDate]);
@@ -237,6 +242,40 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
             end: trip.endDate.split('T')[0],
         }
     }));
+
+    useEffect(() => {
+        const fetchWeatherData = async () => {
+            if (!location?.latitude || !location?.longitude) {
+                console.warn("Location context does not have coordinates. Skipping weather fetch.");
+                setWeatherData(new Map()); // Set to empty map to stop loading
+                return;
+            }
+            try {
+                const { latitude, longitude } = location;
+                const startDate = trip.startDate.split('T')[0];
+                const endDate = trip.endDate.split('T')[0];
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
+                const weatherResponse = await fetch(weatherUrl);
+                const weatherApiData = await weatherResponse.json();
+                if (!weatherApiData?.daily?.time) {
+                    console.warn(`No weather data found for location: ${latitude},${longitude}`);
+                    setWeatherData(new Map());
+                    return;
+                }
+
+                const newWeatherData = new Map<string, WeatherInfo>();
+                const { time, weather_code, temperature_2m_max } = weatherApiData.daily;
+                for (let i = 0; i < time.length; i++) {
+                    newWeatherData.set(time[i], { icon: getWeatherIconFromWmoCode(weather_code[i]), temp: Math.round(temperature_2m_max[i]) });
+                }
+                setWeatherData(newWeatherData);
+            } catch (error) {
+                console.error("Failed to fetch weather data:", error);
+                setWeatherData(new Map());
+            }
+        };
+        fetchWeatherData();
+    }, [trip.id, trip.startDate, trip.endDate, location]);
     
     const handleNavigation = (delta: number) => {
         setDisplayDateForMonth(prev => {
@@ -337,7 +376,7 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
                     trip={trip}
                     selectedDate={selectedDateISO}
                     onSelectDate={handleDateSelect}
-                    weatherData={null}
+                    weatherData={weatherData}
                 />
                 <div className="px-4 mt-6 max-w-7xl mx-auto flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-on-surface">
