@@ -33,6 +33,7 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip, selectedD
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [debugLog, setDebugLog] = useState<string[]>([]);
+    const [cityUsed, setCityUsed] = useState('');
 
     const log = useCallback((message: string) => {
         setDebugLog(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
@@ -45,7 +46,6 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip, selectedD
             setError(null);
             setEvents([]);
 
-            // Prioritizza la città attuale dell'utente, altrimenti usa il primo paese del viaggio
             const city = userLocation?.city || trip.countries[0];
             if (!city) {
                 const errorMsg = 'Nessuna città specificata per la ricerca.';
@@ -54,15 +54,24 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip, selectedD
                 setLoading(false);
                 return;
             }
-
+            setCityUsed(city);
             log(`Città in uso per la ricerca: ${city}`);
             
-            // Aggiunge il filtro per la data selezionata
-            const startDateTime = `${selectedDate}T00:00:00Z`;
-            const endDateTime = `${selectedDate}T23:59:59Z`;
-            log(`Ricerca eventi per il giorno: ${selectedDate}`);
+            // Cerca per l'intero mese della data selezionata per aumentare le possibilità di trovare eventi
+            const selected = new Date(selectedDate + 'T12:00:00Z');
+            const year = selected.getFullYear();
+            const month = selected.getMonth();
+
+            const startDateOfMonth = new Date(year, month, 1);
+            const endDateOfMonth = new Date(year, month + 1, 0);
+
+            const startDateTime = `${startDateOfMonth.toISOString().split('T')[0]}T00:00:00Z`;
+            const endDateTime = `${endDateOfMonth.toISOString().split('T')[0]}T23:59:59Z`;
             
-            const url = `${API_BASE_URL}?apikey=${API_KEY}&city=${encodeURIComponent(city)}&sort=date,asc&size=20&startDateTime=${startDateTime}&endDateTime=${endDateTime}`;
+            const monthName = startDateOfMonth.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+            log(`Ricerca eventi per il mese di: ${monthName}`);
+            
+            const url = `${API_BASE_URL}?apikey=${API_KEY}&city=${encodeURIComponent(city)}&sort=date,asc&size=40&startDateTime=${startDateTime}&endDateTime=${endDateTime}`;
             log(`Chiamata API: ${url}`);
 
             try {
@@ -80,7 +89,7 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip, selectedD
                     log(`Successo: Trovati ${foundEvents.length} eventi.`);
                 } else {
                     setEvents([]);
-                    log('Nessun evento trovato per questa città e data.');
+                    log(`Nessun evento trovato per ${city} nel mese di ${monthName}.`);
                 }
 
             } catch (err: any) {
@@ -119,9 +128,9 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip, selectedD
         );
     };
     
-    const formattedDateTitle = new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('it-IT', {
-        day: 'numeric',
-        month: 'long'
+    const monthNameForTitle = new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('it-IT', {
+        month: 'long',
+        year: 'numeric'
     });
 
     return (
@@ -136,7 +145,7 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip, selectedD
             </div>
 
             <div>
-                <h2 className="text-2xl font-bold text-on-surface mb-4">Eventi per il {formattedDateTitle}</h2>
+                <h2 className="text-2xl font-bold text-on-surface mb-4">Eventi a {cityUsed} per {monthNameForTitle}</h2>
                 {loading && (
                     <div className="text-center py-10">
                          <div className="w-8 h-8 border-4 border-t-primary border-surface-variant rounded-full animate-spin mx-auto"></div>
@@ -153,7 +162,7 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip, selectedD
                     <div className="text-center py-10 px-4 bg-surface-variant/50 rounded-3xl">
                         <span className="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-4">event_busy</span>
                         <p className="font-semibold text-on-surface-variant text-lg">Nessun evento trovato</p>
-                        <p className="text-sm text-on-surface-variant/80 mt-1">Non ci sono eventi per questa data su Ticketmaster.</p>
+                        <p className="text-sm text-on-surface-variant/80 mt-1">Non ci sono eventi per questo mese su Ticketmaster.</p>
                     </div>
                 )}
             </div>
