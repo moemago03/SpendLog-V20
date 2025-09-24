@@ -5,11 +5,13 @@ import { useNotification } from '../../context/NotificationContext';
 import { GoogleGenAI, Type } from "@google/genai";
 import { getContrastColor } from '../../utils/colorUtils';
 import { useLocation } from '../../context/LocationContext';
+import { WeatherInfo } from '../../utils/weatherUtils';
 
 interface AIItineraryGeneratorProps {
     tripId: string;
     selectedDate: string;
     onClose: () => void;
+    weatherForDay?: WeatherInfo;
 }
 
 interface GeneratedEvent {
@@ -21,7 +23,19 @@ interface GeneratedEvent {
     location?: string;
 }
 
-const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, selectedDate, onClose }) => {
+const weatherIconToItalian: { [key: string]: string } = {
+    'sunny': 'soleggiato',
+    'partly_cloudy_day': 'parzialmente nuvoloso',
+    'foggy': 'nebbioso',
+    'rainy_light': 'con pioggerella',
+    'rainy': 'piovoso',
+    'rainy_snow': 'con nevischio',
+    'weather_snowy': 'nevoso',
+    'thunderstorm': 'con temporali',
+    'grain': 'con grandine',
+};
+
+const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, selectedDate, onClose, weatherForDay }) => {
     const { addEvent } = useItinerary();
     const { addNotification } = useNotification();
     const { data } = useData();
@@ -63,9 +77,15 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
             if (dayStyle) {
                 contextPrompt = `${contextPrompt} Lo stile della giornata deve essere: "${dayStyle}".`;
             }
+
+            let weatherContext = '';
+            if (weatherForDay) {
+                const weatherDescription = weatherIconToItalian[weatherForDay.icon] || 'variabile';
+                weatherContext = ` Tieni conto delle previsioni meteo per la giornata: si prevede tempo ${weatherDescription} con una temperatura massima di circa ${weatherForDay.temp}°C. Suggerisci attività all'aperto se il tempo è buono, o al chiuso in caso di maltempo.`;
+            }
             
             const baseInstruction = `Gli orari devono essere plausibili. Il tipo di evento deve essere uno dei seguenti: ${itineraryCategories.join(', ')}. Rispondi in italiano.`;
-            const finalContents = `${contextPrompt} ${baseInstruction}`;
+            const finalContents = `${contextPrompt}${weatherContext} ${baseInstruction}`;
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",

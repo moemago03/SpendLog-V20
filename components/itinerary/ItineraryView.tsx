@@ -20,6 +20,8 @@ const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
 const AIItineraryGenerator = lazy(() => import('./AIItineraryGenerator'));
 const DocumentHub = lazy(() => import('./DocumentHub'));
+const TicketmasterEvents = lazy(() => import('./TicketmasterEvents'));
+
 
 const MonthView: React.FC<{
     displayDate: Date;
@@ -170,7 +172,7 @@ const getInitialMapDate = (trip: Trip) => {
 };
 
 type ItineraryAgendaViewMode = 'day' | 'month' | 'map';
-type ItinerarySubView = 'agenda' | 'checklist' | 'documents';
+type ItinerarySubView = 'agenda' | 'checklist' | 'documents' | 'events';
 type CalendarQuickFilter = '3days' | '7days' | '10days' | 'all';
 
 // Helper to geocode a location string to lat/lon using Nominatim
@@ -346,6 +348,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                     <button onClick={() => setActiveSubView('agenda')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'agenda' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Agenda</button>
                     <button onClick={() => setActiveSubView('checklist')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'checklist' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Checklist</button>
                     <button onClick={() => setActiveSubView('documents')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'documents' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Documenti</button>
+                    <button onClick={() => setActiveSubView('events')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'events' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Eventi</button>
                 </div>
             </header>
 
@@ -389,7 +392,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 </main>
                  <button onClick={() => setIsAddingEvent(true)} className="fixed bottom-24 right-6 h-16 w-16 bg-primary text-on-primary rounded-3xl shadow-lg flex items-center justify-center transition-transform active:scale-90 z-30" aria-label="Aggiungi evento"><span className="material-symbols-outlined text-3xl">add</span></button>
                 {isAddingEvent && <Suspense fallback={<div />}><EventForm selectedDate={selectedDateISO} tripId={trip.id} onClose={() => setIsAddingEvent(false)} /></Suspense>}
-                {isAIGeneratorOpen && <Suspense fallback={<div />}><AIItineraryGenerator tripId={trip.id} selectedDate={selectedDateISO} onClose={() => setIsAIGeneratorOpen(false)} /></Suspense>}
+                {isAIGeneratorOpen && <Suspense fallback={<div />}><AIItineraryGenerator tripId={trip.id} selectedDate={selectedDateISO} onClose={() => setIsAIGeneratorOpen(false)} weatherForDay={weatherData?.get(selectedDateISO)} /></Suspense>}
             </div>
 
             <div className={activeSubView === 'checklist' ? 'block' : 'hidden'}>
@@ -404,6 +407,14 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 <main className="px-4 max-w-4xl mx-auto mt-4">
                     <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
                         <DocumentHub trip={trip} />
+                    </Suspense>
+                </main>
+            </div>
+
+             <div className={activeSubView === 'events' ? 'block' : 'hidden'}>
+                <main className="px-4 max-w-4xl mx-auto mt-4">
+                    <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
+                        <TicketmasterEvents trip={trip} />
                     </Suspense>
                 </main>
             </div>

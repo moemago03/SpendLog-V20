@@ -1,1 +1,1 @@
-// Service Worker has been removed to streamline the application.
+// Service worker intentionally removed to streamline the application.
