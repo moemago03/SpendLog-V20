@@ -1,15 +1,16 @@
 
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trip } from '../../types';
-import { getWeatherIconFromWmoCode, WeatherInfo } from '../../utils/weatherUtils';
+import { getWeatherIconFromBrightSky, WeatherInfo } from '../../utils/weatherUtils';
 import { dateToISOString } from '../../utils/dateUtils';
 
 interface WeatherDebugWidgetProps {
     trip: Trip;
 }
 
-type Status = 'Idle' | 'Geocoding' | 'Fetching Weather' | 'Success' | 'Error';
+type Status = 'Idle' | 'Geocoding' | 'Fetching Weather' | 'Processing' | 'Success' | 'Error';
 
 // Helper to geocode a location string to lat/lon using Nominatim
 const geocodeLocation = async (location: string): Promise<{ lat: number; lon: number } | null> => {
@@ -65,41 +66,47 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
             setStatus('Fetching Weather');
 
             try {
-                const startDate = trip.startDate.split('T')[0];
-                const tripEndDate = trip.endDate.split('T')[0];
-
-                // Open-Meteo API has a 16-day forecast limit. We need to cap the end date.
-                const startDateObj = new Date(startDate);
-                startDateObj.setUTCDate(startDateObj.getUTCDate() + 15); // Add 15 days to the start date
-                const maxEndDate = startDateObj.toISOString().split('T')[0];
-
-                // Use the trip's end date or the max allowed end date, whichever is earlier.
-                const endDate = tripEndDate < maxEndDate ? tripEndDate : maxEndDate;
-                
-                if (endDate !== tripEndDate) {
-                    log(`Range date ridotto a 16 giorni per limite API: ${startDate} -> ${endDate}`);
-                }
-
-                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weather_code,temperature_2m_max&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
-                log(`Chiamata API: ${weatherUrl.substring(0, 100)}...`);
+                const { lat, lon } = coords;
+                const startDate = trip.startDate;
+                const endDate = trip.endDate;
+                const weatherUrl = `https://api.brightsky.dev/weather?lat=${lat}&lon=${lon}&date=${startDate}&last_date=${endDate}`;
+                log(`Chiamata API: ${weatherUrl.substring(0, 120)}...`);
                 
                 const response = await fetch(weatherUrl);
                 if (!response.ok) throw new Error(`API ha risposto con stato ${response.status}`);
                 
                 const data = await response.json();
-                if (!data.daily || !data.daily.time) throw new Error("Risposta API non valida o vuota.");
+                if (!data.weather) throw new Error("Risposta API non valida o vuota.");
 
-                log('Dati meteo ricevuti con successo.');
-                const todayISO = dateToISOString(new Date());
-                const todayIndex = data.daily.time.findIndex((t: string) => t === todayISO);
+                setStatus('Processing');
+                log(`Dati orari ricevuti (${data.weather.length} record). Inizio aggregazione giornaliera.`);
                 
-                if (todayIndex !== -1) {
+                const dailyData = new Map<string, { temps: number[], icons: string[] }>();
+                 data.weather.forEach((hourly: any) => {
+                    const date = hourly.timestamp.substring(0, 10);
+                    if (!dailyData.has(date)) dailyData.set(date, { temps: [], icons: [] });
+                    const day = dailyData.get(date)!;
+                    if (hourly.temperature !== null) day.temps.push(hourly.temperature);
+                    if (hourly.icon) day.icons.push(hourly.icon);
+                });
+                log(`Aggregazione completata per ${dailyData.size} giorni.`);
+                
+                const todayISO = dateToISOString(new Date());
+                const todayData = dailyData.get(todayISO);
+                
+                if (todayData && todayData.temps.length > 0) {
+                    const maxTemp = Math.round(Math.max(...todayData.temps));
+                    const iconCounts: { [key: string]: number } = todayData.icons.reduce((acc, icon) => {
+                        acc[icon] = (acc[icon] || 0) + 1;
+                        return acc;
+                    }, {} as { [key: string]: number });
+                    const dominantIcon = Object.keys(iconCounts).reduce((a, b) => iconCounts[a] > iconCounts[b] ? a : b, 'thermostat');
                     const preview: WeatherInfo = {
-                        icon: getWeatherIconFromWmoCode(data.daily.weather_code[todayIndex]),
-                        temp: Math.round(data.daily.temperature_2m_max[todayIndex]),
+                        icon: getWeatherIconFromBrightSky(dominantIcon),
+                        temp: maxTemp,
                     };
                     setWeatherPreview(preview);
-                    log(`Meteo di oggi: ${preview.temp}°C, Icona: ${preview.icon}`);
+                    log(`Meteo di oggi: ${preview.temp}°C, Icona: ${preview.icon} (da "${dominantIcon}")`);
                 } else {
                      log("Nessun dato meteo per la data odierna trovato.");
                 }
@@ -118,7 +125,9 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
             case 'Success': return 'text-green-500';
             case 'Error': return 'text-error';
             case 'Geocoding':
-            case 'Fetching Weather': return 'text-yellow-500';
+            case 'Fetching Weather':
+            case 'Processing':
+                return 'text-yellow-500';
             default: return 'text-on-surface-variant';
         }
     };

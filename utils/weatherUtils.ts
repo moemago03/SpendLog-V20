@@ -57,3 +57,39 @@ export const getWeatherIconFromWmoCode = (code: number): string => {
             return 'thermostat'; // Default icon
     }
 };
+
+/**
+ * Maps Bright Sky weather condition strings to Google Material Symbols icons.
+ * @param condition The weather condition string from the Bright Sky API.
+ * @returns The corresponding Material Symbol icon name as a string.
+ */
+export const getWeatherIconFromBrightSky = (condition: string): string => {
+    switch (condition) {
+        case 'clear-day':
+            return 'sunny';
+        case 'clear-night':
+            return 'dark_mode';
+        case 'partly-cloudy-day':
+            return 'partly_cloudy_day';
+        case 'partly-cloudy-night':
+            return 'partly_cloudy_night';
+        case 'cloudy':
+            return 'cloudy';
+        case 'fog':
+            return 'foggy';
+        case 'wind':
+            return 'air';
+        case 'rain':
+            return 'rainy';
+        case 'sleet':
+            return 'rainy_snow';
+        case 'snow':
+            return 'weather_snowy';
+        case 'hail':
+            return 'grain';
+        case 'thunderstorm':
+            return 'thunderstorm';
+        default:
+            return 'thermostat'; // Default icon
+    }
+};
