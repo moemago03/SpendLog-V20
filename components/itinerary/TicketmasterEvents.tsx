@@ -21,12 +21,13 @@ interface TicketmasterEvent {
 
 interface TicketmasterEventsProps {
     trip: Trip;
+    selectedDate: string; // Formato YYYY-MM-DD
 }
 
 const API_KEY = 'OIy4hV1bmN4kaAMZuIxeo1vgYC9QOM5P';
 const API_BASE_URL = 'https://app.ticketmaster.com/discovery/v2/events.json';
 
-const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip }) => {
+const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip, selectedDate }) => {
     const { location: userLocation } = useLocation();
     const [events, setEvents] = useState<TicketmasterEvent[]>([]);
     const [loading, setLoading] = useState(true);
@@ -55,7 +56,13 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip }) => {
             }
 
             log(`Città in uso per la ricerca: ${city}`);
-            const url = `${API_BASE_URL}?apikey=${API_KEY}&city=${encodeURIComponent(city)}&sort=date,asc&size=20`;
+            
+            // Aggiunge il filtro per la data selezionata
+            const startDateTime = `${selectedDate}T00:00:00Z`;
+            const endDateTime = `${selectedDate}T23:59:59Z`;
+            log(`Ricerca eventi per il giorno: ${selectedDate}`);
+            
+            const url = `${API_BASE_URL}?apikey=${API_KEY}&city=${encodeURIComponent(city)}&sort=date,asc&size=20&startDateTime=${startDateTime}&endDateTime=${endDateTime}`;
             log(`Chiamata API: ${url}`);
 
             try {
@@ -73,7 +80,7 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip }) => {
                     log(`Successo: Trovati ${foundEvents.length} eventi.`);
                 } else {
                     setEvents([]);
-                    log('Nessun evento trovato per questa città.');
+                    log('Nessun evento trovato per questa città e data.');
                 }
 
             } catch (err: any) {
@@ -86,16 +93,19 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip }) => {
         };
 
         fetchEvents();
-    }, [trip, userLocation, log]);
+    }, [trip, userLocation, log, selectedDate]);
 
     const EventCard: React.FC<{ event: TicketmasterEvent }> = ({ event }) => {
         const imageUrl = event.images.find(img => img.ratio === '3_2' && img.width > 400)?.url || event.images[0]?.url;
         const venueName = event._embedded?.venues[0]?.name;
-        const eventDate = new Date(event.dates.start.localDate).toLocaleDateString('it-IT', {
+        const eventDate = new Date(`${event.dates.start.localDate}T${event.dates.start.localTime || '00:00:00'}`);
+        
+        const formattedDate = eventDate.toLocaleDateString('it-IT', {
             day: 'numeric',
             month: 'long',
-            year: 'numeric'
         });
+        const formattedTime = event.dates.start.localTime ? eventDate.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
+
 
         return (
             <a href={event.url} target="_blank" rel="noopener noreferrer" className="block bg-surface rounded-2xl shadow-md overflow-hidden transition-transform hover:scale-[1.03] active:scale-100">
@@ -103,11 +113,16 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip }) => {
                 <div className="p-4">
                     <h4 className="font-bold text-on-surface truncate">{event.name}</h4>
                     {venueName && <p className="text-sm text-on-surface-variant">{venueName}</p>}
-                    <p className="text-xs text-on-surface-variant mt-1">{eventDate}</p>
+                    <p className="text-xs text-on-surface-variant mt-1 font-semibold">{formattedDate}{formattedTime && `, ore ${formattedTime}`}</p>
                 </div>
             </a>
         );
     };
+    
+    const formattedDateTitle = new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('it-IT', {
+        day: 'numeric',
+        month: 'long'
+    });
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -121,7 +136,7 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip }) => {
             </div>
 
             <div>
-                <h2 className="text-2xl font-bold text-on-surface mb-4">Eventi nelle Vicinanze</h2>
+                <h2 className="text-2xl font-bold text-on-surface mb-4">Eventi per il {formattedDateTitle}</h2>
                 {loading && (
                     <div className="text-center py-10">
                          <div className="w-8 h-8 border-4 border-t-primary border-surface-variant rounded-full animate-spin mx-auto"></div>
@@ -138,7 +153,7 @@ const TicketmasterEvents: React.FC<TicketmasterEventsProps> = ({ trip }) => {
                     <div className="text-center py-10 px-4 bg-surface-variant/50 rounded-3xl">
                         <span className="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-4">event_busy</span>
                         <p className="font-semibold text-on-surface-variant text-lg">Nessun evento trovato</p>
-                        <p className="text-sm text-on-surface-variant/80 mt-1">Non ci sono eventi imminenti in questa località su Ticketmaster.</p>
+                        <p className="text-sm text-on-surface-variant/80 mt-1">Non ci sono eventi per questa data su Ticketmaster.</p>
                     </div>
                 )}
             </div>

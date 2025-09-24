@@ -414,7 +414,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
              <div className={activeSubView === 'events' ? 'block' : 'hidden'}>
                 <main className="px-4 max-w-4xl mx-auto mt-4">
                     <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
-                        <TicketmasterEvents trip={trip} />
+                        <TicketmasterEvents trip={trip} selectedDate={selectedDateISO} />
                     </Suspense>
                 </main>
             </div>
