@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trip } from '../../types';
 import { getWeatherIconFromWmoCode, WeatherInfo } from '../../utils/weatherUtils';
@@ -65,7 +66,7 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
             try {
                 const startDate = trip.startDate.split('T')[0];
                 const endDate = trip.endDate.split('T')[0];
-                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weather_code,temperature_2m_max&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
                 log(`Chiamata API: ${weatherUrl.substring(0, 100)}...`);
                 
                 const response = await fetch(weatherUrl);

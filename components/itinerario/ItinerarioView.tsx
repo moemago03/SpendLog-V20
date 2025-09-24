@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
 import { Trip, Event, Expense } from '../../types';
 import DayDetailView from '../itinerary/DayDetailView';
@@ -265,7 +266,7 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
                 const { lat, lon } = coords;
                 const startDate = trip.startDate.split('T')[0];
                 const endDate = trip.endDate.split('T')[0];
-                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
                 const weatherResponse = await fetch(weatherUrl);
 
                 if (!weatherResponse.ok) throw new Error(`Weather API request failed`);
