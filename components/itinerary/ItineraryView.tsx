@@ -1,6 +1,4 @@
 
-
-
 // components/itinerary/ItineraryView.tsx
 
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
