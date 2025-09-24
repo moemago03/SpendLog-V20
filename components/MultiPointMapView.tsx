@@ -63,7 +63,7 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
 
         const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: 'https://demotiles.maplibre.org/style.json',
+            style: 'https://protomaps.github.io/basemaps/style-light.json',
             center: [0, 0], // Default center, will be overridden by fitBounds
             zoom: 1
         });

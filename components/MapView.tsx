@@ -58,7 +58,7 @@ const MapView: React.FC<MapViewProps> = ({ location }) => {
 
         const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: 'https://demotiles.maplibre.org/style.json',
+            style: 'https://protomaps.github.io/basemaps/style-light.json',
             center: [lon, lat],
             zoom: 14
         });
