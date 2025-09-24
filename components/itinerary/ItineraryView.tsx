@@ -234,10 +234,33 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
             
             try {
                 const { lat, lon } = coords;
-                const startDate = trip.startDate.split('T')[0];
-                const endDate = trip.endDate.split('T')[0];
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Normalize
 
-                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&start_date=${startDate}&end_date=${endDate}&timezone=auto`;
+                const tripStart = new Date(trip.startDate.split('T')[0] + 'T00:00:00Z');
+                const tripEnd = new Date(trip.endDate.split('T')[0] + 'T23:59:59Z');
+
+                // If trip is over, don't fetch weather
+                if (today > tripEnd) {
+                    setWeatherData(new Map());
+                    return;
+                }
+
+                // API start date is today or trip start date, whichever is later
+                const apiStartDate = today > tripStart ? today : tripStart;
+
+                // API end date limit is 9 days from API start date (inclusive)
+                const apiEndDateLimit = new Date(apiStartDate);
+                apiEndDateLimit.setDate(apiEndDateLimit.getDate() + 8);
+
+                // API end date is the earlier of the trip end date and our 9-day limit
+                const apiEndDate = apiEndDateLimit < tripEnd ? apiEndDateLimit : tripEnd;
+                
+                const startDateParam = dateToISOString(apiStartDate);
+                const endDateParam = dateToISOString(apiEndDate);
+
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&start_date=${startDateParam}&end_date=${endDateParam}&timezone=auto`;
                 const weatherResponse = await fetch(weatherUrl);
 
                 if (!weatherResponse.ok) throw new Error(`Weather API request failed with status ${weatherResponse.status}`);

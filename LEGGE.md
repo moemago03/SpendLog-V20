@@ -54,5 +54,14 @@ Questo file contiene una lista di funzionalità e comportamenti critici che DEVO
 - **Rule:** In the month calendar view, only the days of the selected month must be visible. Days from adjacent months (previous/next) must be hidden, unless they contain a scheduled trip event.
 
 ---
+
+## 5. API & Servizi Esterni (APIs & External Services)
+
+### 5.1. API Meteo (Weather API)
+
+- **Regola:** Le chiamate all'API meteo (Open-Meteo) devono richiedere un intervallo di date non superiore a 9 giorni. Intervalli più lunghi possono causare errori HTTP 400 e il fallimento della richiesta.
+- **Rule:** Calls to the weather API (Open-Meteo) must request a date range no longer than 9 days. Longer ranges may cause HTTP 400 errors and request failure.
+
+---
 **Non rimuovere o modificare queste regole senza il consenso esplicito dell'utente.**
 **Do not remove or modify these rules without explicit user consent.**
