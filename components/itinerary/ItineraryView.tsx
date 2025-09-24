@@ -1,7 +1,7 @@
 // components/itinerary/ItineraryView.tsx
 
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
-import { Trip, Event, Expense } from '../../types';
+import { Trip, Event, Expense, ChecklistItem } from '../../types';
 import DayDetailView from './DayDetailView';
 import { useItinerary } from '../../context/ItineraryContext';
 import { getMonthGridDays, dateToISOString, isSameDay, getDaysArray } from '../../utils/dateUtils';
@@ -16,6 +16,7 @@ import { useLocation } from '../../context/LocationContext';
 const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
 const AIItineraryGenerator = lazy(() => import('./AIItineraryGenerator'));
+const DocumentHub = lazy(() => import('./DocumentHub'));
 
 const MonthView: React.FC<{
     displayDate: Date;
@@ -166,10 +167,10 @@ const getInitialMapDate = (trip: Trip) => {
 };
 
 type ItineraryAgendaViewMode = 'day' | 'month' | 'map';
-type ItinerarySubView = 'agenda' | 'checklist';
+type ItinerarySubView = 'agenda' | 'checklist' | 'documents';
 type CalendarQuickFilter = '3days' | '7days' | '10days' | 'all';
 
-const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense>) => void; }> = ({ trip, onAddExpense }) => {
+const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense> & { checklistItemId?: string }) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();
     const { location } = useLocation();
     const [activeSubView, setActiveSubView] = useState<ItinerarySubView>('agenda');
@@ -253,6 +254,21 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     const CalendarFilterButton: React.FC<{filterType: CalendarQuickFilter, label: string}> = ({ filterType, label }) => (
         <button onClick={() => handleCalendarFilterChange(filterType)} className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-colors ${calendarQuickFilter === filterType ? 'bg-primary text-on-primary' : 'text-on-surface-variant'}`}>{label}</button>
     );
+
+    const handleCreateExpenseFromChecklistItem = (item: ChecklistItem) => {
+        const prefill: Partial<Expense> & { checklistItemId?: string } = {
+            description: item.text,
+            category: 'Varie', // Default category, user can change it
+            checklistItemId: item.id,
+        };
+
+        if (item.isGroupItem && item.assignedToMemberId) {
+            prefill.paidById = item.assignedToMemberId;
+            prefill.splitBetweenMemberIds = [item.assignedToMemberId]; // Default to not splitting
+        }
+
+        onAddExpense(prefill);
+    };
     
     return (
         <div className="pb-24">
@@ -260,6 +276,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 <div className="flex border-b border-surface-variant">
                     <button onClick={() => setActiveSubView('agenda')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'agenda' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Agenda</button>
                     <button onClick={() => setActiveSubView('checklist')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'checklist' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Checklist</button>
+                    <button onClick={() => setActiveSubView('documents')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'documents' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Documenti</button>
                 </div>
             </header>
 
@@ -304,7 +321,19 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
             </div>
 
             <div className={activeSubView === 'checklist' ? 'block' : 'hidden'}>
-                <main className="px-4 max-w-4xl mx-auto mt-4"><Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}><Checklist trip={trip} /></Suspense></main>
+                <main className="px-4 max-w-4xl mx-auto mt-4">
+                    <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
+                        <Checklist trip={trip} onCreateExpense={handleCreateExpenseFromChecklistItem} />
+                    </Suspense>
+                </main>
+            </div>
+
+            <div className={activeSubView === 'documents' ? 'block' : 'hidden'}>
+                <main className="px-4 max-w-4xl mx-auto mt-4">
+                    <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
+                        <DocumentHub trip={trip} />
+                    </Suspense>
+                </main>
             </div>
         </div>
     );

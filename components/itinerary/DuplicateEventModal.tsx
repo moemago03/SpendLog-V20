@@ -19,7 +19,7 @@ const DuplicateEventModal: React.FC<DuplicateEventModalProps> = ({ trip, eventTo
     }, [trip.startDate, trip.endDate]);
 
     const handleSelectDate = (date: string) => { // date is YYYY-MM-DD
-        const { eventId, ...restOfEvent } = eventToDuplicate;
+        const { eventId, tripId, ...restOfEvent } = eventToDuplicate;
         
         const newEventData = {
             ...restOfEvent,
@@ -28,7 +28,7 @@ const DuplicateEventModal: React.FC<DuplicateEventModalProps> = ({ trip, eventTo
             endDate: undefined, 
         };
 
-        addEvent(newEventData);
+        addEvent(trip.id, newEventData);
         addNotification(`"${eventToDuplicate.title}" duplicato con successo!`, 'success');
         onClose();
     };

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Trip } from '../../types';
 import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
+import { ADJUSTMENT_CATEGORY } from '../../constants';
 
 const SummaryHeader: React.FC<{ trip: Trip }> = ({ trip }) => {
     const { convert } = useCurrencyConverter();
@@ -13,12 +14,14 @@ const SummaryHeader: React.FC<{ trip: Trip }> = ({ trip }) => {
     const spentToday = useMemo(() => {
         const today = new Date();
         return (trip.expenses || [])
-            .filter(exp => isSameDay(new Date(exp.date), today))
+            .filter(exp => isSameDay(new Date(exp.date), today) && exp.category !== ADJUSTMENT_CATEGORY)
             .reduce((sum, exp) => sum + convert(exp.amount, exp.currency, trip.mainCurrency), 0);
     }, [trip.expenses, trip.mainCurrency, convert]);
 
     const { dailyBudget, remainingBudget } = useMemo(() => {
-        const totalSpent = (trip.expenses || []).reduce((sum, exp) => sum + convert(exp.amount, exp.currency, trip.mainCurrency), 0);
+        const totalSpent = (trip.expenses || [])
+            .filter(exp => exp.category !== ADJUSTMENT_CATEGORY)
+            .reduce((sum, exp) => sum + convert(exp.amount, exp.currency, trip.mainCurrency), 0);
         const remaining = trip.totalBudget - totalSpent;
 
         const tripStart = new Date(trip.startDate);

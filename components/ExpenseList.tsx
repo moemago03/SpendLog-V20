@@ -77,8 +77,11 @@ const ExpenseItem: React.FC<{
                             {categoryIcon}
                         </div>
                         <div className="min-w-0">
-                            <p className="font-semibold text-on-surface truncate">{expense.category}</p>
-                            <p className="text-sm text-on-surface-variant">{new Date(expense.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                            <p className="font-semibold text-on-surface truncate">{expense.description || expense.category}</p>
+                            <div className="flex items-center gap-1.5">
+                                <p className="text-xs text-on-surface-variant">{new Date(expense.date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })}</p>
+                                {expense.paymentMethod && <p className="text-xs text-on-surface-variant/70">- {expense.paymentMethod}</p>}
+                            </div>
                         </div>
                     </div>
                     <div className="text-right ml-2 flex-shrink-0">

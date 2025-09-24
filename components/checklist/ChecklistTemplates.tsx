@@ -17,20 +17,17 @@ const ChecklistTemplates: React.FC<ChecklistTemplatesProps> = ({ tripId }) => {
     };
     
     return (
-        <div>
-            <h2 className="text-lg font-semibold text-on-surface mb-3">Aggiungi da template</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {Object.keys(CHECKLIST_TEMPLATES).map(templateName => (
-                    <button
-                        key={templateName}
-                        onClick={() => handleAddTemplate(templateName)}
-                        className="p-3 bg-surface-variant rounded-2xl text-on-surface-variant hover:bg-primary-container/60 transition-colors text-left"
-                    >
-                        <span className="material-symbols-outlined text-primary mb-1">{CHECKLIST_TEMPLATES[templateName].icon}</span>
-                        <p className="font-semibold text-sm">{templateName}</p>
-                    </button>
-                ))}
-            </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Object.keys(CHECKLIST_TEMPLATES).map(templateName => (
+                <button
+                    key={templateName}
+                    onClick={() => handleAddTemplate(templateName)}
+                    className="p-3 bg-surface-variant rounded-2xl text-on-surface-variant hover:bg-primary-container/60 transition-colors text-left"
+                >
+                    <span className="material-symbols-outlined text-primary mb-1">{CHECKLIST_TEMPLATES[templateName].icon}</span>
+                    <p className="font-semibold text-sm">{templateName}</p>
+                </button>
+            ))}
         </div>
     );
 };

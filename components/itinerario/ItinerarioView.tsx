@@ -1,17 +1,18 @@
 import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
 import { Trip, Event, Expense } from '../../types';
-import DayDetailView from './DayDetailView';
-import { useItinerario } from '../../context/ItinerarioContext';
+import DayDetailView from '../itinerary/DayDetailView';
+// FIX: Corrected import path and hook name
+import { useItinerary } from '../../context/ItineraryContext';
 import { getMonthGridDays, dateToISOString, isSameDay, getWeekRange, getDaysArray, getTripDurationDays, getMonthRange } from '../../utils/dateUtils';
-import ItinerarioMapView, { MapFilterState } from './ItinerarioMapView';
+import ItineraryMapView, { MapFilterState } from '../itinerary/ItineraryMapView';
 import { useData } from '../../context/DataContext';
 import { getContrastColor } from '../../utils/colorUtils';
 import ExpenseListSkeleton from '../ExpenseListSkeleton';
-import DayStrip from './DayStrip';
+import DayStrip from '../itinerary/DayStrip';
 
-const EventForm = lazy(() => import('./EventForm'));
+const EventForm = lazy(() => import('../itinerary/EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
-const AIItineraryGenerator = lazy(() => import('./AIItineraryGenerator'));
+const AIItineraryGenerator = lazy(() => import('../itinerary/AIItineraryGenerator'));
 
 // --- Internal Month View Component (Refreshed Style) ---
 const MonthView: React.FC<{
@@ -20,7 +21,8 @@ const MonthView: React.FC<{
     categories: any[]; // Using any to avoid type issues with imported Category
     onOpenDayDetail: (date: Date) => void;
 }> = ({ displayDate, trip, categories, onOpenDayDetail }) => {
-    const { getEventsByTrip } = useItinerario();
+    // FIX: Corrected hook name from useItinerario to useItinerary
+    const { getEventsByTrip } = useItinerary();
     const tripStartDate = useMemo(() => new Date(trip.startDate.split('T')[0] + 'T00:00:00Z'), [trip.startDate]);
     const tripEndDate = useMemo(() => new Date(trip.endDate.split('T')[0] + 'T23:59:59Z'), [trip.endDate]);
     
@@ -332,6 +334,7 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
                     trip={trip}
                     selectedDate={selectedDateISO}
                     onSelectDate={handleDateSelect}
+                    weatherData={null}
                 />
                 <div className="px-4 mt-6 max-w-7xl mx-auto flex justify-between items-center">
                     <h2 className="text-2xl font-bold text-on-surface">
@@ -380,7 +383,7 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
                     )}
                     {viewMode === 'map' && (
                         <Suspense fallback={<div className="mt-4 h-[70vh] bg-surface-variant rounded-2xl animate-pulse" />}>
-                            <ItinerarioMapView 
+                            <ItineraryMapView 
                                 trip={trip} 
                                 onOpenDayDetail={(d) => handleDateSelect(dateToISOString(d))}
                                 filter={mapFilter}
@@ -419,7 +422,7 @@ const ItinerarioView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Exp
             <div className={activeSubView === 'checklist' ? 'block' : 'hidden'}>
                 <main className="px-4 max-w-4xl mx-auto mt-4">
                     <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
-                        <Checklist trip={trip} />
+                        <Checklist trip={trip} onCreateExpense={() => {}} />
                     </Suspense>
                 </main>
             </div>

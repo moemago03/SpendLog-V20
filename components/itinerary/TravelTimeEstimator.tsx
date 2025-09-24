@@ -24,7 +24,8 @@ const TravelTimeEstimator: React.FC<TravelTimeEstimatorProps> = ({ origin, desti
         setIsLoading(true);
         setError(null);
         try {
-            const ai = new GoogleGenAI({ apiKey: (window as any).GEMINI_API_KEY });
+            // FIX: The API key is sourced from an environment variable per guidelines.
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
@@ -88,7 +89,7 @@ const TravelTimeEstimator: React.FC<TravelTimeEstimatorProps> = ({ origin, desti
                 className="w-8 h-8 rounded-full bg-surface-variant/80 hover:bg-primary-container/50 flex items-center justify-center transition-colors shadow-sm"
                 aria-label="Calcola tempo di viaggio"
             >
-                <span className="material-symbols-outlined text-base text-on-surface-variant">more_time</span>
+                <span className="material-symbols-outlined text-base">more_time</span>
             </button>
         );
     };

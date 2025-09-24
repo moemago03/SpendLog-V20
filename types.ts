@@ -1,203 +1,221 @@
 // types.ts
 
+export interface UserData {
+    name: string;
+    email: string;
+    dataviaggio: string;
+    trips: Trip[];
+    categories: Category[];
+    defaultTripId?: string;
+}
+
+export interface Document {
+    id: string;
+    name: string;
+    type: string; // Mime type like 'image/jpeg', 'application/pdf'
+    data: string; // base64 data URL
+    eventId?: string; // Link to an itinerary event
+    tripId: string;
+}
+
+export interface Trip {
+    id: string;
+    name: string;
+    startDate: string;
+    endDate: string;
+    totalBudget: number;
+    countries: string[];
+    mainCurrency: string;
+    preferredCurrencies: string[];
+    color: string;
+    expenses: Expense[];
+    checklist?: ChecklistItem[];
+    members?: TripMember[];
+    frequentExpenses?: FrequentExpense[];
+    enableCategoryBudgets?: boolean;
+    categoryBudgets?: CategoryBudget[];
+    events?: Event[];
+    documents?: Document[];
+}
+
+export interface Expense {
+    id: string;
+    amount: number;
+    currency: string;
+    category: string;
+    description?: string;
+    date: string;
+    country?: string;
+    paymentMethod?: string;
+    location?: string;
+    // FIX: Add eventId to link an expense to an itinerary event.
+    // This resolves a type error in ExpenseForm.tsx.
+    eventId?: string;
+    // For group expenses
+    paidById?: string;
+    splitType?: 'equally' | 'unequally' | 'by_shares';
+    splitBetweenMemberIds?: string[];
+    createdAt?: number; // timestamp
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    icon: string;
+    color: string;
+    isItineraryCategory?: boolean;
+}
+
 export interface ChecklistItem {
     id: string;
     text: string;
     completed: boolean;
+    expenseId?: string;
+    isGroupItem?: boolean;
+    assignedToMemberId?: string;
+    reminderEventId?: string;
+}
+
+export interface TripMember {
+    id: string;
+    name: string;
 }
 
 export interface CategoryBudget {
-  categoryName: string;
-  amount: number;
+    categoryName: string;
+    amount: number;
 }
 
 export interface FrequentExpense {
-  id: string;
-  name: string;
-  icon: string;
-  category: string;
-  amount: number;
-}
-
-// NEW: For group travel
-export interface TripMember {
-  id: string;
-  name: string;
-}
-
-export interface Expense {
-  id: string;
-  createdAt?: number; // Timestamp of creation for precise sorting
-  amount: number;
-  currency: string;
-  category: string;
-  date: string; // ISO string
-  country?: string;
-  description?: string; // Field for notes/description
-  eventId?: string; // Link to an itinerary event
-
-  // NEW: Fields for shared expenses
-  paidById?: string; // ID of the TripMember who paid. Optional for backward compatibility.
-  splitType?: 'equally';
-  splitBetweenMemberIds?: string[];
-  
-  // NEW: Detailed expense fields
-  tags?: string[];
-  beneficiary?: string;
-  paymentMethod?: string;
-  warranty?: string;
-  status?: string;
-  location?: string;
-  attachments?: string[]; // For now, can store identifiers or simple notes
-}
-
-export interface Trip {
-  id: string;
-  name: string;
-  startDate: string; // ISO string
-  endDate: string; // ISO string
-  totalBudget: number;
-  countries: string[];
-  preferredCurrencies: string[];
-  mainCurrency: string;
-  expenses: Expense[];
-  frequentExpenses?: FrequentExpense[];
-  enableCategoryBudgets?: boolean;
-  categoryBudgets?: CategoryBudget[];
-  checklist?: ChecklistItem[];
-  color?: string;
-  
-  // NEW: Field for trip members
-  members?: TripMember[];
-}
-
-export interface Category {
-  id:string;
-  name: string;
-  icon: string;
-  color: string;
-  isItineraryCategory?: boolean; // Can this category be used for itinerary events?
-}
-
-export interface UserData {
-  name?: string;
-  email?: string;
-  dataviaggio?: string;
-  trips: Trip[];
-  categories: Category[];
-  defaultTripId?: string;
-}
-
-export interface ChecklistTemplateItem {
-    text: string;
+    id: string;
+    name: string;
+    icon: string;
+    amount: number;
+    category: string;
+    paidById: string;
+    splitBetweenMemberIds: string[];
 }
 
 export interface ChecklistTemplate {
     icon: string;
-    items: ChecklistTemplateItem[];
+    items: { text: string }[];
 }
 
-
-// --- NEW TYPES FOR EXPLORE GUIDES ---
+// Types for Explore/Guides feature
+export interface Manifest {
+    cities: ManifestCity[];
+    countryFileMap: { [countryCode: string]: string };
+}
 
 export interface ManifestCity {
-  id: string;
-  name: string;
-  country: string;
-  image: string;
-}
-
-export interface Manifest {
-  cities: ManifestCity[];
-  countryFileMap: { [key: string]: string };
+    id: string;
+    name: string;
+    country: string;
+    image: string;
 }
 
 export interface CityGuide {
-  cityName: string;
-  countryCode: string;
-  countryName: string;
-  image: string;
-  generalInfo: {
-    quickDescription: string;
-    bestTimeToVisit: string;
-  };
-  arrivalInfo: {
-    airport: string;
-    options: { method: string; details: string; cost: string; time: string }[];
-  };
-  estimatedBudget: {
-    description: string;
-    backpacker: string;
-    midRange: string;
-  };
-  gettingAround: { method: string; details: string }[];
-  mainAttractions: { name: string; description: string; estimatedCost: string; type: string; location?: string }[];
-  foodExperience: { name: string; description: string; priceRange: string }[];
-  suggestedItineraries: {
-    title: string;
-    days: { day: number; theme: string; activities: string[] }[];
-  }[];
-  dayTrips: { name: string; description: string; travelTime: string }[];
-  travelerTips: {
-    families: string;
-    couples: string;
-  };
+    cityName: string;
+    countryCode: string;
+    image: string;
+    generalInfo: {
+        bestTimeToVisit: string;
+        quickDescription: string;
+    };
+    arrivalInfo: {
+        description: string;
+        options: {
+            method: string;
+            details: string;
+            cost: string;
+            time: string;
+        }[];
+    };
+    gettingAround: {
+        method: string;
+        details: string;
+    }[];
+    mainAttractions: {
+        name: string;
+        type: string;
+        description: string;
+        estimatedCost: string;
+        location?: string;
+    }[];
+
+    foodExperience: {
+        name: string;
+        description: string;
+        priceRange: string;
+    }[];
+    dayTrips: {
+        name: string;
+        description: string;
+        travelTime: string;
+    }[];
+    suggestedItineraries: {
+        title: string;
+        days: {
+            day: number;
+            theme: string;
+            activities: string[];
+        }[];
+    }[];
+    estimatedBudget: {
+        description: string;
+        backpacker: string;
+        midRange: string;
+    };
+    travelerTips: {
+        families: string;
+        couples: string;
+    }
 }
 
 export interface CountryGuide {
-  countryName: string;
-  countryCode: string;
-  entryRequirements: {
-    visaInfo: string;
-    passportValidity: string;
-  };
-  healthAndVaccinations: {
-    recommendedVaccines: { vaccine: string; details: string }[];
-    disclaimer: string;
-    generalHealthTips: string[];
-  };
-  moneyAndCosts: {
-    currency: string;
-    atmsAndCards: string;
-    tippingCulture: string;
-  };
-  safetyAndSecurity: {
-    emergencyNumbers: {
-      police: string;
-      touristPolice: string;
-      ambulance: string;
+    countryName: string;
+    entryRequirements: {
+        visaInfo: string;
+        passportValidity: string;
     };
-    commonScams: string;
-    generalSafety: string;
-  };
-  lawsAndCustoms: {
-    title: string;
-    points: { topic: string; details: string }[];
-  };
-  connectivity: {
-    simCards: string;
-    wifi: string;
-  };
-  powerAndPlugs: {
-    voltage: string;
-    frequency: string;
-    plugTypes: string;
-  };
-  usefulApps: { name: string; description: string }[];
-  climateByMonth: { month: string; summary: string }[];
+    healthAndVaccinations: {
+        disclaimer: string;
+        recommendedVaccines: {
+            vaccine: string;
+            details: string;
+        }[];
+    };
+    lawsAndCustoms: {
+        points: {
+            topic: string;
+            details: string;
+        }[];
+    };
+    safetyAndSecurity: {
+        emergencyNumbers: {
+            police: string;
+            touristPolice: string;
+        };
+        commonScams: string;
+        generalSafety: string;
+    };
 }
 
-// --- NEW TYPES FOR ITINERARY ---
 export interface Event {
-  eventId: string;
-  tripId: string;
-  eventDate: string; // YYYY-MM-DD (Start Date)
-  endDate?: string;   // YYYY-MM-DD (End Date for multi-day/timed events)
-  title: string;
-  type: string; // Changed from union type to string to support custom category names
-  startTime?: string; // HH:MM
-  endTime?: string;   // HH:MM
-  description?: string;
-  location?: string;
-  status: 'planned' | 'completed';
+    eventId: string;
+    tripId: string;
+    eventDate: string; // YYYY-MM-DD
+    endDate?: string; // YYYY-MM-DD for multi-day events
+    title: string;
+    type: string; // Corresponds to a Category name
+    startTime?: string; // HH:MM
+    endTime?: string; // HH:MM
+    description?: string;
+    status: 'planned' | 'completed' | 'cancelled';
+    location?: string;
+    estimatedCost?: {
+        amount: number;
+        currency: string;
+    };
+    participantIds?: string[];
 }

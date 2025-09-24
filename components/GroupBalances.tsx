@@ -1,26 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, lazy, Suspense } from 'react';
 import { Trip, TripMember, Expense } from '../types';
 import { useCurrencyConverter } from '../hooks/useCurrencyConverter';
 import { useData } from '../context/DataContext';
 import { ADJUSTMENT_CATEGORY } from '../constants';
+import MemberAvatar from './common/MemberAvatar';
+
+const SettleDebtModal = lazy(() => import('./SettleDebtModal'));
 
 interface GroupBalancesProps {
     trip: Trip;
 }
 
 // --- Helper Components for the design ---
-
-const getInitials = (name: string): string => name ? name.split(' ').map(n => n[0]).join('').toUpperCase() : '?';
-const AVATAR_COLORS = ['bg-blue-200 text-blue-800', 'bg-purple-200 text-purple-800', 'bg-green-200 text-green-800', 'bg-yellow-200 text-yellow-800', 'bg-pink-200 text-pink-800', 'bg-indigo-200 text-indigo-800'];
-const getAvatarColor = (name: string): string => {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return AVATAR_COLORS[Math.abs(hash % AVATAR_COLORS.length)];
-};
-const MemberAvatar: React.FC<{ member: TripMember | undefined; className?: string }> = ({ member, className = '' }) => {
-    if (!member) return null;
-    return <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm border-2 border-white dark:border-gray-800 ${getAvatarColor(member.name)} ${className}`}>{getInitials(member.name)}</div>;
-};
 
 const BalanceRing: React.FC<{ color: string; percentage: number }> = ({ color, percentage }) => (
     <svg viewBox="0 0 36 36" className="w-8 h-8 -rotate-90">
@@ -48,7 +39,7 @@ const TransactionRow: React.FC<{ expense: Expense; trip: Trip }> = ({ expense, t
 
     return (
         <div className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-2xl">
-            <MemberAvatar member={paidBy} />
+            <MemberAvatar member={paidBy} className="w-10 h-10 text-sm" />
             <div className="ml-3 flex-grow">
                 <p className="font-bold text-sm text-gray-800 dark:text-gray-100">{paidBy?.name || 'Sconosciuto'}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{category?.name || 'Spesa'}</p>
@@ -61,10 +52,17 @@ const TransactionRow: React.FC<{ expense: Expense; trip: Trip }> = ({ expense, t
     );
 }
 
+interface SimplifiedDebt {
+    from: TripMember;
+    to: TripMember;
+    amount: number;
+}
+
 // --- Main Component ---
 const GroupBalances: React.FC<GroupBalancesProps> = ({ trip }) => {
     const { members, expenses, mainCurrency } = trip;
     const { convert, formatCurrency } = useCurrencyConverter();
+    const [settlingDebt, setSettlingDebt] = useState<SimplifiedDebt | null>(null);
 
     // NEW: Colorful palette for the summary cards, inspired by the Dribbble design
     const CARD_COLORS = [
@@ -114,7 +112,7 @@ const GroupBalances: React.FC<GroupBalancesProps> = ({ trip }) => {
             if (amount > 0.01) creditors.push({ id, amount });
         });
 
-        const simplifiedDebts: { from: TripMember; to: TripMember; amount: number }[] = [];
+        const simplifiedDebts: SimplifiedDebt[] = [];
         while (debtors.length > 0 && creditors.length > 0) {
             const debtor = debtors[0];
             const creditor = creditors[0];
@@ -155,74 +153,93 @@ const GroupBalances: React.FC<GroupBalancesProps> = ({ trip }) => {
     const { totalOwedToUser, totalUserOwes, owedToUserPercentage, userOwesPercentage, recentSharedExpenses, simplifiedDebts } = balanceData;
 
     return (
-        <div className="space-y-8 animate-fade-in">
-             <section className="grid grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-gray-400">Ti devono</p>
-                        <BalanceRing color="green-500" percentage={owedToUserPercentage} />
+        <>
+            <div className="space-y-8 animate-fade-in">
+                 <section className="grid grid-cols-2 gap-4">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-gray-400">Ti devono</p>
+                            <BalanceRing color="green-500" percentage={owedToUserPercentage} />
+                        </div>
+                        <p className="text-2xl font-bold text-gray-800 dark:text-white mt-2">{formatCurrency(totalOwedToUser, mainCurrency)}</p>
                     </div>
-                    <p className="text-2xl font-bold text-gray-800 dark:text-white mt-2">{formatCurrency(totalOwedToUser, mainCurrency)}</p>
-                </div>
-                 <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-sm">
-                    <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-gray-400">Devi dare</p>
-                        <BalanceRing color="red-500" percentage={userOwesPercentage} />
+                     <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <p className="text-xs font-bold text-gray-400">Devi dare</p>
+                            <BalanceRing color="red-500" percentage={userOwesPercentage} />
+                        </div>
+                        <p className="text-2xl font-bold text-gray-800 dark:text-white mt-2">{formatCurrency(totalUserOwes, mainCurrency)}</p>
                     </div>
-                    <p className="text-2xl font-bold text-gray-800 dark:text-white mt-2">{formatCurrency(totalUserOwes, mainCurrency)}</p>
-                </div>
-            </section>
+                </section>
 
-             <section>
-                <h2 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">TRANSACTIONS</h2>
-                <div className="bg-white dark:bg-gray-800 p-2 rounded-3xl space-y-1 shadow-sm">
-                    {recentSharedExpenses.length > 0 ? (
-                        recentSharedExpenses.map(exp => <TransactionRow key={exp.id} expense={exp} trip={trip} />)
-                    ) : (
-                        <p className="text-center text-sm text-gray-400 py-4">Nessuna transazione di gruppo recente.</p>
-                    )}
-                </div>
-            </section>
+                 <section>
+                    <h2 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">TRANSACTIONS</h2>
+                    <div className="bg-white dark:bg-gray-800 p-2 rounded-3xl space-y-1 shadow-sm">
+                        {recentSharedExpenses.length > 0 ? (
+                            recentSharedExpenses.map(exp => <TransactionRow key={exp.id} expense={exp} trip={trip} />)
+                        ) : (
+                            <p className="text-center text-sm text-gray-400 py-4">Nessuna transazione di gruppo recente.</p>
+                        )}
+                    </div>
+                </section>
 
-            <section>
-                 <h2 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">RIEPILOGO SALDI</h2>
-                 <div className="space-y-3">
-                    {simplifiedDebts.length > 0 ? (
-                        simplifiedDebts.map((debt, index) => {
-                            const isUserDebtor = debt.from.id === members[0].id;
-                            const fromName = isUserDebtor ? 'Tu' : debt.from.name.split(' ')[0];
-                            const toName = debt.to.id === members[0].id ? 'te' : debt.to.name.split(' ')[0];
-                            
-                            // UPDATE: Cycle through the colorful palette for each card
-                            const cardColor = CARD_COLORS[index % CARD_COLORS.length];
+                <section>
+                     <h2 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">RIEPILOGO SALDI</h2>
+                     <div className="space-y-3">
+                        {simplifiedDebts.length > 0 ? (
+                            simplifiedDebts.map((debt, index) => {
+                                const isUserDebtor = debt.from.id === members[0].id;
+                                const fromName = isUserDebtor ? 'Tu' : debt.from.name.split(' ')[0];
+                                const toName = debt.to.id === members[0].id ? 'te' : debt.to.name.split(' ')[0];
+                                
+                                const cardColor = CARD_COLORS[index % CARD_COLORS.length];
 
-                            return (
-                                <div key={`${debt.from.id}-${debt.to.id}-${index}`} className={`${cardColor} text-white p-5 rounded-3xl shadow-lg`}>
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <p className="font-bold text-xl">{`${fromName} deve a ${toName}`}</p>
-                                            <p className="font-black text-3xl mt-1 tracking-tighter">
-                                                {formatCurrency(debt.amount, mainCurrency)}
-                                            </p>
+                                return (
+                                    <div key={`${debt.from.id}-${debt.to.id}-${index}`} className={`${cardColor} p-5 rounded-3xl shadow-lg`}>
+                                        <div className="flex justify-between items-center text-white">
+                                            <div>
+                                                <p className="font-bold text-xl">{`${fromName} deve a ${toName}`}</p>
+                                                <p className="font-black text-3xl mt-1 tracking-tighter">
+                                                    {formatCurrency(debt.amount, mainCurrency)}
+                                                </p>
+                                            </div>
+                                            <div className="flex -space-x-4">
+                                                <MemberAvatar member={debt.from} className={`w-10 h-10 text-sm border-2 ${cardColor}`} />
+                                                <MemberAvatar member={debt.to} className={`w-10 h-10 text-sm border-2 ${cardColor}`} />
+                                            </div>
                                         </div>
-                                        <div className="flex -space-x-4">
-                                            <MemberAvatar member={debt.from} className={`border-2 ${cardColor}`} />
-                                            <MemberAvatar member={debt.to} className={`border-2 ${cardColor}`} />
+                                        <div className="mt-4 pt-4 border-t border-white/20">
+                                            <button 
+                                                onClick={() => setSettlingDebt(debt)}
+                                                className="w-full text-center bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-4 rounded-xl transition-colors"
+                                            >
+                                                Salda
+                                            </button>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                         <div className="text-center py-12 px-6 bg-white dark:bg-gray-800 rounded-3xl">
-                            <span className="material-symbols-outlined text-5xl text-green-500 mb-4">check_circle</span>
-                            <h2 className="text-xl font-bold text-gray-700 dark:text-gray-200">Tutto in pari!</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Al momento non ci sono debiti da saldare.</p>
-                        </div>
-                    )}
-                 </div>
-            </section>
-        </div>
+                                );
+                            })
+                        ) : (
+                             <div className="text-center py-12 px-6 bg-white dark:bg-gray-800 rounded-3xl">
+                                <span className="material-symbols-outlined text-5xl text-green-500 mb-4">check_circle</span>
+                                <h2 className="text-xl font-bold text-gray-700 dark:text-gray-200">Tutto in pari!</h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Al momento non ci sono debiti da saldare.</p>
+                            </div>
+                        )}
+                     </div>
+                </section>
+            </div>
+
+            {settlingDebt && (
+                <Suspense fallback={<div/>}>
+                    <SettleDebtModal
+                        trip={trip}
+                        debt={settlingDebt}
+                        onClose={() => setSettlingDebt(null)}
+                    />
+                </Suspense>
+            )}
+        </>
     );
 };
 

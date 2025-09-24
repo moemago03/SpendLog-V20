@@ -3,12 +3,50 @@ import { Trip } from '../../types';
 import { useItinerary } from '../../context/ItineraryContext';
 import { useNotification } from '../../context/NotificationContext';
 import { getDaysArray } from '../../utils/dateUtils';
+import { ALL_CURRENCIES } from '../../constants';
 
 interface AddToItineraryModalProps {
     trip: Trip;
-    attraction: { name: string; description: string; location?: string };
+    attraction: { name: string; description: string; location?: string, estimatedCost: string };
     onClose: () => void;
 }
+
+const parseCost = (costString: string, tripMainCurrency: string): { amount: number, currency: string } | undefined => {
+    if (!costString || costString.toLowerCase().includes('gratuito') || costString.toLowerCase().includes('free')) {
+        return { amount: 0, currency: tripMainCurrency };
+    }
+    
+    // Regex potenziato per trovare numeri (con . o ,) e valute (THB, €, $, ecc.)
+    const match = costString.match(/(\d[\d,.]*)\s*([A-Z]{3}|€|\$|฿)?/i);
+    
+    if (!match) return undefined;
+
+    const amount = parseFloat(match[1].replace(',', '.'));
+    if (isNaN(amount)) return undefined;
+
+    let currencySymbol = match[2];
+    let currency = tripMainCurrency;
+
+    if (currencySymbol) {
+        currencySymbol = currencySymbol.toUpperCase();
+        if (ALL_CURRENCIES.includes(currencySymbol)) {
+            currency = currencySymbol;
+        } else if (currencySymbol === '€') {
+            currency = 'EUR';
+        } else if (currencySymbol === '$') {
+            currency = 'USD';
+        } else if (currencySymbol === '฿') {
+            currency = 'THB';
+        }
+    } else {
+        // Se non c'è un simbolo, cerchiamo un codice valuta nel resto della stringa
+        const knownCurrency = ALL_CURRENCIES.find(c => costString.toUpperCase().includes(c));
+        if (knownCurrency) currency = knownCurrency;
+    }
+
+    return { amount, currency };
+};
+
 
 const AddToItineraryModal: React.FC<AddToItineraryModalProps> = ({ trip, attraction, onClose }) => {
     const { addEvent } = useItinerary();
@@ -19,14 +57,17 @@ const AddToItineraryModal: React.FC<AddToItineraryModalProps> = ({ trip, attract
     }, [trip.startDate, trip.endDate]);
 
     const handleSelectDate = (date: string) => { // date is YYYY-MM-DD
+        const estimatedCost = parseCost(attraction.estimatedCost, trip.mainCurrency);
+
         addEvent({
             tripId: trip.id,
             eventDate: date,
             title: attraction.name,
             description: attraction.description,
-            type: 'attraction',
+            type: 'Attività', // Categoria predefinita per le attrazioni
             status: 'planned',
             location: attraction.location,
+            estimatedCost: estimatedCost,
         });
         addNotification(`${attraction.name} aggiunto all'itinerario!`, 'success');
         onClose();

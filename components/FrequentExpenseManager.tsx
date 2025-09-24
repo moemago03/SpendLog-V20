@@ -109,6 +109,7 @@ const FrequentExpenseManager: React.FC<FrequentExpenseManagerProps> = ({ activeT
             {view === 'form' && (
                 <FrequentExpenseForm
                     expense={editingExpense || undefined}
+                    trip={activeTrip}
                     onSave={handleSave}
                     onClose={() => setView('list')}
                     onDelete={editingExpense ? handleDelete : undefined}

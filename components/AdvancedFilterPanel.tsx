@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Category } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Category, Trip } from '../types';
 
 export interface Filters {
     startDate: string;
     endDate: string;
     categories: string[];
+    eventId?: string;
 }
 
 interface AdvancedFilterPanelProps {
@@ -12,10 +13,15 @@ interface AdvancedFilterPanelProps {
     onApply: (filters: Filters) => void;
     currentFilters: Filters;
     allCategories: Category[];
+    trip: Trip;
 }
 
-const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({ onClose, onApply, currentFilters, allCategories }) => {
+const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({ onClose, onApply, currentFilters, allCategories, trip }) => {
     const [filters, setFilters] = useState<Filters>(currentFilters);
+
+    const sortedEvents = useMemo(() => {
+        return [...(trip.events || [])].sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+    }, [trip.events]);
 
     const handleCategoryToggle = (categoryName: string) => {
         const newCategories = filters.categories.includes(categoryName)
@@ -30,7 +36,7 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({ onClose, onAp
     };
     
     const handleReset = () => {
-        const defaultFilters = { startDate: '', endDate: '', categories: [] };
+        const defaultFilters = { startDate: '', endDate: '', categories: [], eventId: '' };
         setFilters(defaultFilters);
         onApply(defaultFilters);
         onClose();
@@ -71,6 +77,24 @@ const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({ onClose, onAp
                                 onChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
                                 className="w-full bg-surface-variant text-on-surface p-3 rounded-xl border-2 border-transparent focus:border-primary focus:outline-none"
                             />
+                        </div>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-on-surface-variant mb-1">Evento</label>
+                        <div className="relative">
+                            <select
+                                value={filters.eventId || ''}
+                                onChange={e => setFilters(prev => ({ ...prev, eventId: e.target.value || undefined }))}
+                                className="w-full bg-surface-variant text-on-surface p-3 rounded-xl border-2 border-transparent focus:border-primary focus:outline-none appearance-none pr-8"
+                            >
+                                <option value="">Tutti gli eventi</option>
+                                {sortedEvents.map(event => (
+                                    <option key={event.eventId} value={event.eventId}>
+                                        {new Date(event.eventDate + "T12:00:00").toLocaleDateString('it-IT', {day: 'numeric', month: 'short'})} - {event.title}
+                                    </option>
+                                ))}
+                            </select>
+                            <span className="material-symbols-outlined text-on-surface-variant absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">unfold_more</span>
                         </div>
                     </div>
                     <div>

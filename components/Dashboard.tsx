@@ -1,146 +1,104 @@
-import React, { useState, useMemo, lazy, Suspense } from 'react';
-import { AppView } from '../App';
+import React, { lazy, Suspense } from 'react';
+import { Trip, Expense } from '../types';
 import { useData } from '../context/DataContext';
-import { Expense, Trip, Category } from '../types';
-import Statistics from './Statistics';
+import { AppView } from '../App';
+import LoadingScreen from './LoadingScreen';
 import ExpenseListSkeleton from './ExpenseListSkeleton';
-import SummaryHeader from './summary/SummaryHeader';
-import BudgetProgress from './summary/BudgetProgress';
-import RecentExpenses from './summary/RecentExpenses';
-const QuickAddBar = lazy(() => import('./summary/QuickAddBar'));
+
+// Lazy load main view components
+const SummaryHeader = lazy(() => import('./summary/SummaryHeader'));
+const BudgetProgress = lazy(() => import('./summary/BudgetProgress'));
+const RecentExpenses = lazy(() => import('./summary/RecentExpenses'));
 const TodaysItineraryWidget = lazy(() => import('./summary/TodaysItineraryWidget'));
-
-
-const CategoryBudgetTracker = lazy(() => import('./CategoryBudgetTracker'));
-const AdvancedFilterPanel = lazy(() => import('./AdvancedFilterPanel'));
+const QuickAddBar = lazy(() => import('./summary/QuickAddBar'));
+const Statistics = lazy(() => import('./Statistics'));
 const GroupBalances = lazy(() => import('./GroupBalances'));
 
 interface DashboardProps {
     activeTripId: string;
-    currentView: Exclude<AppView, 'profile' | 'explore' | 'itinerary'>;
-    setEditingExpense: (expense: Partial<Expense> | null) => void;
+    currentView: AppView;
+    setEditingExpense: (expense: Partial<Expense> & { checklistItemId?: string } | null) => void;
     onNavigate: (view: AppView) => void;
 }
 
-// FIX: Updated onEditExpense to accept null to align with the state setter from App.tsx.
-const SummaryView: React.FC<{ 
-    trip: Trip; 
-    allCategories: Category[]; 
-    onEditExpense: (expense: Partial<Expense> | null) => void;
-    onNavigate: (view: AppView) => void;
-}> = ({ trip, allCategories, onEditExpense, onNavigate }) => {
+const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEditingExpense, onNavigate }) => {
+    const { data, loading } = useData();
 
-    const topCategories = useMemo(() => {
-        const categoryCounts = (trip.expenses || []).reduce((acc, exp) => {
-            acc[exp.category] = (acc[exp.category] || 0) + 1;
-            return acc;
-        }, {} as { [key: string]: number });
+    const activeTrip = data?.trips.find(t => t.id === activeTripId);
 
-        const sortedCategoryNames = Object.keys(categoryCounts).sort((a, b) => categoryCounts[b] - categoryCounts[a]);
-        
-        return sortedCategoryNames
-            .slice(0, 3)
-            .map(name => allCategories.find(c => c.name === name))
-            .filter((c): c is Category => !!c);
+    if (loading) {
+        return <LoadingScreen />;
+    }
 
-    }, [trip.expenses, allCategories]);
+    if (!activeTrip) {
+        // This case should be handled by App.tsx, but good to have a fallback.
+        return (
+            <div className="p-4 text-center">
+                <h2 className="text-xl font-semibold">Viaggio non trovato.</h2>
+                <p className="text-on-surface-variant">Seleziona un viaggio dal tuo profilo.</p>
+            </div>
+        );
+    }
 
-
-    return (
-        <div className="p-4 pb-28 max-w-2xl mx-auto space-y-6">
-            <SummaryHeader trip={trip} />
-            
-            <BudgetProgress trip={trip} />
-
+    const renderSummaryView = () => (
+        <div className="space-y-6">
+            <Suspense fallback={<div className="h-[240px] bg-surface-variant rounded-3xl animate-pulse" />}>
+                <SummaryHeader trip={activeTrip} />
+            </Suspense>
             <Suspense fallback={null}>
+                <QuickAddBar trip={activeTrip} onEditExpense={setEditingExpense} />
+            </Suspense>
+             <Suspense fallback={<div className="h-[158px] bg-surface-variant rounded-3xl animate-pulse" />}>
+                <BudgetProgress trip={activeTrip} />
+            </Suspense>
+            <Suspense fallback={<div className="h-[150px] bg-surface-variant rounded-3xl animate-pulse" />}>
                 <TodaysItineraryWidget
-                    tripId={trip.id}
-                    allCategories={allCategories}
+                    tripId={activeTrip.id}
+                    allCategories={data?.categories || []}
                     onNavigateToItinerary={() => onNavigate('itinerary')}
                 />
             </Suspense>
-
-            <Suspense fallback={null}>
-                <QuickAddBar
-                    trip={trip}
-                    topCategories={topCategories}
-                    allCategories={allCategories}
-                    onAddDetailed={() => onEditExpense({})}
+             <Suspense fallback={<ExpenseListSkeleton />}>
+                <RecentExpenses
+                    trip={activeTrip}
+                    allCategories={data?.categories || []}
+                    onEditExpense={setEditingExpense}
                 />
             </Suspense>
-
-            {trip.enableCategoryBudgets && (
-                <Suspense fallback={null}>
-                    <CategoryBudgetTracker trip={trip} expenses={trip.expenses || []} />
-                </Suspense>
-            )}
-            
-            <RecentExpenses 
-                trip={trip} 
-                allCategories={allCategories}
-                onEditExpense={onEditExpense}
-            />
         </div>
     );
-};
 
-const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEditingExpense, onNavigate }) => {
-    const { data, loading } = useData();
+    const renderStatsView = () => (
+        <Suspense fallback={<LoadingScreen />}>
+            <Statistics trip={activeTrip} expenses={activeTrip.expenses || []} />
+        </Suspense>
+    );
     
-    const activeTrip = useMemo(() => {
-        return data?.trips.find(t => t.id === activeTripId);
-    }, [data?.trips, activeTripId]);
+    const renderGroupView = () => (
+        <Suspense fallback={<LoadingScreen />}>
+            <GroupBalances trip={activeTrip} />
+        </Suspense>
+    );
 
-    const expenses = useMemo(() => {
-        if (!activeTrip?.expenses) return [];
-        return [...activeTrip.expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [activeTrip?.expenses]);
 
-    if (loading || !activeTrip || !data?.categories) {
-        return <div className="p-4"><ExpenseListSkeleton /></div>;
-    }
-    
     const renderContent = () => {
         switch (currentView) {
             case 'summary':
-                return (
-                    <SummaryView 
-                        trip={activeTrip}
-                        allCategories={data.categories}
-                        onEditExpense={setEditingExpense}
-                        onNavigate={onNavigate}
-                    />
-                );
+                return renderSummaryView();
             case 'stats':
-                return (
-                    <div className="p-4 pb-24 max-w-2xl mx-auto">
-                        <Statistics trip={activeTrip} expenses={expenses} />
-                    </div>
-                );
+                return renderStatsView();
             case 'group':
-                return (
-                    <div className="p-4 md:p-6 pb-24 bg-[#F3F6FD] dark:bg-background min-h-screen">
-                         <header className="flex justify-between items-center mb-6">
-                            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
-                             <button className="relative p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700">
-                                <span className="material-symbols-outlined">notifications</span>
-                                <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
-                            </button>
-                        </header>
-                        <Suspense fallback={<ExpenseListSkeleton />}>
-                            <GroupBalances trip={activeTrip} />
-                        </Suspense>
-                    </div>
-                );
+                 return renderGroupView();
             default:
-                return null;
+                // Fallback to summary view if view is not recognized
+                return renderSummaryView();
         }
     };
 
     return (
-        <>
+        <div className="p-4 pb-20">
             {renderContent()}
-        </>
+        </div>
     );
 };
 

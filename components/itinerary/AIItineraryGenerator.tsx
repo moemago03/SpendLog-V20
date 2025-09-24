@@ -53,7 +53,8 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
         setSelectedEvents([]);
 
         try {
-            const ai = new GoogleGenAI({ apiKey: (window as any).GEMINI_API_KEY });
+            // FIX: The API key is sourced from an environment variable per guidelines.
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
             let contextPrompt = `Basandoti sulla richiesta "${prompt}", genera una lista di eventi per un itinerario di viaggio.`;
             if (location?.city) {
