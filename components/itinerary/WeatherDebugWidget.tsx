@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Trip } from '../../types';
 import { getWeatherIconFromWmoCode, WeatherInfo } from '../../utils/weatherUtils';
 import { useLocation } from '../../context/LocationContext';
+import { dateToISOString } from '../../utils/dateUtils';
 
 interface WeatherDebugWidgetProps {
     trip: Trip;
@@ -66,9 +67,27 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
 
             try {
                 const { lat, lon } = coords;
-                const startDate = trip.startDate.split('T')[0];
-                const endDate = trip.endDate.split('T')[0];
-                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&start_date=${startDate}&end_date=${endDate}&timezone=auto`;
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const tripStart = new Date(trip.startDate.split('T')[0] + 'T00:00:00Z');
+                const tripEnd = new Date(trip.endDate.split('T')[0] + 'T23:59:59Z');
+
+                if (today > tripEnd) {
+                    log('Viaggio terminato. Nessun dato meteo da recuperare.');
+                    setStatus('Success');
+                    return;
+                }
+
+                const apiStartDate = today > tripStart ? today : tripStart;
+                const apiEndDateLimit = new Date(apiStartDate);
+                apiEndDateLimit.setDate(apiEndDateLimit.getDate() + 8); // 9 days total
+                const apiEndDate = apiEndDateLimit < tripEnd ? apiEndDateLimit : tripEnd;
+
+                const startDateParam = dateToISOString(apiStartDate);
+                const endDateParam = dateToISOString(apiEndDate);
+
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&start_date=${startDateParam}&end_date=${endDateParam}&timezone=auto`;
                 log(`Chiamata API: ${weatherUrl.substring(0, 120)}...`);
                 
                 const response = await fetch(weatherUrl);
@@ -95,11 +114,12 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
                 log(`Elaborazione completata per ${weatherMap.size} giorni.`);
                 
                 const firstDayOfTripISO = trip.startDate.split('T')[0];
-                const firstDayWeather = weatherMap.get(firstDayOfTripISO);
+                const firstDayWeather = weatherMap.get(firstDayOfTripISO) || Array.from(weatherMap.values())[0];
                 
                 if (firstDayWeather) {
                     setWeatherPreview(firstDayWeather);
-                    log(`Anteprima meteo per il primo giorno (${firstDayOfTripISO}): ${firstDayWeather.temp}°C, Icona: ${firstDayWeather.icon}`);
+                    const previewDate = weatherMap.has(firstDayOfTripISO) ? firstDayOfTripISO : Array.from(weatherMap.keys())[0];
+                    log(`Anteprima meteo per il primo giorno (${previewDate}): ${firstDayWeather.temp}°C, Icona: ${firstDayWeather.icon}`);
                 } else {
                      log(`Nessun dato meteo per il primo giorno del viaggio (${firstDayOfTripISO}).`);
                 }

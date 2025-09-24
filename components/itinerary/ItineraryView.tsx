@@ -254,7 +254,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 // API start date is today or trip start date, whichever is later
                 const apiStartDate = today > tripStart ? today : tripStart;
 
-                // API end date limit is 9 days from API start date (inclusive)
+                // API end date limit is 8 days from API start date (inclusive, for a total of 9 days)
                 const apiEndDateLimit = new Date(apiStartDate);
                 apiEndDateLimit.setDate(apiEndDateLimit.getDate() + 8);
 
