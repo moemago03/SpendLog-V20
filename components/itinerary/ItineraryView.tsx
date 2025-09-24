@@ -1,7 +1,3 @@
-
-
-// components/itinerary/ItineraryView.tsx
-
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
 import { Trip, Event, Expense, ChecklistItem } from '../../types';
 import DayDetailView from './DayDetailView';
@@ -20,7 +16,7 @@ const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
 const AIItineraryGenerator = lazy(() => import('./AIItineraryGenerator'));
 const DocumentHub = lazy(() => import('./DocumentHub'));
-const TicketmasterEvents = lazy(() => import('./TicketmasterEvents'));
+const HotelFinder = lazy(() => import('./HotelFinder'));
 
 
 const MonthView: React.FC<{
@@ -172,7 +168,7 @@ const getInitialMapDate = (trip: Trip) => {
 };
 
 type ItineraryAgendaViewMode = 'day' | 'month' | 'map';
-type ItinerarySubView = 'agenda' | 'checklist' | 'documents' | 'events';
+type ItinerarySubView = 'agenda' | 'checklist' | 'documents' | 'hotels';
 type CalendarQuickFilter = '3days' | '7days' | '10days' | 'all';
 
 // Helper to geocode a location string to lat/lon using Nominatim
@@ -341,14 +337,23 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
         onAddExpense(prefill);
     };
     
+    const TabButton: React.FC<{ view: ItinerarySubView; label: string }> = ({ view, label }) => (
+         <button 
+            onClick={() => setActiveSubView(view)} 
+            className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === view ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+        >
+            {label}
+        </button>
+    );
+    
     return (
         <div className="pb-24">
             <header className="pt-8 px-4 max-w-7xl mx-auto">
                 <div className="flex border-b border-surface-variant">
-                    <button onClick={() => setActiveSubView('agenda')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'agenda' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Agenda</button>
-                    <button onClick={() => setActiveSubView('checklist')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'checklist' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Checklist</button>
-                    <button onClick={() => setActiveSubView('documents')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'documents' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Documenti</button>
-                    <button onClick={() => setActiveSubView('events')} className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 ${activeSubView === 'events' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>Eventi</button>
+                    <TabButton view="agenda" label="Agenda" />
+                    <TabButton view="hotels" label="Hotel" />
+                    <TabButton view="checklist" label="Checklist" />
+                    <TabButton view="documents" label="Documenti" />
                 </div>
             </header>
 
@@ -394,6 +399,14 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 {isAddingEvent && <Suspense fallback={<div />}><EventForm selectedDate={selectedDateISO} tripId={trip.id} onClose={() => setIsAddingEvent(false)} /></Suspense>}
                 {isAIGeneratorOpen && <Suspense fallback={<div />}><AIItineraryGenerator tripId={trip.id} selectedDate={selectedDateISO} onClose={() => setIsAIGeneratorOpen(false)} weatherForDay={weatherData?.get(selectedDateISO)} /></Suspense>}
             </div>
+            
+            <div className={activeSubView === 'hotels' ? 'block' : 'hidden'}>
+                <main className="px-4 max-w-4xl mx-auto mt-4">
+                    <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
+                        <HotelFinder trip={trip} />
+                    </Suspense>
+                </main>
+            </div>
 
             <div className={activeSubView === 'checklist' ? 'block' : 'hidden'}>
                 <main className="px-4 max-w-4xl mx-auto mt-4">
@@ -411,13 +424,6 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 </main>
             </div>
 
-             <div className={activeSubView === 'events' ? 'block' : 'hidden'}>
-                <main className="px-4 max-w-4xl mx-auto mt-4">
-                    <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
-                        <TicketmasterEvents trip={trip} selectedDate={selectedDateISO} />
-                    </Suspense>
-                </main>
-            </div>
         </div>
     );
 };
