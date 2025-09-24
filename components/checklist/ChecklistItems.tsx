@@ -2,16 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { ChecklistItem } from '../../types';
 import { useData } from '../../context/DataContext';
 
-interface ChecklistItemsProps {
-    tripId: string;
-    checklist: ChecklistItem[];
-}
-
 const triggerHapticFeedback = () => {
     if (navigator.vibrate) navigator.vibrate(10);
 };
 
-const ChecklistItems: React.FC<ChecklistItemsProps> = ({ tripId, checklist }) => {
+const ChecklistItems: React.FC<{
+    tripId: string;
+    checklist: ChecklistItem[];
+}> = ({ tripId, checklist }) => {
     const { updateChecklistItem, deleteChecklistItem, clearCompletedChecklistItems } = useData();
     const [showCompleted, setShowCompleted] = useState(false);
 
@@ -49,11 +47,11 @@ const ChecklistItems: React.FC<ChecklistItemsProps> = ({ tripId, checklist }) =>
         <div className="space-y-4">
             {/* Active Items */}
             <div className="space-y-3">
-                {active.map(item => (
-                     <div key={item.id} className="flex items-center gap-3 p-3 bg-surface-variant rounded-2xl animate-fade-in" style={{animationDuration: '200ms'}}>
-                        <button onClick={() => handleToggleItem(item)} className="flex-shrink-0 w-6 h-6 rounded-md border-2 border-primary flex items-center justify-center"></button>
+                {active.map((item, index) => (
+                     <div key={item.id} className="flex items-center gap-3 p-3 bg-surface-variant rounded-2xl animate-slide-in-up" style={{ animationDelay: `${index * 30}ms`, opacity: 0 }}>
+                        <button onClick={() => handleToggleItem(item)} className="flex-shrink-0 w-6 h-6 rounded-md border-2 border-primary flex items-center justify-center transition-transform active:scale-90"></button>
                         <p className="flex-grow text-on-surface">{item.text}</p>
-                        <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-on-surface-variant hover:text-error rounded-full">
+                        <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-on-surface-variant hover:text-error rounded-full transition-colors active:scale-90">
                             <span className="material-symbols-outlined text-lg">delete</span>
                         </button>
                     </div>
@@ -66,7 +64,7 @@ const ChecklistItems: React.FC<ChecklistItemsProps> = ({ tripId, checklist }) =>
                     <div className="flex justify-between items-center p-2">
                         <button
                             onClick={() => setShowCompleted(!showCompleted)}
-                            className="flex-grow flex items-center gap-2 rounded-lg hover:bg-surface-variant transition-colors text-left"
+                            className="flex-grow flex items-center gap-2 rounded-lg hover:bg-surface-variant transition-colors text-left p-2 -m-2"
                             aria-expanded={showCompleted}
                         >
                             <span className="font-semibold text-on-surface-variant">Completati ({completed.length})</span>
@@ -76,7 +74,7 @@ const ChecklistItems: React.FC<ChecklistItemsProps> = ({ tripId, checklist }) =>
                         </button>
                         <button 
                             onClick={handleClearCompleted}
-                            className="text-sm font-medium text-primary hover:underline px-2 flex-shrink-0"
+                            className="text-sm font-medium text-primary hover:underline px-2 flex-shrink-0 transition-transform active:scale-95"
                             aria-label="Svuota elementi completati"
                         >
                             Svuota
@@ -85,13 +83,13 @@ const ChecklistItems: React.FC<ChecklistItemsProps> = ({ tripId, checklist }) =>
 
                     {showCompleted && (
                         <div className="space-y-3 animate-fade-in" style={{animationDuration: '300ms'}}>
-                            {completed.map(item => (
-                                <div key={item.id} className="flex items-center gap-3 p-3 bg-surface-variant/50 rounded-2xl animate-fade-in" style={{animationDuration: '200ms'}}>
-                                    <button onClick={() => handleToggleItem(item)} className="flex-shrink-0 w-6 h-6 rounded-md bg-primary flex items-center justify-center text-on-primary">
+                            {completed.map((item, index) => (
+                                <div key={item.id} className="flex items-center gap-3 p-3 bg-surface-variant/50 rounded-2xl animate-slide-in-up" style={{ animationDelay: `${index * 30}ms`, opacity: 0 }}>
+                                    <button onClick={() => handleToggleItem(item)} className="flex-shrink-0 w-6 h-6 rounded-md bg-primary flex items-center justify-center text-on-primary transition-transform active:scale-90">
                                         <span className="material-symbols-outlined text-base">check</span>
                                     </button>
                                     <p className="flex-grow text-on-surface-variant line-through">{item.text}</p>
-                                     <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-on-surface-variant/50 hover:text-error rounded-full">
+                                     <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-on-surface-variant/50 hover:text-error rounded-full transition-colors active:scale-90">
                                         <span className="material-symbols-outlined text-lg">delete</span>
                                     </button>
                                 </div>

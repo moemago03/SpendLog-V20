@@ -29,7 +29,7 @@ const getMockData = (password: string): UserData => {
                 preferredCurrencies: ['EUR', 'THB', 'VND'],
                 mainCurrency: 'EUR',
                 members: [
-                    { id: 'user-self', name: 'Utente Demo' },
+                    { id: 'user-self', name: 'Io' },
                     { id: 'member-moeez', name: 'Moeez' },
                     { id: 'member-chiara', name: 'Chiara' },
                     { id: 'member-asad', name: 'Asad' },

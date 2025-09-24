@@ -46,7 +46,7 @@ const TripCard: React.FC<{
   const remainingBudget = trip.totalBudget - totalSpent;
 
   return (
-    <li className="bg-surface rounded-3xl shadow-md overflow-hidden transition-shadow hover:shadow-lg">
+    <li className="bg-surface rounded-3xl shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg active:scale-[0.98] active:shadow-md">
       <div className="p-6">
         <div className="flex justify-between items-start">
           <div>
@@ -58,7 +58,7 @@ const TripCard: React.FC<{
               <span className="material-symbols-outlined">more_vert</span>
             </button>
             {isMenuOpen && (
-              <div className="absolute top-full right-0 mt-1 w-40 bg-inverse-surface rounded-xl shadow-lg z-10 py-1">
+              <div className="absolute top-full right-0 mt-1 w-40 bg-inverse-surface rounded-xl shadow-lg z-10 py-1 animate-fade-in" style={{animationDuration: '150ms'}}>
                 <button onClick={() => { onEdit(); setIsMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-inverse-on-surface hover:bg-on-surface/10">
                   <span className="material-symbols-outlined text-base">edit</span>
                   <span>Modifica</span>

@@ -3,6 +3,10 @@ import { Trip, Category } from '../../types';
 import { useData } from '../../context/DataContext';
 import { useNotification } from '../../context/NotificationContext';
 
+const triggerHapticFeedback = () => {
+    if (navigator.vibrate) navigator.vibrate(10);
+};
+
 const CategoryPickerModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
@@ -26,7 +30,7 @@ const CategoryPickerModal: React.FC<{
                         <button
                             key={cat.id}
                             onClick={() => onSelect(cat.name)}
-                            className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-colors ${selectedCategory === cat.name ? 'bg-primary-container text-on-primary-container' : 'bg-surface-variant'}`}
+                            className={`flex flex-col items-center gap-2 p-3 rounded-2xl transition-all active:scale-95 ${selectedCategory === cat.name ? 'bg-primary-container text-on-primary-container' : 'bg-surface-variant'}`}
                         >
                             <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ backgroundColor: cat.color }}>
                                 {cat.icon}
@@ -75,6 +79,7 @@ const QuickAddBar: React.FC<QuickAddBarProps> = ({ trip, topCategories, allCateg
     };
     
     const handleAdd = () => {
+        triggerHapticFeedback();
         const numericAmount = parseFloat(amount);
         if (!numericAmount || numericAmount <= 0) {
             addNotification("Inserisci un importo valido.", 'error');
@@ -104,6 +109,7 @@ const QuickAddBar: React.FC<QuickAddBarProps> = ({ trip, topCategories, allCateg
     };
 
     const handleCategorySelect = (categoryName: string) => {
+        triggerHapticFeedback();
         setSelectedCategory(categoryName);
         setIsCategoryModalOpen(false);
     };
@@ -113,7 +119,7 @@ const QuickAddBar: React.FC<QuickAddBarProps> = ({ trip, topCategories, allCateg
             <div className="bg-surface p-4 rounded-3xl shadow-sm space-y-4">
                 <h2 className="text-xl font-semibold text-on-surface">Aggiunta Rapida</h2>
 
-                <div className="flex items-center gap-2 bg-surface-variant rounded-2xl p-2 focus-within:ring-2 focus-within:ring-primary">
+                <div className="flex items-center gap-2 bg-surface-variant rounded-2xl p-2 focus-within:ring-2 focus-within:ring-primary transition-all duration-200">
                     <input
                         type="text"
                         inputMode="decimal"
@@ -131,16 +137,16 @@ const QuickAddBar: React.FC<QuickAddBarProps> = ({ trip, topCategories, allCateg
                         {topCategories.map(cat => (
                             <button
                                 key={cat.id}
-                                onClick={() => setSelectedCategory(cat.name)}
-                                className={`flex-1 flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors ${selectedCategory === cat.name ? 'bg-primary-container text-on-primary-container' : 'bg-surface-variant'}`}
+                                onClick={() => { triggerHapticFeedback(); setSelectedCategory(cat.name); }}
+                                className={`flex-1 flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all duration-200 active:scale-95 ${selectedCategory === cat.name ? 'bg-primary-container text-on-primary-container' : 'bg-surface-variant'}`}
                             >
                                 <span className="text-2xl">{cat.icon}</span>
                                 <span className="text-xs font-semibold truncate w-full">{cat.name}</span>
                             </button>
                         ))}
                          <button
-                            onClick={() => setIsCategoryModalOpen(true)}
-                            className="flex-1 flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-variant"
+                            onClick={() => { triggerHapticFeedback(); setIsCategoryModalOpen(true); }}
+                            className="flex-1 flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-variant active:scale-95 transition-transform"
                         >
                             <span className="material-symbols-outlined text-2xl">more_horiz</span>
                             <span className="text-xs font-semibold">Tutte</span>
@@ -149,7 +155,7 @@ const QuickAddBar: React.FC<QuickAddBarProps> = ({ trip, topCategories, allCateg
                 </div>
 
                 <div className="flex items-center gap-3 pt-2">
-                    <button onClick={onAddDetailed} className="text-sm font-semibold text-primary py-3 px-4 rounded-full hover:bg-primary-container/30">
+                    <button onClick={onAddDetailed} className="text-sm font-semibold text-primary py-3 px-4 rounded-full hover:bg-primary-container/30 transition-colors active:scale-95">
                         Più opzioni
                     </button>
                     <button onClick={handleAdd} disabled={!amount || !selectedCategory} className="flex-1 bg-trip-primary text-trip-on-primary font-bold py-3 rounded-full shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">

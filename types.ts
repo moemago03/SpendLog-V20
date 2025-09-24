@@ -40,6 +40,15 @@ export interface Expense {
   paidById?: string; // ID of the TripMember who paid. Optional for backward compatibility.
   splitType?: 'equally';
   splitBetweenMemberIds?: string[];
+  
+  // NEW: Detailed expense fields
+  tags?: string[];
+  beneficiary?: string;
+  paymentMethod?: string;
+  warranty?: string;
+  status?: string;
+  location?: string;
+  attachments?: string[]; // For now, can store identifiers or simple notes
 }
 
 export interface Trip {

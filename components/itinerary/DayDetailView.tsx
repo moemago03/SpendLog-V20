@@ -63,7 +63,7 @@ const TimelineEventCard: React.FC<{
     const ActionButton: React.FC<{ children: React.ReactNode, onClick: (e: React.MouseEvent) => void, 'aria-label': string }> = ({ children, onClick, 'aria-label': ariaLabel }) => (
         <button
             onClick={(e) => { e.stopPropagation(); onClick(e); }}
-            className="h-7 w-7 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+            className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 hover:opacity-80 active:scale-90"
             style={{
                 backgroundColor: hexToRgba(eventColor, 0.2),
                 color: eventColor
@@ -80,7 +80,7 @@ const TimelineEventCard: React.FC<{
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="h-7 w-7 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+            className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 hover:opacity-80 active:scale-90"
             style={{
                 backgroundColor: hexToRgba(eventColor, 0.2),
                 color: eventColor
@@ -120,7 +120,7 @@ const TimelineEventCard: React.FC<{
                     <div className="flex items-start gap-2">
                         <button 
                             onClick={(e) => { e.stopPropagation(); onStatusToggle(event.eventId, event.status); }}
-                            className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 mt-0.5`}
+                            className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 mt-0.5 active:scale-90`}
                             style={{
                                borderColor: eventColor,
                                backgroundColor: isCompleted ? eventColor : 'transparent'
@@ -330,7 +330,7 @@ const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, o
             <div className="flex items-center gap-1.5 flex-shrink-0">
                  <button
                     onClick={(e) => { e.stopPropagation(); onAddExpense(event); }}
-                    className="h-7 w-7 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+                    className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 hover:opacity-80 active:scale-90"
                     style={{ backgroundColor: hexToRgba(eventColor, 0.2), color: eventColor }}
                     aria-label="Aggiungi spesa"
                 >
@@ -341,7 +341,7 @@ const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, o
                         href={navigationUrl}
                         target="_blank" rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="h-7 w-7 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+                        className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 hover:opacity-80 active:scale-90"
                         style={{ backgroundColor: hexToRgba(eventColor, 0.2), color: eventColor }}
                         aria-label="Naviga"
                     >
@@ -350,7 +350,7 @@ const AllDayEventPill: React.FC<AllDayEventPillProps> = ({ event, onEditEvent, o
                 )}
                  <button
                     onClick={(e) => { e.stopPropagation(); onDuplicateEvent(event); }}
-                    className="h-7 w-7 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+                    className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 hover:opacity-80 active:scale-90"
                     style={{ backgroundColor: hexToRgba(eventColor, 0.2), color: eventColor }}
                     aria-label="Duplica evento"
                 >
