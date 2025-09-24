@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trip } from '../../types';
 import { getWeatherIconFromWmoCode, WeatherInfo } from '../../utils/weatherUtils';
@@ -65,7 +66,20 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
 
             try {
                 const startDate = trip.startDate.split('T')[0];
-                const endDate = trip.endDate.split('T')[0];
+                const tripEndDate = trip.endDate.split('T')[0];
+
+                // Open-Meteo API has a 16-day forecast limit. We need to cap the end date.
+                const startDateObj = new Date(startDate);
+                startDateObj.setUTCDate(startDateObj.getUTCDate() + 15); // Add 15 days to the start date
+                const maxEndDate = startDateObj.toISOString().split('T')[0];
+
+                // Use the trip's end date or the max allowed end date, whichever is earlier.
+                const endDate = tripEndDate < maxEndDate ? tripEndDate : maxEndDate;
+                
+                if (endDate !== tripEndDate) {
+                    log(`Range date ridotto a 16 giorni per limite API: ${startDate} -> ${endDate}`);
+                }
+
                 const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=weather_code,temperature_2m_max&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
                 log(`Chiamata API: ${weatherUrl.substring(0, 100)}...`);
                 

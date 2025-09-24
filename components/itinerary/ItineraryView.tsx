@@ -218,9 +218,8 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     
     useEffect(() => {
         const fetchWeatherData = async () => {
-            // New logic: Use trip's first country for location
             if (!trip.countries || trip.countries.length === 0) {
-                setWeatherData(new Map()); // No location, no weather
+                setWeatherData(new Map());
                 return;
             }
             const locationForWeather = trip.countries[0];
@@ -228,14 +227,23 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
 
             if (!coords) {
                 console.error(`Could not geocode location: ${locationForWeather}`);
-                setWeatherData(new Map()); // Geocoding failed
+                setWeatherData(new Map());
                 return;
             }
             
             try {
                 const { lat, lon } = coords;
                 const startDate = trip.startDate.split('T')[0];
-                const endDate = trip.endDate.split('T')[0];
+                const tripEndDate = trip.endDate.split('T')[0];
+
+                // Open-Meteo API has a 16-day forecast limit. We need to cap the end date.
+                const startDateObj = new Date(startDate);
+                startDateObj.setUTCDate(startDateObj.getUTCDate() + 15); // Add 15 days to the start date
+                const maxEndDate = startDateObj.toISOString().split('T')[0];
+
+                // Use the trip's end date or the max allowed end date, whichever is earlier.
+                const endDate = tripEndDate < maxEndDate ? tripEndDate : maxEndDate;
+                
                 const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
                 const weatherResponse = await fetch(weatherUrl);
 
