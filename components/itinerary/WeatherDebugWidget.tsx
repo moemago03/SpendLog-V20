@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trip } from '../../types';
 import { getWeatherIconFromBrightSky, WeatherInfo } from '../../utils/weatherUtils';
