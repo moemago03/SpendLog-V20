@@ -204,21 +204,28 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     
     useEffect(() => {
         const fetchWeatherData = async () => {
+            // 1. Guard Clause: Wait until location coordinates are available.
             if (!location?.latitude || !location?.longitude) {
-                console.warn("Location context does not have coordinates. Skipping weather fetch.");
-                setWeatherData(new Map()); // Set to empty map to stop loading
+                // Do nothing and wait for the location context to update.
+                // The UI will show a loading state because weatherData is null.
                 return;
             }
+
             try {
                 const { latitude, longitude } = location;
                 const startDate = trip.startDate.split('T')[0];
                 const endDate = trip.endDate.split('T')[0];
                 const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
                 const weatherResponse = await fetch(weatherUrl);
+
+                if (!weatherResponse.ok) {
+                    throw new Error(`Weather API request failed with status ${weatherResponse.status}`);
+                }
+                
                 const weatherApiData = await weatherResponse.json();
                 if (!weatherApiData?.daily?.time) {
                     console.warn(`No weather data found for location: ${latitude},${longitude}`);
-                    setWeatherData(new Map());
+                    setWeatherData(new Map()); // Set to empty to signify "no data found"
                     return;
                 }
 
@@ -230,11 +237,13 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 setWeatherData(newWeatherData);
             } catch (error) {
                 console.error("Failed to fetch weather data:", error);
-                setWeatherData(new Map());
+                setWeatherData(new Map()); // On error, set to empty map to stop loading state
             }
         };
+
         fetchWeatherData();
-    }, [trip.id, trip.startDate, trip.endDate, location]);
+    // 2. Dependencies: Depend on the specific coordinates. The effect re-runs when they change.
+    }, [trip.id, trip.startDate, trip.endDate, location?.latitude, location?.longitude]);
 
     const handleNavigation = (delta: number) => {
         setCalendarQuickFilter('all');
