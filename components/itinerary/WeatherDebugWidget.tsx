@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trip } from '../../types';
-import { getWeatherIconFromBrightSky, WeatherInfo } from '../../utils/weatherUtils';
+import { getWeatherIconFromWmoCode, WeatherInfo } from '../../utils/weatherUtils';
 import { dateToISOString } from '../../utils/dateUtils';
 
 interface WeatherDebugWidgetProps {
@@ -64,49 +64,44 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
 
             try {
                 const { lat, lon } = coords;
-                const startDate = trip.startDate;
-                const endDate = trip.endDate;
-                const weatherUrl = `https://api.brightsky.dev/weather?lat=${lat}&lon=${lon}&date=${startDate}&last_date=${endDate}`;
+                const startDate = trip.startDate.split('T')[0];
+                const endDate = trip.endDate.split('T')[0];
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&start_date=${startDate}&end_date=${endDate}&timezone=auto`;
                 log(`Chiamata API: ${weatherUrl.substring(0, 120)}...`);
                 
                 const response = await fetch(weatherUrl);
                 if (!response.ok) throw new Error(`API ha risposto con stato ${response.status}`);
                 
                 const data = await response.json();
-                if (!data.weather) throw new Error("Risposta API non valida o vuota.");
+                if (!data.daily || !data.daily.time) throw new Error("Risposta API non valida o vuota (mancano dati 'daily').");
 
                 setStatus('Processing');
-                log(`Dati orari ricevuti (${data.weather.length} record). Inizio aggregazione giornaliera.`);
+                log(`Dati giornalieri ricevuti per ${data.daily.time.length} giorni. Inizio elaborazione.`);
                 
-                const dailyData = new Map<string, { temps: number[], icons: string[] }>();
-                 data.weather.forEach((hourly: any) => {
-                    const date = hourly.timestamp.substring(0, 10);
-                    if (!dailyData.has(date)) dailyData.set(date, { temps: [], icons: [] });
-                    const day = dailyData.get(date)!;
-                    if (hourly.temperature !== null) day.temps.push(hourly.temperature);
-                    if (hourly.icon) day.icons.push(hourly.icon);
-                });
-                log(`Aggregazione completata per ${dailyData.size} giorni.`);
-                
-                const todayISO = dateToISOString(new Date());
-                const todayData = dailyData.get(todayISO);
-                
-                if (todayData && todayData.temps.length > 0) {
-                    const maxTemp = Math.round(Math.max(...todayData.temps));
-                    const iconCounts: { [key: string]: number } = todayData.icons.reduce((acc, icon) => {
-                        acc[icon] = (acc[icon] || 0) + 1;
-                        return acc;
-                    }, {} as { [key: string]: number });
-                    const dominantIcon = Object.keys(iconCounts).reduce((a, b) => iconCounts[a] > iconCounts[b] ? a : b, 'thermostat');
-                    const preview: WeatherInfo = {
-                        icon: getWeatherIconFromBrightSky(dominantIcon),
-                        temp: maxTemp,
-                    };
-                    setWeatherPreview(preview);
-                    log(`Meteo di oggi: ${preview.temp}°C, Icona: ${preview.icon} (da "${dominantIcon}")`);
-                } else {
-                     log("Nessun dato meteo per la data odierna trovato.");
+                const weatherMap = new Map<string, WeatherInfo>();
+                for (let i = 0; i < data.daily.time.length; i++) {
+                    const date = data.daily.time[i];
+                    const temp = data.daily.temperature_2m_max[i];
+                    const code = data.daily.weathercode[i];
+                    if (temp !== null && code !== null) {
+                        weatherMap.set(date, {
+                            icon: getWeatherIconFromWmoCode(code),
+                            temp: Math.round(temp),
+                        });
+                    }
                 }
+                log(`Elaborazione completata per ${weatherMap.size} giorni.`);
+                
+                const firstDayOfTripISO = trip.startDate.split('T')[0];
+                const firstDayWeather = weatherMap.get(firstDayOfTripISO);
+                
+                if (firstDayWeather) {
+                    setWeatherPreview(firstDayWeather);
+                    log(`Anteprima meteo per il primo giorno (${firstDayOfTripISO}): ${firstDayWeather.temp}°C, Icona: ${firstDayWeather.icon}`);
+                } else {
+                     log(`Nessun dato meteo per il primo giorno del viaggio (${firstDayOfTripISO}).`);
+                }
+
                 setStatus('Success');
             } catch (error: any) {
                 setStatus('Error');
@@ -138,7 +133,7 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
                 </div>
                 {weatherPreview && (
                     <div className="text-center bg-surface p-2 rounded-lg">
-                        <p className="text-xs font-medium text-on-surface-variant">Oggi</p>
+                        <p className="text-xs font-medium text-on-surface-variant">Giorno 1</p>
                         <div className="flex items-center gap-1">
                             <span className="material-symbols-outlined text-primary text-lg">{weatherPreview.icon}</span>
                             <span className="font-bold text-on-surface">{weatherPreview.temp}°</span>

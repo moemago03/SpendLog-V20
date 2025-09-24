@@ -12,7 +12,7 @@ import { useData } from '../../context/DataContext';
 import { getContrastColor } from '../../utils/colorUtils';
 import ExpenseListSkeleton from '../ExpenseListSkeleton';
 import DayStrip from './DayStrip';
-import { WeatherInfo, getWeatherIconFromBrightSky } from '../../utils/weatherUtils';
+import { WeatherInfo, getWeatherIconFromWmoCode } from '../../utils/weatherUtils';
 import WeatherDebugWidget from './WeatherDebugWidget'; // Import the new debug widget
 
 const EventForm = lazy(() => import('./EventForm'));
@@ -234,48 +234,36 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
             
             try {
                 const { lat, lon } = coords;
-                const startDate = trip.startDate;
-                const endDate = trip.endDate;
+                const startDate = trip.startDate.split('T')[0];
+                const endDate = trip.endDate.split('T')[0];
 
-                const weatherUrl = `https://api.brightsky.dev/weather?lat=${lat}&lon=${lon}&date=${startDate}&last_date=${endDate}`;
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&start_date=${startDate}&end_date=${endDate}&timezone=auto`;
                 const weatherResponse = await fetch(weatherUrl);
 
                 if (!weatherResponse.ok) throw new Error(`Weather API request failed with status ${weatherResponse.status}`);
                 
                 const weatherApiData = await weatherResponse.json();
-                if (!weatherApiData?.weather) {
+                if (!weatherApiData?.daily?.time) {
                     setWeatherData(new Map());
                     return;
                 }
 
-                const dailyData = new Map<string, { temps: number[], icons: string[] }>();
-                weatherApiData.weather.forEach((hourly: any) => {
-                    const date = hourly.timestamp.substring(0, 10);
-                    if (!dailyData.has(date)) {
-                        dailyData.set(date, { temps: [], icons: [] });
-                    }
-                    const day = dailyData.get(date)!;
-                    if (hourly.temperature !== null) day.temps.push(hourly.temperature);
-                    if (hourly.icon) day.icons.push(hourly.icon);
-                });
-
                 const newWeatherData = new Map<string, WeatherInfo>();
-                dailyData.forEach((data, date) => {
-                    if (data.temps.length === 0) return;
-                    const maxTemp = Math.round(Math.max(...data.temps));
-                    
-                    const iconCounts: { [key: string]: number } = data.icons.reduce((acc, icon) => {
-                        acc[icon] = (acc[icon] || 0) + 1;
-                        return acc;
-                    }, {} as { [key: string]: number });
-                    const dominantIcon = Object.keys(iconCounts).reduce((a, b) => iconCounts[a] > iconCounts[b] ? a : b, 'thermostat');
+                const times = weatherApiData.daily.time;
+                const maxTemps = weatherApiData.daily.temperature_2m_max;
+                const weatherCodes = weatherApiData.daily.weathercode;
 
-                    newWeatherData.set(date, {
-                        icon: getWeatherIconFromBrightSky(dominantIcon),
-                        temp: maxTemp
-                    });
-                });
-
+                for (let i = 0; i < times.length; i++) {
+                    const date = times[i];
+                    const temp = maxTemps[i];
+                    const code = weatherCodes[i];
+                    if (temp !== null && code !== null) {
+                        newWeatherData.set(date, {
+                            icon: getWeatherIconFromWmoCode(code),
+                            temp: Math.round(temp)
+                        });
+                    }
+                }
                 setWeatherData(newWeatherData);
 
             } catch (error) {
