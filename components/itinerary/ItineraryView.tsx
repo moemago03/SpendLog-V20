@@ -1,3 +1,4 @@
+
 // components/itinerary/ItineraryView.tsx
 
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
@@ -201,24 +202,22 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     
     useEffect(() => {
         const fetchWeatherData = async () => {
-            if (!location?.country) {
-                console.warn("Location context not available or no country found. Skipping weather fetch.");
+            if (!location?.latitude || !location?.longitude) {
+                console.warn("Location context does not have coordinates. Skipping weather fetch.");
                 setWeatherData(null);
                 return;
             }
             try {
-                const query = location.city ? `${location.city}, ${location.country}` : location.country;
-                const geoResponse = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&accept-language=it`);
-                const geoData = await geoResponse.json();
-                if (!geoData || geoData.length === 0) { console.warn(`Could not geocode location: ${query}`); return; }
-                const { lat, lon } = geoData[0];
-
+                const { latitude, longitude } = location;
                 const startDate = trip.startDate.split('T')[0];
                 const endDate = trip.endDate.split('T')[0];
-                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=weather_code,temperature_2m_max&start_date=${startDate}&end_date=${endDate}`;
                 const weatherResponse = await fetch(weatherUrl);
                 const weatherApiData = await weatherResponse.json();
-                if (!weatherApiData?.daily?.time) { console.warn(`No weather data found for location: ${query}`); return; }
+                if (!weatherApiData?.daily?.time) {
+                    console.warn(`No weather data found for location: ${latitude},${longitude}`);
+                    return;
+                }
 
                 const newWeatherData = new Map<string, WeatherInfo>();
                 const { time, weather_code, temperature_2m_max } = weatherApiData.daily;
@@ -226,10 +225,13 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                     newWeatherData.set(time[i], { icon: getWeatherIconFromWmoCode(weather_code[i]), temp: Math.round(temperature_2m_max[i]) });
                 }
                 setWeatherData(newWeatherData);
-            } catch (error) { console.error("Failed to fetch weather data:", error); setWeatherData(null); }
+            } catch (error) {
+                console.error("Failed to fetch weather data:", error);
+                setWeatherData(null);
+            }
         };
         fetchWeatherData();
-    }, [trip.id, trip.startDate, trip.endDate, location]);
+    }, [trip.id, trip.startDate, trip.endDate, location?.latitude, location?.longitude]);
 
     const handleNavigation = (delta: number) => {
         setCalendarQuickFilter('all');

@@ -14,12 +14,14 @@ import MainLayout from './components/layout/MainLayout';
 import NotificationContainer from './components/NotificationContainer';
 import FloatingActionButtons from './components/layout/FloatingActionButtons';
 
-// Lazy load main components
-const Dashboard = lazy(() => import('./components/Dashboard'));
+// Eagerly load main components for faster navigation
+import Dashboard from './components/Dashboard';
+import ProfileScreen from './components/ProfileScreen';
+import ItineraryView from './components/itinerary/ItineraryView';
+import ExploreView from './components/explore/ExploreView';
+
+// Lazy load components that are not opened immediately
 const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
-const ProfileScreen = lazy(() => import('./components/ProfileScreen'));
-const ItineraryView = lazy(() => import('./components/itinerary/ItineraryView'));
-const ExploreView = lazy(() => import('./components/explore/ExploreView'));
 const AIPanel = lazy(() => import('./components/AIPanel'));
 const PackingPromptModal = lazy(() => import('./components/prompts/PackingPromptModal'));
 const ReceiptScanner = lazy(() => import('./components/ReceiptScanner'));

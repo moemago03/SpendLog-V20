@@ -1,8 +1,11 @@
+
 import React, { createContext, useState, useEffect, ReactNode, useContext, useCallback } from 'react';
 
 interface LocationData {
     city: string | null;
     country: string | null;
+    latitude: number | null;
+    longitude: number | null;
 }
 
 interface LocationContextProps {
@@ -47,11 +50,17 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
                         const newLocation: LocationData = {
                             city: data.address.city || data.address.town || data.address.village || null,
                             country: data.address.country || null,
+                            latitude,
+                            longitude,
                         };
                         
                         setLocation(newLocation);
                         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ ...newLocation, timestamp: Date.now() }));
                     } else {
+                        // Still save coords even if reverse geocoding fails
+                        const fallbackLocation: LocationData = { city: null, country: null, latitude, longitude };
+                        setLocation(fallbackLocation);
+                        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ ...fallbackLocation, timestamp: Date.now() }));
                         throw new Error('Risposta di geolocalizzazione non valida.');
                     }
                 } catch (err: any) {
@@ -78,7 +87,12 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
                     const lastCheck = storedData.timestamp || 0;
                     
                     if (Date.now() - lastCheck < LOCATION_CHECK_INTERVAL) {
-                        setLocation({ city: storedData.city, country: storedData.country });
+                        setLocation({ 
+                            city: storedData.city, 
+                            country: storedData.country,
+                            latitude: storedData.latitude,
+                            longitude: storedData.longitude,
+                        });
                         setIsLoadingLocation(false);
                         return;
                     }

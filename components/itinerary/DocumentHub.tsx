@@ -23,7 +23,15 @@ const DocumentHub: React.FC<{ trip: Trip }> = ({ trip }) => {
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files) return;
 
-        for (const file of Array.from(e.target.files)) {
+        // FIX: Replaced for...of loop with a standard for loop to iterate over the FileList.
+        // This resolves TypeScript type inference issues where `file` was incorrectly typed as `unknown`
+        // within the asynchronous `reader.onload` callback, fixing errors related to property access
+        // and argument types. This also resolves the cascading type error later in the file.
+        const files = e.target.files;
+        for (let i = 0; i < files.length; i++) {
+            const file = files.item(i);
+            if (!file) continue;
+
             const reader = new FileReader();
             reader.onload = (loadEvent) => {
                 if (loadEvent.target?.result) {
