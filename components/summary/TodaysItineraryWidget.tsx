@@ -1,4 +1,5 @@
 
+
 import React, { useMemo } from 'react';
 import { useItinerary } from '../../context/ItineraryContext';
 import { Category } from '../../types';
@@ -22,16 +23,7 @@ const TodaysItineraryWidget: React.FC<TodaysItineraryWidgetProps> = ({ tripId, a
     }, [getEventsByTrip, tripId, todayISO]);
 
     if (todaysEvents.length === 0) {
-        return (
-            <div 
-                onClick={onNavigateToItinerary}
-                className="p-6 bg-surface-variant/50 rounded-3xl text-center cursor-pointer hover:bg-surface-variant"
-            >
-                <span className="material-symbols-outlined text-4xl text-on-surface-variant/40 mb-2">event_busy</span>
-                <h3 className="font-semibold text-on-surface-variant">Nessun evento per oggi</h3>
-                <p className="text-sm text-on-surface-variant/80 mt-1">Tocca per vedere l'itinerario completo.</p>
-            </div>
-        );
+        return null;
     }
     
     return (

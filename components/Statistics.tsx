@@ -2,20 +2,11 @@ import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Trip, Expense, Category } from '../types';
 import { useData } from '../context/DataContext';
 import { useCurrencyConverter } from '../hooks/useCurrencyConverter';
-import {
-    ResponsiveContainer,
-    Tooltip as RechartsTooltip,
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-} from 'recharts';
 import { ADJUSTMENT_CATEGORY } from '../constants';
 
 const AdvancedFilterPanel = lazy(() => import('./AdvancedFilterPanel'));
 const ExpenseMapView = lazy(() => import('./statistics/ExpenseMapView'));
-const ExportModal = lazy(() => import('./statistics/ExportModal')); // New import
+const ExportModal = lazy(() => import('./statistics/ExportModal'));
 
 export interface Filters {
     startDate: string;
@@ -33,12 +24,11 @@ const getDaysBetween = (start: string, end: string): number => {
     return Math.max(1, diffDays + 1);
 };
 
-
 const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expenses }) => {
     const { data } = useData();
     const { convert, formatCurrency } = useCurrencyConverter();
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-    const [isExportModalOpen, setIsExportModalOpen] = useState(false); // New state
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [view, setView] = useState<'charts' | 'map'>('charts');
     const [filters, setFilters] = useState<Filters>({
         startDate: '',
@@ -111,23 +101,6 @@ const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expen
 
         return (Object.values(grouped) as { name: string; value: number }[]).sort((a, b) => b.value - a.value);
     }, [filteredExpenses, trip.mainCurrency, convert]);
-
-    const trendChartData = useMemo(() => {
-        const grouped = filteredExpenses.reduce((acc, exp) => {
-            const day = new Date(exp.date).toISOString().split('T')[0];
-            const amount = convert(exp.amount, exp.currency, trip.mainCurrency);
-            if (!acc[day]) {
-                acc[day] = { date: day, amount: 0 };
-            }
-            acc[day].amount += amount;
-            return acc;
-        }, {} as { [key: string]: { date: string; amount: number } });
-        
-        return (Object.values(grouped) as { date: string; amount: number }[]).sort((a, b) => a.date.localeCompare(b.date));
-    }, [filteredExpenses, trip.mainCurrency, convert]);
-
-    const formatChartCurrency = (value: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: trip.mainCurrency, notation: 'compact' }).format(value);
-    const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 
     const summaryCards = useMemo(() => [
         {
@@ -240,27 +213,6 @@ const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expen
                                 })}
                             </div>
                         ) : <div className="h-[150px] flex items-center justify-center text-on-surface-variant">Nessun dato per la visualizzazione.</div>}
-                    </div>
-
-                    <div className="bg-surface p-4 rounded-3xl shadow-sm">
-                        <h3 className="text-lg font-semibold text-on-surface mb-4">Andamento Spesa</h3>
-                        {trendChartData.length > 1 ? (
-                            <ResponsiveContainer width="100%" height={250}>
-                                <AreaChart data={trendChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                    <defs>
-                                        <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={trip.color || 'var(--color-primary)'} stopOpacity={0.8}/>
-                                        <stop offset="95%" stopColor={trip.color || 'var(--color-primary)'} stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-surface-variant)" />
-                                    <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fill: 'var(--color-on-surface-variant)', fontSize: 12 }} />
-                                    <YAxis tickFormatter={formatChartCurrency} tick={{ fill: 'var(--color-on-surface-variant)', fontSize: 12 }} />
-                                    <RechartsTooltip contentStyle={{ backgroundColor: 'var(--color-inverse-surface)', border: 'none', borderRadius: '1rem' }} labelStyle={{ color: 'var(--color-inverse-on-surface)'}} itemStyle={{ color: 'var(--color-inverse-on-surface)'}} formatter={(value: number) => formatCurrency(value, trip.mainCurrency)}/>
-                                    <Area type="monotone" dataKey="amount" stroke={trip.color || 'var(--color-primary)'} fillOpacity={1} fill="url(#colorUv)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                         ) : <div className="h-[250px] flex items-center justify-center text-on-surface-variant">Dati insufficienti per il trend</div>}
                     </div>
                 </div>
             )}

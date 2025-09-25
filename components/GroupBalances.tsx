@@ -29,9 +29,14 @@ const TransactionRow: React.FC<{ expense: Expense; trip: Trip }> = ({ expense, t
     const paidBy = trip.members?.find(m => m.id === expense.paidById);
     const category = data.categories.find(c => c.name === expense.category);
     const date = new Date(expense.date);
+    
+    // FIX: Correctly determine "today" and "yesterday" without mutating the date object.
     const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
     const isToday = date.toDateString() === today.toDateString();
-    const isYesterday = new Date(today.setDate(today.getDate() - 1)).toDateString() === date.toDateString();
+    const isYesterday = date.toDateString() === yesterday.toDateString();
     
     let dateLabel = isToday ? `Today, ${date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` :
                     isYesterday ? `Yesterday, ${date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` :
