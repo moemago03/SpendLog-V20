@@ -4,17 +4,17 @@ Questo file contiene una lista di funzionalità e comportamenti critici che DEVO
 
 ---
 
-## 1. Home - Sezione "Spese Recenti" (Recent Expenses)
+## 1. Home - Sezione "Spese" (Expenses Section)
 
 ### 1.1. Ordinamento delle Spese (Expense Sorting)
 
 - **Regola:** Le spese devono essere SEMPRE ordinate per data, dalla più recente alla meno recente. Non devono essere ordinate per data di inserimento.
 - **Rule:** Expenses must ALWAYS be sorted by date, from most recent to least recent. They must not be sorted by insertion order.
 
-### 1.2. Filtro Temporale (Time Filter)
+### 1.2. Filtro Temporale a Tendina (Time Filter Dropdown)
 
-- **Regola:** Il menu a tendina per filtrare il periodo deve includere l'opzione "Oggi".
-- **Rule:** The dropdown menu for filtering the time period must include the "Oggi" (Today) option.
+- **Regola:** La sezione delle spese deve includere un menu a tendina per filtrare il periodo. Le opzioni devono essere: "Oggi", "Ieri", "Ultimi 7 giorni" e "Tutte".
+- **Rule:** The expenses section must include a dropdown menu to filter the time period. The options must be: 'Today', 'Yesterday', 'Last 7 days', and 'All'.
 
 ### 1.3. Barra di Ricerca (Search Bar)
 

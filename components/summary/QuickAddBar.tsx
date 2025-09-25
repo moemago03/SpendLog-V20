@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trip, Expense, FrequentExpense } from '../../types';
 import { useData } from '../../context/DataContext';
+import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
 
 interface QuickAddBarProps {
     trip: Trip;
@@ -10,17 +11,23 @@ interface QuickAddBarProps {
 const FrequentExpenseButton: React.FC<{
     frequentExpense: FrequentExpense;
     onClick: () => void;
-}> = ({ frequentExpense, onClick }) => (
-    <button 
-        onClick={onClick}
-        className="flex flex-col items-center justify-center gap-1.5 w-20 text-center flex-shrink-0"
-    >
-        <div className="w-12 h-12 bg-surface-variant rounded-2xl flex items-center justify-center text-2xl transition-transform active:scale-90">
-            {frequentExpense.icon}
-        </div>
-        <p className="text-xs font-medium text-on-surface-variant truncate w-full">{frequentExpense.name}</p>
-    </button>
-);
+    trip: Trip;
+}> = ({ frequentExpense, onClick, trip }) => {
+    const { formatCurrency } = useCurrencyConverter();
+    return (
+        <button 
+            onClick={onClick}
+            className="flex flex-col items-center justify-start gap-1.5 w-20 text-center flex-shrink-0"
+        >
+            <div className="w-12 h-12 bg-surface-variant rounded-2xl flex items-center justify-center text-2xl transition-transform active:scale-90">
+                {frequentExpense.icon}
+            </div>
+            <p className="text-xs font-medium text-on-surface-variant truncate w-full">{frequentExpense.name}</p>
+            <p className="text-[10px] font-bold text-primary -mt-1">{formatCurrency(frequentExpense.amount, trip.mainCurrency)}</p>
+        </button>
+    );
+};
+
 
 const AddMoreButton: React.FC<{ onClick: () => void; }> = ({ onClick }) => (
     <button
@@ -36,13 +43,13 @@ const AddMoreButton: React.FC<{ onClick: () => void; }> = ({ onClick }) => (
 
 
 const QuickAddBar: React.FC<QuickAddBarProps> = ({ trip, onEditExpense }) => {
-    const { addExpense } = useData();
     const frequentExpenses = trip.frequentExpenses || [];
 
-    const handleFrequentExpenseAdd = (fe: FrequentExpense) => {
-        const newExpense: Omit<Expense, 'id' | 'createdAt'> = {
+    const handleFrequentExpenseClick = (fe: FrequentExpense) => {
+        // Pre-fill the expense form instead of adding directly
+        const prefilledExpense: Partial<Expense> = {
             amount: fe.amount,
-            currency: trip.mainCurrency, // Frequent expenses are in main currency
+            currency: trip.mainCurrency,
             category: fe.category,
             description: fe.name,
             date: new Date().toISOString(),
@@ -50,16 +57,15 @@ const QuickAddBar: React.FC<QuickAddBarProps> = ({ trip, onEditExpense }) => {
             splitBetweenMemberIds: fe.splitBetweenMemberIds,
             splitType: 'equally',
         };
-        addExpense(trip.id, newExpense);
+        onEditExpense(prefilledExpense);
     };
 
     const handleAddMore = () => {
-        // Opens the full expense form via the onEditExpense prop with a null/empty object
         onEditExpense({});
     };
 
     if (frequentExpenses.length === 0) {
-        return null; // Don't show the bar if there are no frequent expenses defined.
+        return null; 
     }
 
     return (
@@ -70,7 +76,8 @@ const QuickAddBar: React.FC<QuickAddBarProps> = ({ trip, onEditExpense }) => {
                     <FrequentExpenseButton 
                         key={fe.id} 
                         frequentExpense={fe} 
-                        onClick={() => handleFrequentExpenseAdd(fe)}
+                        onClick={() => handleFrequentExpenseClick(fe)}
+                        trip={trip}
                     />
                 ))}
                 <AddMoreButton onClick={handleAddMore} />

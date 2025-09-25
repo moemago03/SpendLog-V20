@@ -17,7 +17,6 @@ const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
 const AIItineraryGenerator = lazy(() => import('./AIItineraryGenerator'));
 const DocumentHub = lazy(() => import('./DocumentHub'));
-const HotelFinder = lazy(() => import('./HotelFinder'));
 
 
 const MonthView: React.FC<{
@@ -169,7 +168,7 @@ const getInitialMapDate = (trip: Trip) => {
 };
 
 type ItineraryAgendaViewMode = 'day' | 'month' | 'map';
-type ItinerarySubView = 'agenda' | 'checklist' | 'documents' | 'hotels';
+type ItinerarySubView = 'agenda' | 'checklist' | 'documents';
 type CalendarQuickFilter = '3days' | '7days' | '10days' | 'all';
 
 const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense> & { checklistItemId?: string }) => void; }> = ({ trip, onAddExpense }) => {
@@ -335,7 +334,6 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
             <header className="pt-8 px-4 max-w-7xl mx-auto">
                 <div className="flex border-b border-surface-variant">
                     <TabButton view="agenda" label="Agenda" />
-                    <TabButton view="hotels" label="Hotel" />
                     <TabButton view="checklist" label="Checklist" />
                     <TabButton view="documents" label="Documenti" />
                 </div>
@@ -384,14 +382,6 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 {isAIGeneratorOpen && <Suspense fallback={<div />}><AIItineraryGenerator tripId={trip.id} selectedDate={selectedDateISO} onClose={() => setIsAIGeneratorOpen(false)} weatherForDay={weatherData?.get(selectedDateISO)} /></Suspense>}
             </div>
             
-            <div className={activeSubView === 'hotels' ? 'block' : 'hidden'}>
-                <main className="px-4 max-w-4xl mx-auto mt-4">
-                    <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>
-                        <HotelFinder trip={trip} />
-                    </Suspense>
-                </main>
-            </div>
-
             <div className={activeSubView === 'checklist' ? 'block' : 'hidden'}>
                 <main className="px-4 max-w-4xl mx-auto mt-4">
                     <Suspense fallback={<div className="p-4"><ExpenseListSkeleton /></div>}>

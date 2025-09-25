@@ -2,10 +2,9 @@ import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { Trip, Expense, Category } from '../types';
 import { useData } from '../context/DataContext';
 import { useCurrencyConverter } from '../hooks/useCurrencyConverter';
-import { ADJUSTMENT_CATEGORY } from '../constants';
+import { ADJUSTMENT_CATEGORY, COUNTRY_TO_CODE, FLAG_SVGS } from '../constants';
 
 const AdvancedFilterPanel = lazy(() => import('./AdvancedFilterPanel'));
-const ExpenseMapView = lazy(() => import('./statistics/ExpenseMapView'));
 const ExportModal = lazy(() => import('./statistics/ExportModal'));
 
 export interface Filters {
@@ -29,7 +28,7 @@ const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expen
     const { convert, formatCurrency } = useCurrencyConverter();
     const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-    const [view, setView] = useState<'charts' | 'map'>('charts');
+    const [statsView, setStatsView] = useState<'category' | 'country'>('category');
     const [filters, setFilters] = useState<Filters>({
         startDate: '',
         endDate: '',
@@ -102,6 +101,35 @@ const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expen
         return (Object.values(grouped) as { name: string; value: number }[]).sort((a, b) => b.value - a.value);
     }, [filteredExpenses, trip.mainCurrency, convert]);
 
+    const countrySpendData = useMemo(() => {
+        const groupedByCountry = filteredExpenses.reduce((acc, exp) => {
+            let country = exp.country || 'Sconosciuto';
+
+            // Refine country logic: if country is generic or missing, try to parse from location
+            if ((!exp.country || exp.country === 'Area Euro') && exp.location) {
+                const locationParts = exp.location.split(',');
+                const potentialCountry = locationParts[locationParts.length - 1].trim();
+                // Check if the parsed part is a known country to avoid incorrect parsing
+                if (COUNTRY_TO_CODE[potentialCountry]) {
+                    country = potentialCountry;
+                }
+            }
+            
+            if (!acc[country]) {
+                acc[country] = 0;
+            }
+            acc[country] += convert(exp.amount, exp.currency, trip.mainCurrency);
+            return acc;
+        }, {} as { [key: string]: number });
+
+        return Object.entries(groupedByCountry)
+            .map(([country, total]) => ({
+                country,
+                total,
+            }))
+            .sort((a, b) => Number(b.total) - Number(a.total));
+    }, [filteredExpenses, trip.mainCurrency, convert]);
+
     const summaryCards = useMemo(() => [
         {
             icon: 'account_balance_wallet',
@@ -170,19 +198,24 @@ const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expen
                 ))}
             </div>
             
-            <div className="bg-surface-variant p-1 rounded-full flex sticky top-2 z-10 max-w-sm mx-auto">
-                <button onClick={() => setView('charts')} className={`flex-1 py-2 rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${view === 'charts' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>
-                    <span className="material-symbols-outlined text-base">bar_chart</span> Grafici
-                </button>
-                <button onClick={() => setView('map')} className={`flex-1 py-2 rounded-full font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${view === 'map' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}>
-                    <span className="material-symbols-outlined text-base">map</span> Mappa Spese
-                </button>
-            </div>
+            <div className="bg-surface p-4 rounded-3xl shadow-sm">
+                <div className="flex items-center p-1 bg-surface-variant rounded-full mb-4">
+                    <button
+                        onClick={() => setStatsView('category')}
+                        className={`flex-1 py-2 text-sm font-semibold rounded-full transition-colors ${statsView === 'category' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}
+                    >
+                        Per Categoria
+                    </button>
+                    <button
+                        onClick={() => setStatsView('country')}
+                        className={`flex-1 py-2 text-sm font-semibold rounded-full transition-colors ${statsView === 'country' ? 'bg-surface text-primary shadow' : 'text-on-surface-variant'}`}
+                    >
+                        Per Paese
+                    </button>
+                </div>
 
-            {view === 'charts' && (
-                <div className="space-y-6 animate-fade-in">
-                    <div className="bg-surface p-4 rounded-3xl shadow-sm">
-                        <h3 className="text-lg font-semibold text-on-surface mb-4">Spese per Categoria</h3>
+                {statsView === 'category' && (
+                    <div className="animate-fade-in" style={{ animationDuration: '300ms' }}>
                         {categoryChartData.length > 0 ? (
                             <div className="space-y-4">
                                 {categoryChartData.map((item, index) => {
@@ -214,18 +247,43 @@ const Statistics: React.FC<{ trip: Trip; expenses: Expense[] }> = ({ trip, expen
                             </div>
                         ) : <div className="h-[150px] flex items-center justify-center text-on-surface-variant">Nessun dato per la visualizzazione.</div>}
                     </div>
-                </div>
-            )}
+                )}
+                
+                {statsView === 'country' && (
+                    <div className="animate-fade-in" style={{ animationDuration: '300ms' }}>
+                        {countrySpendData.length > 0 ? (
+                            <div className="space-y-3">
+                                {countrySpendData.map((item, index) => {
+                                    const countryCode = COUNTRY_TO_CODE[item.country];
+                                    const flagUrl = countryCode ? FLAG_SVGS[countryCode] : null;
 
-            {view === 'map' && (
-                <Suspense fallback={<div className="h-[60vh] bg-surface-variant rounded-3xl animate-pulse" />}>
-                    <ExpenseMapView 
-                        expenses={filteredExpenses} 
-                        trip={trip}
-                        allCategories={allCategories}
-                    />
-                </Suspense>
-            )}
+                                    return (
+                                        <div key={item.country} className="flex items-center gap-4 animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+                                            {flagUrl ? (
+                                                <img src={flagUrl} alt={`Bandiera ${item.country}`} className="w-10 h-7 object-cover rounded-md shadow-sm flex-shrink-0" />
+                                            ) : (
+                                                <div className="w-10 h-7 bg-surface-variant rounded-md flex items-center justify-center flex-shrink-0">
+                                                    <span className="material-symbols-outlined text-on-surface-variant">flag</span>
+                                                </div>
+                                            )}
+                                            <div className="flex-grow min-w-0">
+                                                <p className="font-semibold text-on-surface truncate">{item.country}</p>
+                                            </div>
+                                            <div className="font-semibold text-on-surface-variant flex-shrink-0">
+                                                {formatCurrency(item.total, trip.mainCurrency)}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="h-[100px] flex items-center justify-center text-on-surface-variant">
+                                Nessuna spesa con dati paese.
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {isFilterPanelOpen && (
                 <Suspense fallback={<div/>}>

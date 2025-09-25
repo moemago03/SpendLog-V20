@@ -92,6 +92,20 @@ export const FLAG_SVGS: { [key: string]: string } = {
     'CN': 'https://flagcdn.com/cn.svg',
     'TH': 'https://flagcdn.com/th.svg',
     'VN': 'https://flagcdn.com/vn.svg',
+    'KH': 'https://flagcdn.com/kh.svg',
+    'IT': 'https://flagcdn.com/it.svg',
+};
+
+export const COUNTRY_TO_CODE: { [key: string]: string } = {
+    'Thailandia': 'TH',
+    'Vietnam': 'VN',
+    'Cambogia': 'KH',
+    'Italia': 'IT',
+    'Stati Uniti': 'US',
+    'Regno Unito': 'GB',
+    'Giappone': 'JP',
+    'Australia': 'AU',
+    'Area Euro': 'EU',
 };
 
 export const CHECKLIST_TEMPLATES: { [key: string]: ChecklistTemplate } = {
