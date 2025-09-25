@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { geocodeLocation, Coords } from '../../services/mapService';
+import { geocodeLocation, Coords } from '../services/mapService';
 
 interface MultiPointMapViewProps {
     locations: string[];
