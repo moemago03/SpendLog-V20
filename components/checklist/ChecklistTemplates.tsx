@@ -4,15 +4,16 @@ import { CHECKLIST_TEMPLATES } from '../../constants';
 
 interface ChecklistTemplatesProps {
     tripId: string;
+    checklistView: 'personal' | 'group';
 }
 
-const ChecklistTemplates: React.FC<ChecklistTemplatesProps> = ({ tripId }) => {
+const ChecklistTemplates: React.FC<ChecklistTemplatesProps> = ({ tripId, checklistView }) => {
     const { addChecklistFromTemplate } = useData();
     
     const handleAddTemplate = (templateName: string) => {
         const template = CHECKLIST_TEMPLATES[templateName];
         if (template && template.items) {
-            addChecklistFromTemplate(tripId, template.items);
+            addChecklistFromTemplate(tripId, template.items, checklistView === 'group');
         }
     };
     

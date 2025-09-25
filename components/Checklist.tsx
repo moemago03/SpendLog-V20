@@ -71,7 +71,7 @@ const Checklist: React.FC<ChecklistProps> = ({ trip, onCreateExpense }) => {
                     Suggerimenti AI
                 </button>
             </div>
-            <ChecklistTemplates tripId={trip.id} />
+            <ChecklistTemplates tripId={trip.id} checklistView={checklistView} />
             
             {isAIGeneratorOpen && (
                 <Suspense fallback={<div />}>

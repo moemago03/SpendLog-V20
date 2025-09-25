@@ -23,7 +23,7 @@ interface DataContextProps {
     addChecklistItem: (tripId: string, text: string, isGroupItem: boolean) => void;
     updateChecklistItem: (tripId: string, item: ChecklistItem) => void;
     deleteChecklistItem: (tripId: string, itemId: string) => void;
-    addChecklistFromTemplate: (tripId: string, templateItems: { text: string }[]) => void;
+    addChecklistFromTemplate: (tripId: string, templateItems: { text: string }[], isGroupItem: boolean) => void;
     clearCompletedChecklistItems: (tripId: string) => void;
     addEvent: (tripId: string, eventData: Omit<Event, 'eventId'>) => void;
     updateEvent: (tripId: string, eventId: string, updates: Partial<Omit<Event, 'eventId'>>) => void;
@@ -253,12 +253,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         if (newData) saveData(newData);
     }, [data, saveData]);
     
-    const addChecklistFromTemplate = useCallback((tripId: string, templateItems: { text: string }[]) => {
+    const addChecklistFromTemplate = useCallback((tripId: string, templateItems: { text: string }[], isGroupItem: boolean) => {
         const newItems: ChecklistItem[] = templateItems.map((item, index) => ({
             id: `item-${Date.now()}-${index}`,
             text: item.text,
             completed: false,
-            isGroupItem: false,
+            isGroupItem: isGroupItem,
         }));
         const newData = updateTripData(tripId, trip => ({ ...trip, checklist: [...(trip.checklist || []), ...newItems] }));
         if (newData) saveData(newData, `Template aggiunto alla checklist.`);

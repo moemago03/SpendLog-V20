@@ -13,33 +13,34 @@ interface ReceiptScannerProps {
 const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onClose, onScanComplete, trip }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [stream, setStream] = useState<MediaStream | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const { data } = useData();
     const { addNotification } = useNotification();
 
-    const startCamera = useCallback(async () => {
-        try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }
-            });
-            setStream(mediaStream);
-            if (videoRef.current) {
-                videoRef.current.srcObject = mediaStream;
-            }
-        } catch (err) {
-            console.error("Error accessing camera:", err);
-            addNotification("Impossibile accedere alla fotocamera. Controlla i permessi.", 'error');
-            onClose();
-        }
-    }, [addNotification, onClose]);
-
     useEffect(() => {
+        let stream: MediaStream | null = null;
+        
+        const startCamera = async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                addNotification("Impossibile accedere alla fotocamera. Controlla i permessi.", 'error');
+                onClose();
+            }
+        };
+
         startCamera();
+
         return () => {
             stream?.getTracks().forEach(track => track.stop());
         };
-    }, [startCamera, stream]);
+    }, [addNotification, onClose]);
 
     const handleCapture = async () => {
         if (!videoRef.current || !canvasRef.current) return;
