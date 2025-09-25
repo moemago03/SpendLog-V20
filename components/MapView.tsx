@@ -1,82 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { geocodeLocation, Coords } from '../../services/mapService';
-
-declare var maplibregl: any; // Declare MapLibre global
 
 interface MapViewProps {
     location: string;
 }
 
 const MapView: React.FC<MapViewProps> = ({ location }) => {
-    const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<any>(null); // To hold the map instance
     const [coords, setCoords] = useState<Coords | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isMapReady, setIsMapReady] = useState(false);
+    const [key, setKey] = useState(Date.now()); // Key to force re-render of MapContainer on location change
 
     useEffect(() => {
-        setIsMapReady(false);
         const geocode = async () => {
             setIsLoading(true);
             const result = await geocodeLocation(location);
             setCoords(result);
+            setKey(Date.now()); // Change key to remount map with new center
             setIsLoading(false);
         };
         geocode();
     }, [location]);
 
-    useEffect(() => {
-        if (isLoading || !coords || !mapContainerRef.current) {
-            return;
-        }
-        
-        if (mapRef.current) {
-             mapRef.current.remove();
-        }
-
-        const lat = coords.lat;
-        const lon = coords.lon;
-
-        const map = new maplibregl.Map({
-            container: mapContainerRef.current,
-            style: {
-                'version': 8,
-                'sources': {
-                    'osm': {
-                        'type': 'raster',
-                        'tiles': ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                        'tileSize': 256,
-                        'attribution': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    }
-                },
-                'layers': [{
-                    'id': 'osm',
-                    'type': 'raster',
-                    'source': 'osm'
-                }]
-            },
-            center: [lon, lat],
-            zoom: 14
-        });
-        mapRef.current = map;
-
-        new maplibregl.Marker()
-            .setLngLat([lon, lat])
-            .addTo(map);
-
-        map.on('load', () => {
-            map.resize();
-            setIsMapReady(true);
-        });
-
-        return () => {
-            if (mapRef.current) {
-                mapRef.current.remove();
-                mapRef.current = null;
-            }
-        };
-    }, [isLoading, coords]);
-    
     if (isLoading) {
         return (
             <div className="w-full h-full rounded-xl overflow-hidden border border-outline/20 relative">
@@ -92,21 +37,28 @@ const MapView: React.FC<MapViewProps> = ({ location }) => {
             <div className="w-full h-full bg-surface-variant flex flex-col items-center justify-center p-4 text-center rounded-xl">
                 <span className="material-symbols-outlined text-4xl text-on-surface-variant/50 mb-2">wrong_location</span>
                 <p className="text-sm font-semibold text-on-surface-variant">Impossibile caricare la mappa.</p>
+                <p className="text-xs text-on-surface-variant/70">Posizione non trovata.</p>
             </div>
         );
     }
     
     return (
-        <div className="w-full h-full rounded-xl overflow-hidden border border-outline/20 relative">
-            <div 
-                ref={mapContainerRef} 
-                className={`w-full h-full z-10 transition-opacity duration-500 ${isMapReady ? 'opacity-100' : 'opacity-0'}`}
-            />
-            {!isMapReady && (
-                <div className="absolute inset-0 w-full h-full bg-surface-variant flex items-center justify-center animate-pulse z-20">
-                    <span className="material-symbols-outlined text-4xl text-on-surface-variant/50">map</span>
-                </div>
-            )}
+        <div className="w-full h-full rounded-xl overflow-hidden border border-outline/20">
+            <MapContainer 
+                key={key} 
+                center={[coords.lat, coords.lon]} 
+                zoom={14} 
+                scrollWheelZoom={false} 
+                style={{ height: '100%', width: '100%' }}
+            >
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={[coords.lat, coords.lon]}>
+                    <Popup>{location}</Popup>
+                </Marker>
+            </MapContainer>
         </div>
     );
 };

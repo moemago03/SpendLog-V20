@@ -1,96 +1,69 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { geocodeLocation, Coords } from '../../services/mapService';
-
-declare var maplibregl: any; // Declare MapLibre global
 
 interface MultiPointMapViewProps {
     locations: string[];
 }
 
+interface Point {
+    location: string;
+    coords: Coords;
+}
+
+const BoundsUpdater: React.FC<{ points: Point[] }> = ({ points }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (points.length > 0) {
+            const bounds = points.map(p => [p.coords.lat, p.coords.lon] as [number, number]);
+            if (bounds.length > 1) {
+                map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+            } else {
+                map.setView(bounds[0], 14);
+            }
+        }
+    }, [points, map]);
+    return null;
+};
+
 const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
-    const mapContainerRef = useRef<HTMLDivElement>(null);
-    const mapRef = useRef<any>(null);
-    const [coordsList, setCoordsList] = useState<Coords[]>([]);
+    const [points, setPoints] = useState<Point[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isMapReady, setIsMapReady] = useState(false);
 
     useEffect(() => {
-        setIsMapReady(false); // Reset map readiness when locations change
         const geocodeAll = async () => {
-            if (locations.length === 0) {
+            if (!locations || locations.length === 0) {
+                setPoints([]);
                 setIsLoading(false);
-                setCoordsList([]);
                 return;
             }
             setIsLoading(true);
+            
             const uniqueLocations = [...new Set(locations)];
-            const promises = uniqueLocations.map(geocodeLocation);
+            // FIX: Cast `uniqueLocations` to `string[]` to resolve a TypeScript type inference issue.
+            // This ensures `loc` is correctly typed as `string` within the async map callback.
+            const promises = (uniqueLocations as string[]).map(async (loc) => ({
+                location: loc,
+                coords: await geocodeLocation(loc)
+            }));
+
             const results = await Promise.all(promises);
-            const validCoords = results.filter((c): c is Coords => c !== null);
-            setCoordsList(validCoords);
+            const validPoints = results.filter(r => r.coords !== null) as Point[];
+            
+            setPoints(validPoints);
             setIsLoading(false);
         };
         geocodeAll();
     }, [locations]);
 
-    useEffect(() => {
-        if (isLoading || !mapContainerRef.current) {
-            if (mapRef.current) mapRef.current.remove();
-            return;
-        }
-
-        if (mapRef.current) mapRef.current.remove();
-
-        const map = new maplibregl.Map({
-            container: mapContainerRef.current,
-            style: {
-                'version': 8,
-                'sources': {
-                    'osm': {
-                        'type': 'raster',
-                        'tiles': ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                        'tileSize': 256,
-                        'attribution': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    }
-                },
-                'layers': [{
-                    'id': 'osm',
-                    'type': 'raster',
-                    'source': 'osm'
-                }]
-            },
-            center: [0, 0], // Default center, will be overridden by fitBounds
-            zoom: 1
-        });
-        mapRef.current = map;
-
-        if (coordsList.length > 0) {
-            const bounds = new maplibregl.LngLatBounds();
-            coordsList.forEach(coords => {
-                const lon = coords.lon;
-                const lat = coords.lat;
-                new maplibregl.Marker()
-                    .setLngLat([lon, lat])
-                    .addTo(map);
-                bounds.extend([lon, lat]);
-            });
-            map.fitBounds(bounds, { padding: 40, maxZoom: 15 });
-        }
-        
-        map.on('load', () => {
-            map.resize();
-            setIsMapReady(true);
-        });
-        
-        return () => {
-            if(mapRef.current) {
-                mapRef.current.remove();
-                mapRef.current = null;
-            }
-        };
-
-    }, [isLoading, coordsList]);
-
+    if (isLoading) {
+        return (
+            <div className="w-full h-full rounded-2xl bg-surface-variant flex items-center justify-center animate-pulse">
+                <span className="material-symbols-outlined text-5xl text-on-surface-variant/40">map</span>
+            </div>
+        );
+    }
+    
     if (!locations || locations.length === 0) {
         return (
              <div className="w-full h-full rounded-2xl bg-surface-variant flex items-center justify-center">
@@ -102,28 +75,35 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
         );
     }
     
-    if (!isLoading && coordsList.length === 0) {
+    if (points.length === 0) {
         return (
              <div className="w-full h-full rounded-xl bg-surface-variant flex flex-col items-center justify-center p-4 text-center">
                 <span className="material-symbols-outlined text-4xl text-on-surface-variant/50 mb-2">wrong_location</span>
                 <p className="text-sm font-semibold text-on-surface-variant">Impossibile caricare la mappa.</p>
-            </div>
+                <p className="text-xs text-on-surface-variant/70">Nessuna delle posizioni fornite è stata trovata.</p>
+             </div>
         );
     }
 
     return (
         <div className="w-full h-full rounded-xl overflow-hidden border border-outline/20 relative">
-            <div 
-                ref={mapContainerRef} 
-                className={`w-full h-full z-10 transition-opacity duration-500 ${isMapReady ? 'opacity-100' : 'opacity-0'}`}
-            />
-            
-            {/* Skeleton loader overlays the map container until map is ready */}
-            {!isMapReady && (
-                <div className="absolute inset-0 w-full h-full bg-surface-variant flex items-center justify-center animate-pulse z-20">
-                    <span className="material-symbols-outlined text-4xl text-on-surface-variant/50">map</span>
-                </div>
-            )}
+            <MapContainer 
+                center={[points[0].coords.lat, points[0].coords.lon]} 
+                zoom={10} 
+                scrollWheelZoom={false} 
+                style={{ height: '100%', width: '100%' }}
+            >
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {points.map((point, index) => (
+                    <Marker key={`${point.coords.lat}-${point.coords.lon}-${index}`} position={[point.coords.lat, point.coords.lon]}>
+                         <Popup>{point.location}</Popup>
+                    </Marker>
+                ))}
+                <BoundsUpdater points={points} />
+            </MapContainer>
         </div>
     );
 };
