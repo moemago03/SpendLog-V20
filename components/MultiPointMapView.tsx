@@ -1,31 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { geocodeLocation, Coords } from '../../services/mapService';
 
 declare var maplibregl: any; // Declare MapLibre global
 
 interface MultiPointMapViewProps {
     locations: string[];
 }
-
-interface Coords {
-    lat: string;
-    lon: string;
-}
-
-const geocodeLocation = async (location: string): Promise<Coords | null> => {
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&accept-language=it`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (data && data.length > 0) {
-            return { lat: data[0].lat, lon: data[0].lon };
-        }
-        return null;
-    } catch (error) {
-        console.error(`Geocoding failed for ${location}:`, error);
-        return null;
-    }
-};
-
 
 const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
     const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -63,7 +43,22 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
 
         const map = new maplibregl.Map({
             container: mapContainerRef.current,
-            style: 'https://protomaps.github.io/basemaps/style-light.json',
+            style: {
+                'version': 8,
+                'sources': {
+                    'osm': {
+                        'type': 'raster',
+                        'tiles': ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                        'tileSize': 256,
+                        'attribution': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }
+                },
+                'layers': [{
+                    'id': 'osm',
+                    'type': 'raster',
+                    'source': 'osm'
+                }]
+            },
             center: [0, 0], // Default center, will be overridden by fitBounds
             zoom: 1
         });
@@ -72,8 +67,8 @@ const MultiPointMapView: React.FC<MultiPointMapViewProps> = ({ locations }) => {
         if (coordsList.length > 0) {
             const bounds = new maplibregl.LngLatBounds();
             coordsList.forEach(coords => {
-                const lon = parseFloat(coords.lon);
-                const lat = parseFloat(coords.lat);
+                const lon = coords.lon;
+                const lat = coords.lat;
                 new maplibregl.Marker()
                     .setLngLat([lon, lat])
                     .addTo(map);

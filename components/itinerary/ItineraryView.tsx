@@ -11,6 +11,7 @@ import DayStrip from './DayStrip';
 import { WeatherInfo, getWeatherIconFromWmoCode } from '../../utils/weatherUtils';
 import WeatherDebugWidget from './WeatherDebugWidget'; // Import the new debug widget
 import { useLocation } from '../../context/LocationContext';
+import { geocodeLocation } from '../../services/mapService';
 
 const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
@@ -170,23 +171,6 @@ const getInitialMapDate = (trip: Trip) => {
 type ItineraryAgendaViewMode = 'day' | 'month' | 'map';
 type ItinerarySubView = 'agenda' | 'checklist' | 'documents' | 'hotels';
 type CalendarQuickFilter = '3days' | '7days' | '10days' | 'all';
-
-// Helper to geocode a location string to lat/lon using Nominatim
-const geocodeLocation = async (location: string): Promise<{ lat: number; lon: number } | null> => {
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&accept-language=it`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (data && data.length > 0) {
-            return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-        }
-        return null;
-    } catch (error) {
-        console.error(`Geocoding failed for ${location}:`, error);
-        return null;
-    }
-};
-
 
 const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expense> & { checklistItemId?: string }) => void; }> = ({ trip, onAddExpense }) => {
     const { data } = useData();

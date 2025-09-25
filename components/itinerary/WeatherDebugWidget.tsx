@@ -3,28 +3,13 @@ import { Trip } from '../../types';
 import { getWeatherIconFromWmoCode, WeatherInfo } from '../../utils/weatherUtils';
 import { useLocation } from '../../context/LocationContext';
 import { dateToISOString } from '../../utils/dateUtils';
+import { geocodeLocation } from '../../services/mapService';
 
 interface WeatherDebugWidgetProps {
     trip: Trip;
 }
 
 type Status = 'Idle' | 'Geocoding' | 'Fetching Weather' | 'Processing' | 'Success' | 'Error';
-
-// Helper to geocode a location string to lat/lon using Nominatim
-const geocodeLocation = async (location: string): Promise<{ lat: number; lon: number } | null> => {
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1&accept-language=it`);
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (data && data.length > 0) {
-            return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
-        }
-        return null;
-    } catch (error) {
-        console.error(`Geocoding failed for ${location}:`, error);
-        return null;
-    }
-};
 
 const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
     const { location: userLocation } = useLocation();
