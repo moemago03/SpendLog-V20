@@ -29,6 +29,7 @@ const mockLocations: { [key: string]: Coords } = {
     'vietnam': { lat: 16.1667, lon: 107.8333 },
     'cambogia': { lat: 12.5657, lon: 104.9910 },
     'italia': { lat: 41.8719, lon: 12.5674 },
+    'bologna': { lat: 44.4949, lon: 11.3426 },
 };
 
 
