@@ -21,11 +21,17 @@ export const TRIP_CARD_COLORS = [
     '#F59E0B', '#EF4444', '#6366F1', '#D946EF'
 ];
 
+export const STAGE_COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ec4899',
+  '#8b5cf6', '#ef4444', '#6366f1', '#84cc16'
+];
+
 export const COUNTRIES_CURRENCIES: { [key: string]: string } = {
     'Thailandia': 'THB',
     'Vietnam': 'VND',
     'Cambogia': 'USD', // KHR is local but USD is widely used
     'Italia': 'EUR',
+    'Slovenia': 'EUR',
     'Stati Uniti': 'USD',
     'Regno Unito': 'GBP',
     'Giappone': 'JPY',
@@ -94,6 +100,7 @@ export const FLAG_SVGS: { [key: string]: string } = {
     'VN': 'https://flagcdn.com/vn.svg',
     'KH': 'https://flagcdn.com/kh.svg',
     'IT': 'https://flagcdn.com/it.svg',
+    'SI': 'https://flagcdn.com/si.svg',
 };
 
 export const COUNTRY_TO_CODE: { [key: string]: string } = {
@@ -101,6 +108,7 @@ export const COUNTRY_TO_CODE: { [key: string]: string } = {
     'Vietnam': 'VN',
     'Cambogia': 'KH',
     'Italia': 'IT',
+    'Slovenia': 'SI',
     'Stati Uniti': 'US',
     'Regno Unito': 'GB',
     'Giappone': 'JP',

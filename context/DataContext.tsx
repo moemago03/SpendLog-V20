@@ -1,10 +1,13 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
-import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem } from '../types';
+// FIX: Import Stage to use in processing
+import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem, Stage } from '../types';
 import { DEFAULT_CATEGORIES, ADJUSTMENT_CATEGORY } from '../constants';
 import { fetchData, saveData as saveCloudData, isDevelopmentEnvironment } from '../services/dataService';
 import { useNotification } from './NotificationContext';
 import { db } from '../config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+// FIX: Import utility to derive trip properties
+import { getTripProperties } from '../utils/tripUtils';
 
 interface DataContextProps {
     data: UserData | null;
@@ -31,6 +34,9 @@ interface DataContextProps {
     addDocument: (tripId: string, documentData: Omit<Document, 'id'>) => void;
     deleteDocument: (tripId: string, documentId: string) => void;
     refetchData: () => Promise<void>;
+    addStage: (tripId: string, newStageData: Omit<Stage, 'id' | 'startDate'>, afterStageId?: string | null) => void;
+    updateStage: (tripId: string, updatedStage: Stage) => void;
+    deleteStage: (tripId: string, stageId: string) => void;
 }
 
 const DataContext = createContext<DataContextProps | undefined>(undefined);
@@ -80,7 +86,22 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
                 return finalExp;
             });
             const checklist = (trip.checklist || []).map(item => ({ ...item, isGroupItem: item.isGroupItem ?? false }));
-            return { ...trip, members, expenses, checklist, events: trip.events || [], documents: trip.documents || [] };
+            
+            // FIX: Aggregate events from stages and derive trip properties to resolve type errors
+            const events = (trip.stages || []).flatMap((stage: Stage) => stage.events || []);
+            const derivedProps = getTripProperties(trip);
+
+            return {
+                ...trip,
+                members,
+                expenses,
+                checklist,
+                events: events,
+                documents: trip.documents || [],
+                startDate: derivedProps.startDate,
+                endDate: derivedProps.endDate,
+                countries: derivedProps.countries,
+            };
         });
         return processedData;
     };
@@ -300,9 +321,78 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         if (newData) saveData(newData, 'Documento eliminato.');
     }, [data, saveData]);
 
+    const addStage = useCallback((tripId: string, newStageData: Omit<Stage, 'id' | 'startDate'>, afterStageId?: string | null) => {
+        const newData = updateTripData(tripId, trip => {
+            const newStages = [...(trip.stages || [])];
+            const insertionIndex = afterStageId ? newStages.findIndex(s => s.id === afterStageId) + 1 : (newStages.length > 0 ? newStages.length : 0);
+            const newStage: Stage = { ...newStageData, id: `stage-${Date.now()}`, startDate: '' };
+            if (insertionIndex > 0) {
+                const prevStage = newStages[insertionIndex - 1];
+                const prevStageStartDate = new Date(prevStage.startDate + 'T12:00:00Z');
+                prevStageStartDate.setDate(prevStageStartDate.getDate() + prevStage.nights);
+                newStage.startDate = prevStageStartDate.toISOString().split('T')[0];
+            } else { newStage.startDate = trip.startDate.split('T')[0]; }
+            newStages.splice(insertionIndex, 0, newStage);
+            for (let i = insertionIndex + 1; i < newStages.length; i++) {
+                const prevStage = newStages[i-1];
+                const prevStageStartDate = new Date(prevStage.startDate + 'T12:00:00Z');
+                prevStageStartDate.setDate(prevStageStartDate.getDate() + prevStage.nights);
+                newStages[i].startDate = prevStageStartDate.toISOString().split('T')[0];
+            }
+            const derivedProps = getTripProperties({ ...trip, stages: newStages });
+            return { ...trip, stages: newStages, ...derivedProps };
+        });
+        if (newData) saveData(newData, 'Destinazione aggiunta.');
+    }, [data, saveData]);
+
+    const updateStage = useCallback((tripId: string, updatedStage: Stage) => {
+        const newData = updateTripData(tripId, trip => {
+            const stageIndex = (trip.stages || []).findIndex(s => s.id === updatedStage.id);
+            if (stageIndex === -1) return trip;
+            const newStages = [...trip.stages];
+            newStages[stageIndex] = updatedStage;
+            for (let i = stageIndex + 1; i < newStages.length; i++) {
+                const prevStage = newStages[i-1];
+                const prevStageStartDate = new Date(prevStage.startDate + 'T12:00:00Z');
+                prevStageStartDate.setDate(prevStageStartDate.getDate() + prevStage.nights);
+                newStages[i].startDate = prevStageStartDate.toISOString().split('T')[0];
+            }
+            const derivedProps = getTripProperties({ ...trip, stages: newStages });
+            return { ...trip, stages: newStages, ...derivedProps };
+        });
+        if (newData) saveData(newData);
+    }, [data, saveData]);
+
+    const deleteStage = useCallback((tripId: string, stageId: string) => {
+         const newData = updateTripData(tripId, trip => {
+            const stageIndex = (trip.stages || []).findIndex(s => s.id === stageId);
+            if (stageIndex === -1) return trip;
+            const newStages = (trip.stages || []).filter(s => s.id !== stageId);
+            if (newStages.length > 0 && stageIndex > 0) {
+                 for (let i = stageIndex; i < newStages.length; i++) {
+                    const prevStage = newStages[i-1];
+                    const prevStageStartDate = new Date(prevStage.startDate + 'T12:00:00Z');
+                    prevStageStartDate.setDate(prevStageStartDate.getDate() + prevStage.nights);
+                    newStages[i].startDate = prevStageStartDate.toISOString().split('T')[0];
+                }
+            } else if (newStages.length > 0) {
+                 newStages[0].startDate = trip.startDate.split('T')[0];
+                 for (let i = 1; i < newStages.length; i++) {
+                    const prevStage = newStages[i-1];
+                    const prevStageStartDate = new Date(prevStage.startDate + 'T12:00:00Z');
+                    prevStageStartDate.setDate(prevStageStartDate.getDate() + prevStage.nights);
+                    newStages[i].startDate = prevStageStartDate.toISOString().split('T')[0];
+                }
+            }
+            const derivedProps = getTripProperties({ ...trip, stages: newStages });
+            return { ...trip, stages: newStages, ...derivedProps };
+        });
+        if (newData) saveData(newData, 'Destinazione rimossa.');
+    }, [data, saveData]);
+
     const refetchData = async () => { /* ... */ };
 
-    const value = { data, loading, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, deleteChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument };
+    const value = { data, loading, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, deleteChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, deleteStage };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 export const useData = () => { const context = useContext(DataContext); if (!context) throw new Error('useData must be used within a DataProvider'); if (!context.data && !context.loading) return { ...context, data: defaultUserData }; return context; };

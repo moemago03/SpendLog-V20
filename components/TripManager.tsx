@@ -1,16 +1,23 @@
 
 
+
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from 'react';
 import { useData } from '../context/DataContext';
 import { Trip } from '../types';
 import { useCurrencyConverter } from '../hooks/useCurrencyConverter';
 
 const TripForm = lazy(() => import('./TripForm'));
+const CreateTripFlow = lazy(() => import('./CreateTripFlow'));
 
 
 const triggerHapticFeedback = () => {
     if (navigator.vibrate) navigator.vibrate(10);
 };
+
+interface ModalState {
+  view: 'closed' | 'creating' | 'editing';
+  trip?: Trip;
+}
 
 interface TripManagerProps {
     onClose: () => void;
@@ -99,8 +106,7 @@ const TripCard: React.FC<{
 
 const TripManager: React.FC<TripManagerProps> = ({ onClose }) => {
     const { data, deleteTrip } = useData();
-    const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+    const [modalState, setModalState] = useState<ModalState>({ view: 'closed' });
 
     const sortedTrips = useMemo(() => {
         if (!data?.trips) return [];
@@ -109,14 +115,16 @@ const TripManager: React.FC<TripManagerProps> = ({ onClose }) => {
 
     const openNewTripForm = () => {
         triggerHapticFeedback();
-        setEditingTrip(null);
-        setIsFormOpen(true);
+        setModalState({ view: 'creating' });
     };
 
     const openEditTripForm = (trip: Trip) => {
-        setEditingTrip(trip);
-        setIsFormOpen(true);
+        setModalState({ view: 'editing', trip });
     };
+
+    const closeModal = () => {
+        setModalState({ view: 'closed' });
+    }
 
     const handleDeleteTrip = (tripId: string) => {
         if (window.confirm("Sei sicuro di voler eliminare questo viaggio e tutte le sue spese? L'azione è irreversibile.")) {
@@ -172,11 +180,17 @@ const TripManager: React.FC<TripManagerProps> = ({ onClose }) => {
                 </button>
             )}
 
-            {isFormOpen && (
+            {modalState.view === 'creating' && (
+                <Suspense fallback={<div/>}>
+                    <CreateTripFlow onClose={closeModal} />
+                </Suspense>
+            )}
+            
+            {modalState.view === 'editing' && modalState.trip && (
                 <Suspense fallback={<div/>}>
                     <TripForm 
-                      trip={editingTrip || undefined}
-                      onClose={() => setIsFormOpen(false)} 
+                      trip={modalState.trip}
+                      onClose={closeModal} 
                     />
                 </Suspense>
             )}

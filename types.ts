@@ -18,13 +18,19 @@ export interface Document {
     tripId: string;
 }
 
+export interface Stage {
+    id: string;
+    location: string; // "City, Country"
+    startDate: string; // YYYY-MM-DD
+    nights: number;
+    events?: Event[];
+}
+
 export interface Trip {
     id: string;
     name: string;
-    startDate: string;
-    endDate: string;
+    stages: Stage[];
     totalBudget: number;
-    countries: string[];
     mainCurrency: string;
     preferredCurrencies: string[];
     color: string;
@@ -34,8 +40,12 @@ export interface Trip {
     frequentExpenses?: FrequentExpense[];
     enableCategoryBudgets?: boolean;
     categoryBudgets?: CategoryBudget[];
-    events?: Event[];
     documents?: Document[];
+    // FIX: Add missing properties to the Trip interface to align with usage across the app.
+    startDate: string;
+    endDate: string;
+    countries: string[];
+    events?: Event[];
 }
 
 export interface Expense {
@@ -203,7 +213,6 @@ export interface CountryGuide {
 
 export interface Event {
     eventId: string;
-    tripId: string;
     eventDate: string; // YYYY-MM-DD
     endDate?: string; // YYYY-MM-DD for multi-day events
     title: string;

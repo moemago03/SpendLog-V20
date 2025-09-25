@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
 import { Trip, Expense, ChecklistItem } from './types';
 import { DataProvider, useData } from './context/DataContext';
@@ -25,10 +24,11 @@ const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
 const AIPanel = lazy(() => import('./components/AIPanel'));
 const PackingPromptModal = lazy(() => import('./components/prompts/PackingPromptModal'));
 const ReceiptScanner = lazy(() => import('./components/ReceiptScanner'));
+const PlanView = lazy(() => import('./components/plan/PlanView'));
 
 
 // The main views of the application
-export type AppView = 'summary' | 'stats' | 'group' | 'itinerary' | 'explore' | 'profile';
+export type AppView = 'summary' | 'stats' | 'group' | 'itinerary' | 'explore' | 'profile' | 'plan';
 
 const AppContent: React.FC = () => {
     const { data, loading, setDefaultTrip, addChecklistItem } = useData();
@@ -81,6 +81,8 @@ const AppContent: React.FC = () => {
             case 'stats':
             case 'group':
                 return <Dashboard activeTripId={activeTrip.id} currentView={currentView} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />;
+            case 'plan':
+                return <Suspense fallback={<LoadingScreen />}><PlanView trip={activeTrip} onNavigate={setCurrentView} /></Suspense>;
             case 'itinerary':
                  return <ItineraryView trip={activeTrip} onAddExpense={setEditingExpense} />;
             case 'explore':
@@ -98,7 +100,12 @@ const AppContent: React.FC = () => {
 
     return (
         <>
-            <MainLayout activeView={currentView} onNavigate={setCurrentView} isTripActive={!!activeTrip}>
+            <MainLayout 
+                activeView={currentView} 
+                onNavigate={setCurrentView} 
+                isTripActive={!!activeTrip}
+                hideNavBar={currentView === 'plan'}
+            >
                 {renderView()}
             </MainLayout>
 

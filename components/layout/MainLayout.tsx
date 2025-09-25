@@ -7,19 +7,22 @@ interface MainLayoutProps {
     activeView: AppView;
     onNavigate: (view: AppView) => void;
     isTripActive: boolean;
+    hideNavBar?: boolean;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children, activeView, onNavigate, isTripActive }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ children, activeView, onNavigate, isTripActive, hideNavBar }) => {
     return (
         <div className="min-h-screen bg-background text-on-background font-sans">
             <main className="pb-20 overflow-x-hidden">
                 {children}
             </main>
-            <BottomNavBar
-                activeView={activeView}
-                onNavigate={onNavigate}
-                isTripActive={isTripActive}
-            />
+            {!hideNavBar && (
+                <BottomNavBar
+                    activeView={activeView}
+                    onNavigate={onNavigate}
+                    isTripActive={isTripActive}
+                />
+            )}
         </div>
     );
 };

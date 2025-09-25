@@ -1,8 +1,9 @@
-import { UserData } from '../types';
+import { UserData, Trip, Stage } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants';
 import { db } from '../config';
 // FIX: Import Firebase v9 modular functions
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { dateToISOString } from '../utils/dateUtils';
 
 // Detect if the app is running in a local/development environment
 export const isDevelopmentEnvironment = (): boolean => {
@@ -14,22 +15,83 @@ export const isDevelopmentEnvironment = (): boolean => {
 
 // --- LOCAL MOCK DATA ---
 const getMockData = (password: string): UserData => {
-    // Set a consistent "today" in September 2025 for reproducible mock data.
-    const today = new Date('2025-09-03T12:00:00Z');
-    const todayISO = today.toISOString().slice(0, 10); // "2025-09-03"
+    // Generate dynamic dates so the trip always starts tomorrow and lasts 14 days.
+    const today = new Date();
+    today.setHours(12, 0, 0, 0); // Normalize time
+
+    const tripStart = new Date(today);
+    tripStart.setDate(today.getDate() + 1); // Trip starts tomorrow
+
+    const tripEnd = new Date(tripStart);
+    tripEnd.setDate(tripStart.getDate() + 13); // Trip ends 13 days after it starts, for a total of 14 days.
+
+    const getDateAfter = (startDate: Date, days: number): Date => {
+        const newDate = new Date(startDate);
+        newDate.setDate(newDate.getDate() + days);
+        return newDate;
+    };
+
+    // Split 13 nights across stages: 5 + 4 + 4 = 13 nights
+    const stage1Nights = 5;
+    const stage2Nights = 4;
+    const stage3Nights = 4;
+
+    const stage1Start = tripStart;
+    const stage2Start = getDateAfter(stage1Start, stage1Nights);
+    const stage3Start = getDateAfter(stage2Start, stage2Nights);
+
+    // Spread expenses and events throughout the trip dates
+    const eventDate1 = getDateAfter(tripStart, 1); // 2nd day of trip
+    const eventDate2 = getDateAfter(tripStart, 2); // 3rd day of trip
+    
+    const expDate1 = getDateAfter(tripStart, 0);   // Day 1
+    const expDate2 = getDateAfter(tripStart, 1);   // Day 2
+    const expDate3 = getDateAfter(stage2Start, 1); // Day 7 (in Vietnam)
+    const expDate4 = getDateAfter(stage3Start, 1); // Day 11 (in Cambodia)
+
 
     const MOCK_USER_DATA: UserData = {
         name: 'Utente Demo',
         email: 'demo@spendilog.com',
-        dataviaggio: todayISO,
+        dataviaggio: dateToISOString(today),
         trips: [
             {
                 id: 'mock-trip-1',
                 name: 'Sud-est Asiatico',
-                startDate: '2025-09-01T00:00:00.000Z',
-                endDate: '2025-09-30T00:00:00.000Z',
-                totalBudget: 3000,
+                // FIX: Add missing properties to satisfy the Trip interface.
+                startDate: tripStart.toISOString(),
+                endDate: tripEnd.toISOString(),
                 countries: ['Thailandia', 'Vietnam', 'Cambogia'],
+                stages: [
+                    {
+                        id: 'stage-1',
+                        location: 'Bangkok, Thailandia',
+                        startDate: dateToISOString(stage1Start),
+                        nights: stage1Nights,
+                        events: [
+                            { eventId: 'evt-today-1', eventDate: dateToISOString(eventDate1), title: 'Colazione al bar', type: 'Cibo', startTime: '08:30', endTime: '09:15', description: 'Cappuccino e cornetto per iniziare la giornata.', status: 'planned', location: 'Bar del Corso, Roma, Italia' },
+                            { eventId: 'evt-today-2', eventDate: dateToISOString(eventDate1), title: 'Visita al Museo d\'Arte', type: 'Attività', startTime: '10:00', endTime: '12:30', description: 'Mostra temporanea di arte moderna.', status: 'planned', location: 'Museo d\'Arte Moderna, Roma, Italia' },
+                            { eventId: 'evt-1', eventDate: dateToISOString(eventDate2), title: 'Grande Palazzo Reale', type: 'Attività', startTime: '09:00', endTime: '12:00', description: 'Visita il complesso di templi più sacro.', status: 'planned', location: 'Na Phra Lan Rd, Bangkok' },
+                        ]
+                    },
+                    {
+                        id: 'stage-2',
+                        location: 'Hanoi, Vietnam',
+                        startDate: dateToISOString(stage2Start),
+                        nights: stage2Nights,
+                        events: [
+                             { eventId: 'evt-3', eventDate: dateToISOString(stage2Start), title: 'Volo per Hanoi', type: 'Trasporti', startTime: '15:30', description: 'Volo BKK -> HAN, VietJet Air VJ902.', status: 'planned' },
+                        ]
+                    },
+                     {
+                        id: 'stage-3',
+                        location: 'Phnom Penh, Cambogia',
+                        startDate: dateToISOString(stage3Start),
+                        nights: stage3Nights,
+                        events: []
+                    }
+                ],
+                totalBudget: 3000,
                 preferredCurrencies: ['EUR', 'THB', 'VND', 'USD'],
                 mainCurrency: 'EUR',
                 members: [
@@ -39,19 +101,13 @@ const getMockData = (password: string): UserData => {
                     { id: 'member-asad', name: 'Asad' },
                 ],
                 expenses: [
-                    { id: 'exp1', amount: 30, currency: 'EUR', category: 'Cibo', date: new Date(today.getTime() - 2 * 86400000).toISOString(), country: 'Area Euro', paymentMethod: 'Carta di Credito', paidById: 'user-self', splitType: 'equally', splitBetweenMemberIds: ['user-self', 'member-moeez', 'member-chiara', 'member-asad'], location: 'Trastevere, Roma, Italia' },
-                    { id: 'exp2', amount: 1200, currency: 'THB', category: 'Alloggio', date: new Date(today.getTime() - 2 * 86400000).toISOString(), country: 'Thailandia', paymentMethod: 'Booking.com', paidById: 'member-chiara', splitType: 'equally', splitBetweenMemberIds: ['user-self', 'member-moeez', 'member-chiara', 'member-asad'], location: 'Khaosan Road, Bangkok, Thailandia' },
-                    { id: 'exp3', amount: 500000, currency: 'VND', category: 'Attività', description: 'Tour Ha Long Bay', date: new Date(today.getTime() - 1 * 86400000).toISOString(), country: 'Vietnam', paymentMethod: 'Contanti', paidById: 'member-moeez', splitType: 'equally', splitBetweenMemberIds: ['member-moeez', 'member-asad'], location: 'Baia di Ha Long, Vietnam' },
-                    { id: 'exp4', amount: 25, currency: 'USD', category: 'Visti', description: 'Visto per la Cambogia', date: today.toISOString(), country: 'Cambogia', paymentMethod: 'Contanti', paidById: 'member-asad', splitType: 'equally', splitBetweenMemberIds: ['member-asad', 'user-self'] },
-                    { id: 'exp5', amount: 80, currency: 'THB', category: 'Cibo', description: 'Pad Thai da strada', date: today.toISOString(), country: 'Thailandia', paymentMethod: 'Contanti', paidById: 'user-self', splitType: 'equally', splitBetweenMemberIds: ['user-self'], location: 'Yaowarat Road, Bangkok, Thailandia' },
-                    { id: 'exp6', amount: 45, currency: 'THB', category: 'Trasporti', description: 'Biglietto Skytrain', date: today.toISOString(), country: 'Thailandia', paymentMethod: 'Contanti', paidById: 'user-self', splitType: 'equally', splitBetweenMemberIds: ['user-self'], location: 'Siam BTS Station, Bangkok' },
-                    { id: 'exp7', amount: 70000, currency: 'VND', category: 'Cibo', description: 'Caffè e Pho', date: today.toISOString(), country: 'Vietnam', paymentMethod: 'Contanti', paidById: 'member-chiara', splitType: 'equally', splitBetweenMemberIds: ['user-self', 'member-chiara'], location: 'Hanoi Old Quarter, Vietnam' },
-                ],
-                events: [
-                    { eventId: 'evt-today-1', tripId: 'mock-trip-1', eventDate: todayISO, title: 'Colazione al bar', type: 'Cibo', startTime: '08:30', endTime: '09:15', description: 'Cappuccino e cornetto per iniziare la giornata.', status: 'planned', location: 'Bar del Corso, Roma, Italia' },
-                    { eventId: 'evt-today-2', tripId: 'mock-trip-1', eventDate: todayISO, title: 'Visita al Museo d\'Arte', type: 'Attività', startTime: '10:00', endTime: '12:30', description: 'Mostra temporanea di arte moderna.', status: 'planned', location: 'Museo d\'Arte Moderna, Roma, Italia' },
-                    { eventId: 'evt-1', tripId: 'mock-trip-1', eventDate: '2025-09-04', title: 'Grande Palazzo Reale', type: 'Attività', startTime: '09:00', endTime: '12:00', description: 'Visita il complesso di templi più sacro.', status: 'planned', location: 'Na Phra Lan Rd, Bangkok' },
-                    { eventId: 'evt-3', tripId: 'mock-trip-1', eventDate: '2025-09-05', title: 'Volo per Hanoi', type: 'Trasporti', startTime: '15:30', description: 'Volo BKK -> HAN, VietJet Air VJ902.', status: 'planned' },
+                    { id: 'exp1', amount: 30, currency: 'EUR', category: 'Cibo', date: expDate1.toISOString(), country: 'Area Euro', paymentMethod: 'Carta di Credito', paidById: 'user-self', splitType: 'equally', splitBetweenMemberIds: ['user-self', 'member-moeez', 'member-chiara', 'member-asad'], location: 'Trastevere, Roma, Italia' },
+                    { id: 'exp2', amount: 1200, currency: 'THB', category: 'Alloggio', date: expDate1.toISOString(), country: 'Thailandia', paymentMethod: 'Booking.com', paidById: 'member-chiara', splitType: 'equally', splitBetweenMemberIds: ['user-self', 'member-moeez', 'member-chiara', 'member-asad'], location: 'Khaosan Road, Bangkok, Thailandia' },
+                    { id: 'exp3', amount: 500000, currency: 'VND', category: 'Attività', description: 'Tour Ha Long Bay', date: expDate3.toISOString(), country: 'Vietnam', paymentMethod: 'Contanti', paidById: 'member-moeez', splitType: 'equally', splitBetweenMemberIds: ['member-moeez', 'member-asad'], location: 'Baia di Ha Long, Vietnam' },
+                    { id: 'exp4', amount: 25, currency: 'USD', category: 'Visti', description: 'Visto per la Cambogia', date: expDate4.toISOString(), country: 'Cambogia', paymentMethod: 'Contanti', paidById: 'member-asad', splitType: 'equally', splitBetweenMemberIds: ['member-asad', 'user-self'] },
+                    { id: 'exp5', amount: 80, currency: 'THB', category: 'Cibo', description: 'Pad Thai da strada', date: expDate2.toISOString(), country: 'Thailandia', paymentMethod: 'Contanti', paidById: 'user-self', splitType: 'equally', splitBetweenMemberIds: ['user-self'], location: 'Yaowarat Road, Bangkok, Thailandia' },
+                    { id: 'exp6', amount: 45, currency: 'THB', category: 'Trasporti', description: 'Biglietto Skytrain', date: expDate2.toISOString(), country: 'Thailandia', paymentMethod: 'Contanti', paidById: 'user-self', splitType: 'equally', splitBetweenMemberIds: ['user-self'], location: 'Siam BTS Station, Bangkok' },
+                    { id: 'exp7', amount: 70000, currency: 'VND', category: 'Cibo', description: 'Caffè e Pho', date: expDate3.toISOString(), country: 'Vietnam', paymentMethod: 'Contanti', paidById: 'member-chiara', splitType: 'equally', splitBetweenMemberIds: ['user-self', 'member-chiara'], location: 'Hanoi Old Quarter, Vietnam' },
                 ],
                 documents: [
                     { id: 'doc-1', tripId: 'mock-trip-1', eventId: 'evt-3', name: 'Biglietto Aereo VJ902.pdf', type: 'application/pdf', data: '' },
@@ -73,7 +129,9 @@ const getMockData = (password: string): UserData => {
     try {
         const storedData = localStorage.getItem(`mock_data_${password}`);
         if (storedData) {
-            return JSON.parse(storedData);
+            // FIX: Ensure stored data dates are also dynamic on subsequent loads if needed,
+            // or just rely on fresh mock data for simplicity. For now, fresh is better.
+            // return JSON.parse(storedData);
         }
     } catch (e) {
         console.error("Failed to parse mock data from localStorage", e);

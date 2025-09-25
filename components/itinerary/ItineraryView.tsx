@@ -1,5 +1,5 @@
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
-import { Trip, Event, Expense, ChecklistItem } from '../../types';
+import { Trip, Event, Expense, ChecklistItem, Stage } from '../../types';
 import DayDetailView from './DayDetailView';
 import { useItinerary } from '../../context/ItineraryContext';
 import { getMonthGridDays, dateToISOString, isSameDay, getDaysArray } from '../../utils/dateUtils';
@@ -12,6 +12,8 @@ import { WeatherInfo, getWeatherIconFromWmoCode } from '../../utils/weatherUtils
 import WeatherDebugWidget from './WeatherDebugWidget'; // Import the new debug widget
 import { useLocation } from '../../context/LocationContext';
 import { geocodeLocation } from '../../services/mapService';
+import { findStageForDate } from '../../utils/tripUtils';
+import { STAGE_COLORS } from '../../constants';
 
 const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));
@@ -94,6 +96,37 @@ const MonthView: React.FC<{
         return layout;
     }, [monthGridDays, weeks, getEventsByTrip, trip.id]);
 
+    const stagesToRender = useMemo(() => {
+        if (!trip.stages || trip.stages.length === 0) return {};
+        const layout: { [weekIndex: number]: { stage: Stage, startCol: number, span: number, color: string }[] } = {};
+        
+        weeks.forEach((week, weekIndex) => {
+            layout[weekIndex] = [];
+            let currentStageBar: { stage: Stage, startCol: number, span: number, color: string } | null = null;
+
+            week.forEach((day, dayIndex) => {
+                const stageForDay = findStageForDate(trip, dateToISOString(day));
+                
+                if (stageForDay) {
+                    const stageColor = STAGE_COLORS[trip.stages.findIndex(s => s.id === stageForDay.id) % STAGE_COLORS.length];
+                    if (currentStageBar && currentStageBar.stage.id === stageForDay.id) {
+                        currentStageBar.span += 1;
+                    } else {
+                        if (currentStageBar) layout[weekIndex].push(currentStageBar);
+                        currentStageBar = { stage: stageForDay, startCol: dayIndex, span: 1, color: stageColor };
+                    }
+                } else {
+                    if (currentStageBar) {
+                        layout[weekIndex].push(currentStageBar);
+                        currentStageBar = null;
+                    }
+                }
+            });
+            if (currentStageBar) layout[weekIndex].push(currentStageBar);
+        });
+        return layout;
+    }, [weeks, trip]);
+
     const weekdays = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
     
     return (
@@ -117,18 +150,28 @@ const MonthView: React.FC<{
                     const isToday = isSameDay(new Date(), date);
                     const isInTrip = date >= tripStartDate && date <= tripEndDate;
                     const isCurrentMonth = date.getMonth() === displayDate.getMonth();
-                    let cellClasses = `bg-surface hover:bg-surface-variant/70 ${!isInTrip ? 'cursor-not-allowed' : ''}`;
+                    
+                    let cellClasses = `bg-surface hover:bg-surface-variant/70 ${!isInTrip ? 'cursor-not-allowed' : 'cursor-pointer'}`;
                     if (!isCurrentMonth) cellClasses = 'bg-surface-variant/30';
-                    else if (isInTrip) cellClasses = 'bg-primary-container/20 hover:bg-primary-container/40';
+                    else if (isInTrip) cellClasses = 'bg-surface';
 
                     return (
                         <div key={index} onClick={() => isInTrip && onOpenDayDetail(date)} className={`relative min-h-24 md:min-h-32 p-1.5 flex flex-col transition-colors overflow-hidden border-b border-r border-outline/20 ${cellClasses}`}>
-                            <span className={`flex items-center justify-center text-xs font-semibold h-6 w-6 rounded-full ${isToday ? 'bg-primary text-on-primary' : ''} ${!isCurrentMonth ? 'text-on-surface-variant/50' : ''}`}>
+                            <span className={`z-10 flex items-center justify-center text-xs font-semibold h-6 w-6 rounded-full ${isToday ? 'bg-primary text-on-primary' : ''} ${!isCurrentMonth ? 'text-on-surface-variant/50' : ''}`}>
                                 {date.getDate()}
                             </span>
                         </div>
                     );
                 })}
+                 {Object.entries(stagesToRender).map(([weekIndex, weekStages]) => 
+                    (weekStages as { stage: Stage, startCol: number, span: number, color: string }[]).map(({ stage, startCol, span, color }, i) => (
+                        <div key={`${stage.id}-${weekIndex}-${i}`}
+                             className="absolute text-[11px] font-semibold p-1 overflow-hidden pointer-events-none rounded-lg"
+                             style={{ top: `calc(${parseInt(weekIndex) * (100/weeks.length)}% + 4px)`, left: `calc(${startCol * (100/7)}% + 3px)`, width: `calc(${span * (100/7)}% - 6px)`, height: '22px', backgroundColor: `${color}40` }}>
+                             <span className="truncate" style={{ color }}>{stage.location.split(',')[0]}</span>
+                        </div>
+                    ))
+                )}
                  {Object.entries(eventsToRender).map(([weekIndex, weekEvents]) => 
                     (weekEvents as { event: Event, startCol: number, span: number, level: number }[]).map(({ event, startCol, span, level }) => {
                         const eventStart = new Date(event.eventDate + 'T00:00:00Z');
@@ -148,7 +191,7 @@ const MonthView: React.FC<{
                         const bgColor = category?.color || '#757780';
                         return (
                             <div key={`${event.eventId}-${weekIndex}`} onClick={(e) => { e.stopPropagation(); onOpenDayDetail(new Date(event.eventDate + 'T12:00:00Z')); }}
-                                className={`absolute text-[11px] font-semibold p-1 overflow-hidden cursor-pointer ${roundedClass}`}
+                                className={`absolute text-[11px] font-semibold p-1 overflow-hidden cursor-pointer z-20 ${roundedClass}`}
                                 style={{ top: `calc(${parseInt(weekIndex) * (100/weeks.length)}% + ${30 + level * 22}px)`, left: `calc(${startCol * (100/7)}% + 3px)`, width: `calc(${span * (100/7)}% - 6px)`, height: '20px', backgroundColor: bgColor, color: getContrastColor(bgColor) }}>
                                 <span className="truncate">{showTitle && event.title}</span>
                             </div>

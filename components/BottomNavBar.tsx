@@ -13,10 +13,11 @@ const triggerHapticFeedback = () => {
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeView, onNavigate, isTripActive }) => {
     const navItems = [
-        { id: 'explore', label: 'Esplora', icon: 'explore', requiresTrip: true },
         { id: 'summary', label: 'Home', icon: 'home', requiresTrip: true },
-        { id: 'stats', label: 'Analisi', icon: 'bar_chart', requiresTrip: true },
+        { id: 'plan', label: 'Plan', icon: 'map', requiresTrip: true },
         { id: 'itinerary', label: 'Itinerario', icon: 'route', requiresTrip: true },
+        { id: 'explore', label: 'Esplora', icon: 'explore', requiresTrip: true },
+        { id: 'stats', label: 'Analisi', icon: 'bar_chart', requiresTrip: true },
         { id: 'group', label: 'Gruppo', icon: 'group', requiresTrip: true },
         { id: 'profile', label: 'Profilo', icon: 'person', requiresTrip: false },
     ];
@@ -30,6 +31,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeView, onNavigate, isT
         <nav className="fixed bottom-0 left-0 right-0 h-14 bg-surface/95 backdrop-blur-lg border-t border-outline/20 z-30">
             <div className="flex h-full w-full">
                 {navItems.map((item) => {
+                    if(item.id === 'group' || item.id === 'explore') return null; // Simplified nav
                     const isActive = activeView === item.id;
                     const isDisabled = item.requiresTrip && !isTripActive;
 

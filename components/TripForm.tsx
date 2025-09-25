@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Trip, FrequentExpense, CategoryBudget, TripMember } from '../types';
+// FIX: Import Stage type
+import { Trip, FrequentExpense, CategoryBudget, TripMember, Stage } from '../types';
 import { COUNTRIES_CURRENCIES, ALL_CURRENCIES, TRIP_CARD_COLORS } from '../constants';
 import { useNotification } from '../context/NotificationContext';
 
@@ -13,8 +14,9 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
     const { addTrip, updateTrip, data } = useData();
     const { addNotification } = useNotification();
     const [name, setName] = useState(trip?.name || '');
-    const [startDate, setStartDate] = useState(trip?.startDate.split('T')[0] || '');
-    const [endDate, setEndDate] = useState(trip?.endDate.split('T')[0] || '');
+    // FIX: Use optional chaining to prevent error if trip.startDate is undefined
+    const [startDate, setStartDate] = useState(trip?.startDate?.split('T')[0] || '');
+    const [endDate, setEndDate] = useState(trip?.endDate?.split('T')[0] || '');
     const [totalBudget, setTotalBudget] = useState(trip?.totalBudget || 0);
     const [countries, setCountries] = useState<string[]>(trip?.countries || []);
     const [mainCurrency, setMainCurrency] = useState(trip?.mainCurrency || 'EUR');
@@ -34,6 +36,13 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
         return categoryBudgets.reduce((sum, b) => sum + (b.amount || 0), 0);
     }, [categoryBudgets]);
     
+    const handleStartDateChange = (newStartDate: string) => {
+        setStartDate(newStartDate);
+        if (endDate && new Date(endDate) < new Date(newStartDate)) {
+            setEndDate('');
+        }
+    };
+
     const handleAddMember = () => {
         if (newMemberName.trim()) {
             const newMember: TripMember = {
@@ -99,6 +108,18 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
             addNotification("Aggiungi almeno un membro al viaggio (anche solo te stesso!).", 'error');
             return;
         }
+        
+        // FIX: Create a stages array from form data to satisfy the Trip type.
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const nights = Math.max(0, Math.round((end.getTime() - start.getTime()) / (1000 * 3600 * 24)));
+
+        const newStages: Stage[] = [{
+            id: trip?.stages?.[0]?.id || `stage-${Date.now()}`,
+            location: countries.join(', '), // Best guess for location
+            startDate: startDate,
+            nights: nights,
+        }];
 
         const tripData = {
             name,
@@ -112,12 +133,13 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
             members, // Add members to trip data
             enableCategoryBudgets,
             categoryBudgets: enableCategoryBudgets ? categoryBudgets.filter(b => b.amount > 0) : [],
+            stages: newStages,
         };
 
         if (trip) {
             updateTrip({ ...trip, ...tripData });
         } else {
-            addTrip(tripData as Omit<Trip, 'id' | 'expenses'>);
+            addTrip(tripData);
         }
         onClose();
     };
@@ -145,11 +167,11 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className={labelClasses}>Data Inizio</label>
-                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required className={inputClasses}/>
+                            <input type="date" value={startDate} onChange={e => handleStartDateChange(e.target.value)} required className={inputClasses}/>
                         </div>
                         <div>
                             <label className={labelClasses}>Data Fine</label>
-                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required className={inputClasses}/>
+                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required className={inputClasses} min={startDate} />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

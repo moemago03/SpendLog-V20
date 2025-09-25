@@ -7,6 +7,7 @@ import TravelInfo from '../checklist/TravelInfo';
 import SafetyAlertWidget from './SafetyAlertWidget';
 import { useData } from '../../context/DataContext';
 import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
+import { findStageForDate } from '../../utils/tripUtils';
 
 const EventForm = lazy(() => import('./EventForm'));
 const DuplicateEventModal = lazy(() => import('./DuplicateEventModal'));
@@ -70,6 +71,11 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onA
 
     const trip = useMemo(() => data.trips.find(t => t.id === tripId), [data.trips, tripId]);
 
+    const currentStage = useMemo(() => {
+        if (!trip) return null;
+        return findStageForDate(trip, selectedDate);
+    }, [trip, selectedDate]);
+
     const { dayEvents, todaysExpenses } = useMemo(() => {
         if (!trip) return { dayEvents: [], todaysExpenses: [] };
         const events = getEventsByTrip(tripId)
@@ -93,6 +99,13 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onA
 
     return (
         <div className="animate-fade-in space-y-6">
+            {currentStage && (
+                <div className="px-4 text-center">
+                    <h2 className="text-xl font-bold text-on-surface">
+                        Il tuo programma a <span className="text-primary">{currentStage.location.split(',')[0]}</span>
+                    </h2>
+                </div>
+            )}
             <DailyBudgetWidget trip={trip} events={dayEvents} expenses={todaysExpenses} />
 
             {dayEvents.length > 0 ? (

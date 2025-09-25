@@ -1,0 +1,68 @@
+{
+  "IT": {
+    "countryName": "Italy",
+    "destinations": [
+      { "name": "Rome" },
+      { "name": "Florence" },
+      { "name": "Milan" },
+      { "name": "Venice" },
+      { "name": "Naples" },
+      { "name": "Verona" },
+      { "name": "Bologna" },
+      { "name": "Pisa" },
+      { "name": "Lake Como" }
+    ]
+  },
+  "SI": {
+    "countryName": "Slovenia",
+    "destinations": [
+      { "name": "Ljubljana" },
+      { "name": "Bled" },
+      { "name": "Lake Bled" },
+      { "name": "Piran" },
+      { "name": "Postojna" },
+      { "name": "Bohinj" },
+      { "name": "Kranjska Gora" },
+      { "name": "Maribor" },
+      { "name": "Koper" }
+    ]
+  },
+  "TH": {
+    "countryName": "Thailand",
+    "destinations": [
+      { "name": "Bangkok" },
+      { "name": "Chiang Mai" },
+      { "name": "Phuket" },
+      { "name": "Krabi" },
+      { "name": "Koh Samui" },
+      { "name": "Pattaya" },
+      { "name": "Ayutthaya" },
+      { "name": "Pai" }
+    ]
+  },
+  "VN": {
+    "countryName": "Vietnam",
+    "destinations": [
+      { "name": "Hanoi" },
+      { "name": "Ho Chi Minh City" },
+      { "name": "Ha Long Bay" },
+      { "name": "Hoi An" },
+      { "name": "Da Nang" },
+      { "name": "Sapa" },
+      { "name": "Nha Trang" },
+      { "name": "Mekong Delta" }
+    ]
+  },
+  "KH": {
+    "countryName": "Cambodia",
+    "destinations": [
+      { "name": "Siem Reap" },
+      { "name": "Phnom Penh" },
+      { "name": "Sihanoukville" },
+      { "name": "Kampot" },
+      { "name": "Kep" },
+      { "name": "Battambang" },
+      { "name": "Koh Rong" }
+    ]
+  }
+}
