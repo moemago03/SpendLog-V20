@@ -30,11 +30,13 @@ const mockLocations: { [key: string]: Coords } = {
     'cambogia': { lat: 12.5657, lon: 104.9910 },
     'italia': { lat: 41.8719, lon: 12.5674 },
     'bologna': { lat: 44.4949, lon: 11.3426 },
+    'phnom penh': { lat: 11.5564, lon: 104.9282 },
 };
 
 
 // In-memory cache for geocoding results to improve performance and avoid rate-limiting.
 const geocodeCache = new Map<string, Coords | null>();
+
 
 /**
  * Geocodes a location string to latitude and longitude using local mock data.
@@ -64,7 +66,20 @@ export const geocodeLocation = async (location: string): Promise<Coords | null> 
         }
     }
     
-    console.warn(`[Mock Geocoding] No coordinates found for: "${location}"`);
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        if (data && data.length > 0) {
+            const coords: Coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+            geocodeCache.set(normalizedLocation, coords);
+            return coords;
+        }
+    } catch (error) {
+        console.error(`[Live Geocoding] Failed for: "${location}"`, error);
+    }
+
+    console.warn(`[Geocoding] No coordinates found for: "${location}"`);
     geocodeCache.set(normalizedLocation, null);
     return null;
 };

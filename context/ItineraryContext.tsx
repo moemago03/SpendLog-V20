@@ -4,7 +4,8 @@ import { useData } from './DataContext';
 
 interface ItineraryContextProps {
     getEventsByTrip: (tripId: string) => Event[];
-    addEvent: (tripId: string, newEventData: Omit<Event, 'eventId'>) => void;
+    // FIX: Update addEvent signature to match the underlying DataContext implementation
+    addEvent: (tripId: string, newEventData: Omit<Event, 'eventId' | 'tripId'>) => void;
     updateEvent: (tripId: string, eventId: string, updates: Partial<Omit<Event, 'eventId'>>) => void;
     deleteEvent: (tripId: string, eventId: string) => void;
 }
@@ -20,7 +21,7 @@ export const ItineraryProvider: React.FC<{ children: ReactNode }> = ({ children 
         return trip?.events || [];
     }, [data]);
 
-    const addEvent = useCallback((tripId: string, newEventData: Omit<Event, 'eventId'>) => {
+    const addEvent = useCallback((tripId: string, newEventData: Omit<Event, 'eventId' | 'tripId'>) => {
         addEventToData(tripId, newEventData);
     }, [addEventToData]);
     

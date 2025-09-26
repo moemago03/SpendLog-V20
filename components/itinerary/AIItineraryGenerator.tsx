@@ -146,8 +146,8 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
 
     const handleAddSelectedEvents = () => {
         selectedEvents.forEach(event => {
-            addEvent({
-                tripId,
+            // FIX: Corrected addEvent call to pass tripId and event data as separate arguments.
+            addEvent(tripId, {
                 eventDate: selectedDate,
                 title: event.title,
                 type: event.type,

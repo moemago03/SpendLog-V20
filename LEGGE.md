@@ -1,67 +1,18 @@
-# LEGGE / STABILITY PACT (Regole per l'IA)
+# Patto di Stabilità Funzionalità (LEGGE)
 
-Questo file contiene una lista di funzionalità e comportamenti critici che DEVONO essere preservati durante qualsiasi modifica futura all'applicazione. Leggi e rispetta queste regole prima di apportare qualsiasi modifica.
+Questo documento serve a "mettere nero su bianco" le funzionalità chiave dell'applicazione che sono state ritenute essenziali dall'utente e che non devono essere rimosse o modificate sostanzialmente senza una discussione esplicita.
 
----
+## Pagina Piano (Plan Page)
 
-## 1. Home - Sezione "Spese" (Expenses Section)
+Le seguenti funzionalità della pagina "Plan" sono considerate fondamentali e devono essere sempre presenti e facilmente accessibili:
 
-### 1.1. Ordinamento delle Spese (Expense Sorting)
+1.  **Controlli `+` e `-` per le Notti:** Ogni tappa del viaggio deve avere controlli interattivi (come pulsanti `+` e `-`) per aumentare o diminuire rapidamente il numero di notti. La modifica deve aggiornare automaticamente le date delle tappe successive.
 
-- **Regola:** Le spese devono essere SEMPRE ordinate per data, dalla più recente alla meno recente. Non devono essere ordinate per data di inserimento.
-- **Rule:** Expenses must ALWAYS be sorted by date, from most recent to least recent. They must not be sorted by insertion order.
+2.  **Riepilogo Notti:** Un contatore ben visibile deve mostrare il totale delle notti pianificate rispetto al totale delle notti disponibili per il viaggio (es. "12 / 15 notti").
 
-### 1.2. Filtro Temporale a Tendina (Time Filter Dropdown)
+3.  **Pulsante "Parametri Alloggio":** Deve esserci un pulsante o un link chiaramente identificabile per accedere alla schermata dei filtri per la ricerca degli alloggi.
 
-- **Regola:** La sezione delle spese deve includere un menu a tendina per filtrare il periodo. Le opzioni devono essere: "Oggi", "Ieri", "Ultimi 7 giorni" e "Tutte".
-- **Rule:** The expenses section must include a dropdown menu to filter the time period. The options must be: 'Today', 'Yesterday', 'Last 7 days', and 'All'.
+## Autenticazione (Login)
 
-### 1.3. Barra di Ricerca (Search Bar)
-
-- **Regola:** La barra di ricerca deve mostrare un'icona "X" (o `close`) sul lato destro ogni volta che contiene del testo. Cliccando su questa "X", il campo di ricerca deve essere svuotato immediatamente.
-- **Rule:** The search bar must display an "X" (or `close`) icon on the right side whenever it contains text. Clicking this "X" must clear the search field immediately.
-
----
-
-## 2. Componenti Globali (Global Components)
-
-### 2.1. Convertitore di Valuta (Currency Converter)
-
-- **Regola:** Il Convertitore di Valuta DEVE essere implementato come un pulsante di azione mobile (FAB) accessibile globalmente e posizionato nell'angolo in basso a destra dello schermo. Non deve far parte delle schede di navigazione principali.
-- **Rule:** The Currency Converter MUST be implemented as a globally accessible floating action button (FAB) positioned in the bottom right corner of the screen. It should not be part of the main navigation tabs.
-
----
-
-## 3. Interfaccia Utente (User Interface)
-
-### 3.1. Moduli a Schermo Intero (Full-Screen Forms)
-
-- **Regola:** Tutti i moduli e i pannelli che richiedono un input significativo da parte dell'utente (es. Aggiungi Spesa, Convertitore Valuta, Filtri Avanzati, Pannello AI) DEVONO aprirsi a schermo intero per garantire un'esperienza coerente e priva di distrazioni.
-- **Rule:** All forms and panels that require significant user input (e.g., Add Expense, Currency Converter, Advanced Filters, AI Panel) MUST open in full-screen to ensure a consistent and distraction-free experience.
-
----
-
-## 4. Itinerario (Itinerary)
-
-### 4.1. Intestazione Vista (View Header)
-
-- **Regola:** L'intestazione della vista Itinerario deve mostrare il nome del viaggio, le date di inizio/fine formattate e la durata totale in giorni.
-- **Rule:** The Itinerary view header must show the trip name, formatted start/end dates, and the total duration in days.
-
-### 4.2. Vista Mese (Month View)
-
-- **Regola:** Nella vista a calendario mensile, devono essere visibili solo i giorni del mese selezionato. I giorni dei mesi adiacenti (precedente/successivo) devono essere nascosti, a meno che non contengano un evento di viaggio programmato.
-- **Rule:** In the month calendar view, only the days of the selected month must be visible. Days from adjacent months (previous/next) must be hidden, unless they contain a scheduled trip event.
-
----
-
-## 5. API & Servizi Esterni (APIs & External Services)
-
-### 5.1. API Meteo (Weather API)
-
-- **Regola:** Le chiamate all'API meteo (Open-Meteo) devono richiedere un intervallo di date non superiore a 9 giorni. Intervalli più lunghi possono causare errori HTTP 400 e il fallimento della richiesta.
-- **Rule:** Calls to the weather API (Open-Meteo) must request a date range no longer than 9 days. Longer ranges may cause HTTP 400 errors and request failure.
-
----
-**Non rimuovere o modificare queste regole senza il consenso esplicito dell'utente.**
-**Do not remove or modify these rules without explicit user consent.**
+1.  **Stato Attuale:** La schermata di login è **temporaneamente disabilitata** per semplificare lo sviluppo e i test. L'applicazione utilizza un utente predefinito per caricare i dati.
+2.  **Requisito Futuro:** Il sistema di login **deve essere riattivato** prima della pubblicazione (live/produzione) per garantire la sicurezza e la privacy dei dati utente.

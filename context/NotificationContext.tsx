@@ -19,7 +19,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
     const addNotification = useCallback((message: string, type: NotificationType) => {
-        const id = Date.now();
+        const id = Date.now() + Math.random(); // Add random number for uniqueness
         setNotifications(prev => [...prev, { id, message, type }]);
         setTimeout(() => {
             setNotifications(prev => prev.filter(n => n.id !== id));

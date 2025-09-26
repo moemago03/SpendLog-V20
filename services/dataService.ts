@@ -69,9 +69,10 @@ const getMockData = (password: string): UserData => {
                         startDate: dateToISOString(stage1Start),
                         nights: stage1Nights,
                         events: [
-                            { eventId: 'evt-today-1', eventDate: dateToISOString(eventDate1), title: 'Colazione al bar', type: 'Cibo', startTime: '08:30', endTime: '09:15', description: 'Cappuccino e cornetto per iniziare la giornata.', status: 'planned', location: 'Bar del Corso, Roma, Italia' },
-                            { eventId: 'evt-today-2', eventDate: dateToISOString(eventDate1), title: 'Visita al Museo d\'Arte', type: 'Attività', startTime: '10:00', endTime: '12:30', description: 'Mostra temporanea di arte moderna.', status: 'planned', location: 'Museo d\'Arte Moderna, Roma, Italia' },
-                            { eventId: 'evt-1', eventDate: dateToISOString(eventDate2), title: 'Grande Palazzo Reale', type: 'Attività', startTime: '09:00', endTime: '12:00', description: 'Visita il complesso di templi più sacro.', status: 'planned', location: 'Na Phra Lan Rd, Bangkok' },
+                            // FIX: Add tripId to all mock events
+                            { eventId: 'evt-today-1', tripId: 'mock-trip-1', eventDate: dateToISOString(eventDate1), title: 'Colazione al bar', type: 'Cibo', startTime: '08:30', endTime: '09:15', description: 'Cappuccino e cornetto per iniziare la giornata.', status: 'planned', location: 'Bar del Corso, Roma, Italia' },
+                            { eventId: 'evt-today-2', tripId: 'mock-trip-1', eventDate: dateToISOString(eventDate1), title: 'Visita al Museo d\'Arte', type: 'Attività', startTime: '10:00', endTime: '12:30', description: 'Mostra temporanea di arte moderna.', status: 'planned', location: 'Museo d\'Arte Moderna, Roma, Italia' },
+                            { eventId: 'evt-1', tripId: 'mock-trip-1', eventDate: dateToISOString(eventDate2), title: 'Grande Palazzo Reale', type: 'Attività', startTime: '09:00', endTime: '12:00', description: 'Visita il complesso di templi più sacro.', status: 'planned', location: 'Na Phra Lan Rd, Bangkok' },
                         ]
                     },
                     {
@@ -80,7 +81,7 @@ const getMockData = (password: string): UserData => {
                         startDate: dateToISOString(stage2Start),
                         nights: stage2Nights,
                         events: [
-                             { eventId: 'evt-3', eventDate: dateToISOString(stage2Start), title: 'Volo per Hanoi', type: 'Trasporti', startTime: '15:30', description: 'Volo BKK -> HAN, VietJet Air VJ902.', status: 'planned' },
+                             { eventId: 'evt-3', tripId: 'mock-trip-1', eventDate: dateToISOString(stage2Start), title: 'Volo per Hanoi', type: 'Trasporti', startTime: '15:30', description: 'Volo BKK -> HAN, VietJet Air VJ902.', status: 'planned' },
                         ]
                     },
                      {

@@ -1,5 +1,8 @@
 // types.ts
 
+// FIX: Moved AppView type here to avoid circular dependencies
+export type AppView = 'summary' | 'stats' | 'group' | 'itinerary' | 'profile' | 'plan';
+
 export interface UserData {
     name: string;
     email: string;
@@ -18,12 +21,24 @@ export interface Document {
     tripId: string;
 }
 
+export interface PlanItem {
+    id: string;
+    category: 'Sleep' | 'See & Do' | 'Eat & Drink' | 'Articles & Guides' | 'Notes';
+    title: string;
+    description?: string;
+    link?: string;
+    imageUrl?: string;
+    status: 'planned' | 'booked' | 'idea';
+}
+
 export interface Stage {
     id: string;
     location: string; // "City, Country"
     startDate: string; // YYYY-MM-DD
     nights: number;
     events?: Event[];
+    planItems?: PlanItem[];
+    notes?: string;
 }
 
 export interface Trip {
@@ -213,6 +228,8 @@ export interface CountryGuide {
 
 export interface Event {
     eventId: string;
+    // FIX: Add tripId to event to resolve type errors
+    tripId: string;
     eventDate: string; // YYYY-MM-DD
     endDate?: string; // YYYY-MM-DD for multi-day events
     title: string;

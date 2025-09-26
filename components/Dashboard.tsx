@@ -1,10 +1,8 @@
-
-
-
 import React from 'react';
 import { Trip, Expense } from '../types';
 import { useData } from '../context/DataContext';
-import { AppView } from '../App';
+// FIX: Updated import path for AppView to resolve circular dependency.
+import { AppView } from '../types';
 import LoadingScreen from './LoadingScreen';
 
 // Eagerly load components for instant tab switching

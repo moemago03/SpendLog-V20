@@ -78,6 +78,8 @@ const Checklist: React.FC<ChecklistProps> = ({ trip, onCreateExpense }) => {
                     <AIChecklistGenerator 
                         trip={trip}
                         onClose={() => setIsAIGeneratorOpen(false)}
+                        // FIX: Pass checklistView to provide context for adding items
+                        checklistView={checklistView}
                     />
                 </Suspense>
             )}

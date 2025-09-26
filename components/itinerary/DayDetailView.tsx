@@ -116,6 +116,8 @@ const DayDetailView: React.FC<DayDetailViewProps> = ({ tripId, selectedDate, onA
                             <EventCard
                                 key={event.eventId}
                                 event={event}
+                                // FIX: Pass the trip object to EventCard to resolve context issues
+                                trip={trip}
                                 onEdit={() => setEditingEvent(event)}
                                 onDelete={() => deleteEvent(trip.id, event.eventId)}
                                 onDuplicate={() => setDuplicatingEvent(event)}

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
-import { Trip, Expense, ChecklistItem } from './types';
+// FIX: Import AppView from types.ts to avoid circular dependencies.
+import { Trip, Expense, ChecklistItem, AppView } from './types';
 import { DataProvider, useData } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -17,7 +18,6 @@ import FloatingActionButtons from './components/layout/FloatingActionButtons';
 import Dashboard from './components/Dashboard';
 import ProfileScreen from './components/ProfileScreen';
 import ItineraryView from './components/itinerary/ItineraryView';
-import ExploreView from './components/explore/ExploreView';
 
 // Lazy load components that are not opened immediately
 const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
@@ -28,7 +28,7 @@ const PlanView = lazy(() => import('./components/plan/PlanView'));
 
 
 // The main views of the application
-export type AppView = 'summary' | 'stats' | 'group' | 'itinerary' | 'explore' | 'profile' | 'plan';
+// FIX: Moved AppView to types.ts to resolve circular dependency.
 
 const AppContent: React.FC = () => {
     const { data, loading, setDefaultTrip, addChecklistItem } = useData();
@@ -85,8 +85,6 @@ const AppContent: React.FC = () => {
                 return <Suspense fallback={<LoadingScreen />}><PlanView trip={activeTrip} onNavigate={setCurrentView} /></Suspense>;
             case 'itinerary':
                  return <ItineraryView trip={activeTrip} onAddExpense={setEditingExpense} />;
-            case 'explore':
-                return <ExploreView activeTrip={activeTrip} />;
             case 'profile':
                 return <ProfileScreen trips={data?.trips || []} activeTripId={activeTripId} onSetDefaultTrip={handleSetDefaultTrip} onLogout={handleLogout} />;
             default:
@@ -104,7 +102,6 @@ const AppContent: React.FC = () => {
                 activeView={currentView} 
                 onNavigate={setCurrentView} 
                 isTripActive={!!activeTrip}
-                hideNavBar={currentView === 'plan'}
             >
                 {renderView()}
             </MainLayout>
@@ -162,7 +159,12 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
-    // A simple auth state. "Password" becomes the user ID for data fetching.
+    // Login is temporarily disabled as per user request.
+    // A fixed user ID is used to fetch data. This will be re-enabled for production.
+    const user = 'default-user';
+
+    // Original login logic is commented out below for easy restoration.
+    /*
     const [user, setUser] = useState<string | null>(localStorage.getItem('vsc_user'));
 
     const handleLogin = (password: string) => {
@@ -174,6 +176,7 @@ const App: React.FC = () => {
     if (!user) {
         return <LoginScreen onLogin={handleLogin} />;
     }
+    */
 
     return (
         <ThemeProvider>

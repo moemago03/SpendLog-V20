@@ -29,6 +29,9 @@ const SettleDebtModal: React.FC<SettleDebtModalProps> = ({ trip, debt, onClose }
         const adjustmentData = {
             description: `Saldo: ${debt.from.name} -> ${debt.to.name}`,
             amount: numericAmount,
+            // FIX: Add missing category property to satisfy the Expense type.
+            // This will be overridden by addAdjustment but is required by the type.
+            category: '', 
             currency: trip.mainCurrency,
             date: new Date().toISOString(),
             paidById: debt.from.id,

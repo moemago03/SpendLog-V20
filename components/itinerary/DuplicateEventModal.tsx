@@ -19,7 +19,8 @@ const DuplicateEventModal: React.FC<DuplicateEventModalProps> = ({ trip, eventTo
     }, [trip.startDate, trip.endDate]);
 
     const handleSelectDate = (date: string) => { // date is YYYY-MM-DD
-        const { eventId, tripId, ...restOfEvent } = eventToDuplicate;
+        // FIX: Remove tripId from destructuring as it does not exist on Event type
+        const { eventId, ...restOfEvent } = eventToDuplicate;
         
         const newEventData = {
             ...restOfEvent,

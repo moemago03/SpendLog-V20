@@ -59,8 +59,8 @@ const AddToItineraryModal: React.FC<AddToItineraryModalProps> = ({ trip, attract
     const handleSelectDate = (date: string) => { // date is YYYY-MM-DD
         const estimatedCost = parseCost(attraction.estimatedCost, trip.mainCurrency);
 
-        addEvent({
-            tripId: trip.id,
+        // FIX: Corrected addEvent call to pass tripId and event data as separate arguments.
+        addEvent(trip.id, {
             eventDate: date,
             title: attraction.name,
             description: attraction.description,

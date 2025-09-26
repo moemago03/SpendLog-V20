@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Event, Expense, TripMember } from '../../types';
+import { Event, Expense, Trip, TripMember } from '../../types';
 import { useData } from '../../context/DataContext';
 import { getContrastColor } from '../../utils/colorUtils';
 import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
@@ -8,6 +8,7 @@ import TravelTimeEstimator from './TravelTimeEstimator';
 
 interface EventCardProps {
     event: Event;
+    trip: Trip;
     onEdit: () => void;
     onDelete: () => void;
     onDuplicate: () => void;
@@ -17,12 +18,10 @@ interface EventCardProps {
     nextEvent?: Event;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, onEdit, onDelete, onDuplicate, onAddExpense, isFirst, isLast, nextEvent }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, trip, onEdit, onDelete, onDuplicate, onAddExpense, isFirst, isLast, nextEvent }) => {
     const { data } = useData();
     const { formatCurrency } = useCurrencyConverter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    
-    const trip = useMemo(() => data.trips.find(t => t.id === event.tripId), [data.trips, event.tripId]);
     
     const linkedExpense = useMemo(() => {
         if (!trip || !trip.expenses) return null;

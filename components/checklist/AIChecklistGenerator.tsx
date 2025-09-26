@@ -12,9 +12,11 @@ interface AIResponseItem {
 interface AIChecklistGeneratorProps {
     trip: Trip;
     onClose: () => void;
+    // FIX: Add checklistView to determine if items are for personal or group list
+    checklistView: 'personal' | 'group';
 }
 
-const AIChecklistGenerator: React.FC<AIChecklistGeneratorProps> = ({ trip, onClose }) => {
+const AIChecklistGenerator: React.FC<AIChecklistGeneratorProps> = ({ trip, onClose, checklistView }) => {
     const { addChecklistFromTemplate } = useData();
     const { addNotification } = useNotification();
 
@@ -94,7 +96,8 @@ const AIChecklistGenerator: React.FC<AIChecklistGeneratorProps> = ({ trip, onClo
     const handleAddSelected = () => {
         const itemsToAdd = selectedItems.map(item => ({ text: item.text }));
         if (itemsToAdd.length > 0) {
-            addChecklistFromTemplate(trip.id, itemsToAdd);
+            // FIX: Pass the isGroupItem boolean as the third argument
+            addChecklistFromTemplate(trip.id, itemsToAdd, checklistView === 'group');
         }
         onClose();
     };

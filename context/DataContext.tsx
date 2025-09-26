@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
 // FIX: Import Stage to use in processing
-import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem, Stage } from '../types';
+import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem, Stage, PlanItem } from '../types';
 import { DEFAULT_CATEGORIES, ADJUSTMENT_CATEGORY } from '../constants';
 import { fetchData, saveData as saveCloudData, isDevelopmentEnvironment } from '../services/dataService';
 import { useNotification } from './NotificationContext';
@@ -18,7 +18,8 @@ interface DataContextProps {
     addExpense: (tripId: string, expense: Omit<Expense, 'id'>, checklistItemId?: string) => string;
     updateExpense: (tripId: string, expense: Expense) => void;
     deleteExpense: (tripId: string, expenseId: string) => void;
-    addAdjustment: (tripId: string, adjustment: Omit<Expense, 'id'>) => void;
+    // FIX: Update addAdjustment signature to not require category
+    addAdjustment: (tripId: string, adjustment: Omit<Expense, 'id' | 'category'>) => void;
     addCategory: (category: Omit<Category, 'id'>) => void;
     updateCategory: (category: Category) => void;
     deleteCategory: (categoryId: string) => void;
@@ -28,7 +29,7 @@ interface DataContextProps {
     deleteChecklistItem: (tripId: string, itemId: string) => void;
     addChecklistFromTemplate: (tripId: string, templateItems: { text: string }[], isGroupItem: boolean) => void;
     clearCompletedChecklistItems: (tripId: string) => void;
-    addEvent: (tripId: string, eventData: Omit<Event, 'eventId'>) => void;
+    addEvent: (tripId: string, eventData: Omit<Event, 'eventId' | 'tripId'>) => void;
     updateEvent: (tripId: string, eventId: string, updates: Partial<Omit<Event, 'eventId'>>) => void;
     deleteEvent: (tripId: string, eventId: string) => void;
     addDocument: (tripId: string, documentData: Omit<Document, 'id'>) => void;
@@ -36,7 +37,12 @@ interface DataContextProps {
     refetchData: () => Promise<void>;
     addStage: (tripId: string, newStageData: Omit<Stage, 'id' | 'startDate'>, afterStageId?: string | null) => void;
     updateStage: (tripId: string, updatedStage: Stage) => void;
+    updateStages: (tripId: string, stages: Stage[]) => void;
     deleteStage: (tripId: string, stageId: string) => void;
+    addPlanItem: (tripId: string, stageId: string, item: Omit<PlanItem, 'id'>) => void;
+    addPlanItems: (tripId: string, stageId: string, items: Omit<PlanItem, 'id'>[]) => void;
+    updatePlanItem: (tripId: string, stageId: string, item: PlanItem) => void;
+    deletePlanItem: (tripId: string, stageId: string, itemId: string) => void;
 }
 
 const DataContext = createContext<DataContextProps | undefined>(undefined);
@@ -88,7 +94,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
             const checklist = (trip.checklist || []).map(item => ({ ...item, isGroupItem: item.isGroupItem ?? false }));
             
             // FIX: Aggregate events from stages and derive trip properties to resolve type errors
-            const events = (trip.stages || []).flatMap((stage: Stage) => stage.events || []);
+            const events = (trip.stages || []).flatMap((stage: Stage) => stage.events || []).map(e => ({...e, tripId: trip.id}));
             const derivedProps = getTripProperties(trip);
 
             return {
@@ -201,7 +207,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         return newExpense.id;
     }, [data, saveData]);
     
-    const addAdjustment = useCallback((tripId: string, adjustment: Omit<Expense, 'id'>) => {
+    // FIX: Update addAdjustment signature to not require category
+    const addAdjustment = useCallback((tripId: string, adjustment: Omit<Expense, 'id' | 'category'>) => {
         if (!data) return;
         const newAdjustment: Expense = {
             ...adjustment,
@@ -290,8 +297,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         if (newData) saveData(newData, 'Elementi completati rimossi.');
     }, [data, saveData]);
     
-    const addEvent = useCallback((tripId: string, eventData: Omit<Event, 'eventId'>) => {
-        const newEvent: Event = { ...eventData, eventId: crypto.randomUUID() };
+    const addEvent = useCallback((tripId: string, eventData: Omit<Event, 'eventId' | 'tripId'>) => {
+        // FIX: Add tripId to the new event object to align with updated type
+        const newEvent: Event = { ...eventData, eventId: crypto.randomUUID(), tripId };
         const newData = updateTripData(tripId, trip => ({ ...trip, events: [...(trip.events || []), newEvent] }));
         if (newData) saveData(newData, 'Evento aggiunto.');
     }, [data, saveData]);
@@ -321,6 +329,52 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         if (newData) saveData(newData, 'Documento eliminato.');
     }, [data, saveData]);
 
+    const updateStageInTrip = (tripId: string, stageId: string, update: (stage: Stage) => Stage) => {
+        if (!data) return;
+        return updateTripData(tripId, trip => {
+            const newStages = (trip.stages || []).map(s => s.id === stageId ? update(s) : s);
+            return { ...trip, stages: newStages };
+        });
+    };
+
+    const addPlanItem = useCallback((tripId: string, stageId: string, itemData: Omit<PlanItem, 'id'>) => {
+        const newItem: PlanItem = { ...itemData, id: `plan-${Date.now()}` };
+        const newData = updateStageInTrip(tripId, stageId, stage => ({
+            ...stage,
+            planItems: [...(stage.planItems || []), newItem]
+        }));
+        if (newData) saveData(newData, 'Elemento aggiunto al piano.');
+    }, [data, saveData]);
+
+    const addPlanItems = useCallback((tripId: string, stageId: string, itemsData: Omit<PlanItem, 'id'>[]) => {
+        if (!data || itemsData.length === 0) return;
+        const newItems: PlanItem[] = itemsData.map((itemData, index) => ({
+            ...itemData,
+            id: `plan-${Date.now()}-${index}`
+        }));
+        const newData = updateStageInTrip(tripId, stageId, stage => ({
+            ...stage,
+            planItems: [...(stage.planItems || []), ...newItems]
+        }));
+        if (newData) saveData(newData, `${itemsData.length} elementi aggiunti al piano.`);
+    }, [data, saveData]);
+    
+    const updatePlanItem = useCallback((tripId: string, stageId: string, updatedItem: PlanItem) => {
+        const newData = updateStageInTrip(tripId, stageId, stage => ({
+            ...stage,
+            planItems: (stage.planItems || []).map(item => item.id === updatedItem.id ? updatedItem : item)
+        }));
+        if (newData) saveData(newData);
+    }, [data, saveData]);
+
+    const deletePlanItem = useCallback((tripId: string, stageId: string, itemId: string) => {
+        const newData = updateStageInTrip(tripId, stageId, stage => ({
+            ...stage,
+            planItems: (stage.planItems || []).filter(item => item.id !== itemId)
+        }));
+        if (newData) saveData(newData);
+    }, [data, saveData]);
+
     const addStage = useCallback((tripId: string, newStageData: Omit<Stage, 'id' | 'startDate'>, afterStageId?: string | null) => {
         const newData = updateTripData(tripId, trip => {
             const newStages = [...(trip.stages || [])];
@@ -339,8 +393,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
                 prevStageStartDate.setDate(prevStageStartDate.getDate() + prevStage.nights);
                 newStages[i].startDate = prevStageStartDate.toISOString().split('T')[0];
             }
-            const derivedProps = getTripProperties({ ...trip, stages: newStages });
-            return { ...trip, stages: newStages, ...derivedProps };
+            return { ...trip, stages: newStages };
         });
         if (newData) saveData(newData, 'Destinazione aggiunta.');
     }, [data, saveData]);
@@ -349,18 +402,41 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         const newData = updateTripData(tripId, trip => {
             const stageIndex = (trip.stages || []).findIndex(s => s.id === updatedStage.id);
             if (stageIndex === -1) return trip;
+            
             const newStages = [...trip.stages];
             newStages[stageIndex] = updatedStage;
+
+            // Always propagate date changes to subsequent stages.
             for (let i = stageIndex + 1; i < newStages.length; i++) {
                 const prevStage = newStages[i-1];
                 const prevStageStartDate = new Date(prevStage.startDate + 'T12:00:00Z');
                 prevStageStartDate.setDate(prevStageStartDate.getDate() + prevStage.nights);
                 newStages[i].startDate = prevStageStartDate.toISOString().split('T')[0];
             }
-            const derivedProps = getTripProperties({ ...trip, stages: newStages });
-            return { ...trip, stages: newStages, ...derivedProps };
+            return { ...trip, stages: newStages };
         });
         if (newData) saveData(newData);
+    }, [data, saveData]);
+    
+    const updateStages = useCallback((tripId: string, reorderedStages: Stage[]) => {
+        const newData = updateTripData(tripId, trip => {
+            const newStages = [...reorderedStages];
+            // Recalculate start dates based on the new order
+            for (let i = 0; i < newStages.length; i++) {
+                if (i === 0) {
+                    // The first stage always starts on the trip's start date
+                    newStages[i].startDate = trip.startDate.split('T')[0];
+                } else {
+                    // Subsequent stages start after the previous one ends
+                    const prevStage = newStages[i - 1];
+                    const prevStageStartDate = new Date(prevStage.startDate + 'T12:00:00Z');
+                    prevStageStartDate.setDate(prevStageStartDate.getDate() + prevStage.nights);
+                    newStages[i].startDate = prevStageStartDate.toISOString().split('T')[0];
+                }
+            }
+            return { ...trip, stages: newStages };
+        });
+        if (newData) saveData(newData); // No notification to keep UI quiet
     }, [data, saveData]);
 
     const deleteStage = useCallback((tripId: string, stageId: string) => {
@@ -384,15 +460,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
                     newStages[i].startDate = prevStageStartDate.toISOString().split('T')[0];
                 }
             }
-            const derivedProps = getTripProperties({ ...trip, stages: newStages });
-            return { ...trip, stages: newStages, ...derivedProps };
+            return { ...trip, stages: newStages };
         });
         if (newData) saveData(newData, 'Destinazione rimossa.');
     }, [data, saveData]);
 
     const refetchData = async () => { /* ... */ };
 
-    const value = { data, loading, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, deleteChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, deleteStage };
+    const value = { data, loading, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, deleteChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, updateStages, deleteStage, addPlanItem, addPlanItems, updatePlanItem, deletePlanItem };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 export const useData = () => { const context = useContext(DataContext); if (!context) throw new Error('useData must be used within a DataProvider'); if (!context.data && !context.loading) return { ...context, data: defaultUserData }; return context; };
