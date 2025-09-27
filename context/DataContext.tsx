@@ -137,7 +137,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
                 try {
                     const rawData = await fetchData(user);
                     setData(processFetchedData(rawData));
-                    setFirebaseStatus({ status: 'connected', message: 'Modalità Sviluppo: Dati Mock Caricati.' });
+                    setFirebaseStatus({ status: 'not_configured', message: 'Modalità Sviluppo: Dati Mock Caricati.' });
                 } catch (error: any) { console.error("Failed to load mock data", error); addNotification("Impossibile caricare i dati di prova.", 'error'); setData(defaultUserData); setFirebaseStatus({ status: 'error', message: `Caricamento dati mock fallito: ${error.message}` }); } finally { setLoading(false); }
             };
             loadMockData();
