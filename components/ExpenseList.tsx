@@ -2,16 +2,14 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Trip, Expense } from '../types';
 import { useData } from '../context/DataContext';
 import { useCurrencyConverter } from '../hooks/useCurrencyConverter';
-import { useVirtualList } from '../hooks/useVirtualList';
 
 interface ExpenseListProps {
     expenses: Expense[];
     trip: Trip;
-    // FIX: Changed type to Partial<Expense> to match the parent component's state.
     onEditExpense: (expense: Partial<Expense> | null) => void;
 }
 
-const ITEM_HEIGHT = 84; // Altezza totale per slot, inclusa la spaziatura
+const ITEM_HEIGHT = 84; // Approx height for one item
 
 const ExpenseItem: React.FC<{ 
     expense: Expense; 
@@ -20,9 +18,8 @@ const ExpenseItem: React.FC<{
     categoryIcon: string; 
     isSelected: boolean;
     onSelect: () => void;
-    positionerStyle: React.CSSProperties;
-    animationDelay: string;
-}> = React.memo(({ expense, onEdit, onDelete, categoryIcon, isSelected, onSelect, positionerStyle, animationDelay }) => {
+    style?: React.CSSProperties;
+}> = React.memo(({ expense, onEdit, onDelete, categoryIcon, isSelected, onSelect, style }) => {
     const { formatCurrency, convert } = useCurrencyConverter();
     const mainCurrency = 'EUR';
     
@@ -58,13 +55,12 @@ const ExpenseItem: React.FC<{
     };
     
     return (
-        <div 
-            className="absolute top-0 left-0 w-full"
-            style={{...positionerStyle, height: `${ITEM_HEIGHT}px` }}
+        <div
+            style={style}
+            className="p-1.5"
         >
             <div
-                className="p-3 rounded-3xl cursor-pointer transition-all duration-300 overflow-hidden bg-surface-variant animate-slide-in-up"
-                style={{ height: `${ITEM_HEIGHT - 12}px`, animationDelay }}
+                className="p-3 rounded-2xl cursor-pointer transition-all duration-300 overflow-hidden bg-surface-variant animate-slide-in-up"
                 onClick={handleClick}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -120,55 +116,43 @@ const ExpenseItem: React.FC<{
 });
 
 const ExpenseList: React.FC<ExpenseListProps> = ({ expenses, trip, onEditExpense }) => {
-    const { deleteExpense, data: { categories } } = useData();
+    const { deleteExpense, data } = useData();
+    const categories = data?.categories || [];
     const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
-    const listContainerRef = useRef<HTMLDivElement>(null);
-    
-    const { virtualItems, totalHeight } = useVirtualList({
-        itemCount: expenses.length,
-        itemHeight: ITEM_HEIGHT,
-        containerRef: listContainerRef
-    });
 
     const handleSelectExpense = useCallback((expenseId: string) => {
         setSelectedExpenseId(prevId => (prevId === expenseId ? null : expenseId));
     }, []);
 
     const handleDelete = useCallback((expenseId: string) => {
-        if (window.confirm("Sei sicuro di voler eliminare questa spesa?")) {
-            deleteExpense(trip.id, expenseId);
-            setSelectedExpenseId(null);
-        }
+        // No confirmation for faster testing, can be re-added.
+        deleteExpense(trip.id, expenseId);
+        setSelectedExpenseId(null);
     }, [deleteExpense, trip.id]);
 
-    const getCategoryIcon = (categoryName: string) => {
+    const getCategoryIcon = useCallback((categoryName: string) => {
         return categories.find(c => c.name === categoryName)?.icon || '💸';
-    }
+    }, [categories]);
     
     return (
-        <div ref={listContainerRef}>
+        <div className="-m-1.5">
             {expenses.length > 0 ? (
-                <div style={{ height: `${totalHeight}px` }} className="relative">
-                    {virtualItems.map(({ index, style }) => {
-                        const expense = expenses[index];
-                        if (!expense) return null;
-                        return (
-                            <ExpenseItem
-                                key={expense.id}
-                                expense={expense}
-                                onEdit={() => onEditExpense(expense)}
-                                onDelete={() => handleDelete(expense.id)}
-                                categoryIcon={getCategoryIcon(expense.category)}
-                                isSelected={selectedExpenseId === expense.id}
-                                onSelect={() => handleSelectExpense(expense.id)}
-                                positionerStyle={style}
-                                animationDelay={`${index * 30}ms`}
-                            />
-                        );
-                    })}
+                <div className="flow-root">
+                    {expenses.map((expense, index) => (
+                        <ExpenseItem
+                            key={expense.id} // The key is crucial for React's reconciliation
+                            expense={expense}
+                            onEdit={() => onEditExpense(expense)}
+                            onDelete={() => handleDelete(expense.id)}
+                            categoryIcon={getCategoryIcon(expense.category)}
+                            isSelected={selectedExpenseId === expense.id}
+                            onSelect={() => handleSelectExpense(expense.id)}
+                            style={{ animationDelay: `${index * 30}ms` }}
+                        />
+                    ))}
                 </div>
             ) : (
-                <div className="text-center py-12 px-4 bg-surface-variant rounded-3xl flex flex-col items-center justify-center h-full">
+                <div className="text-center py-12 px-4 bg-surface-variant rounded-3xl flex flex-col items-center justify-center h-full m-1.5">
                     <span className="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-4">receipt_long</span>
                     <p className="font-semibold text-on-surface-variant">Nessuna spesa trovata per questo periodo.</p>
                     <p className="text-sm text-on-surface-variant/80 mt-1">Aggiungi una nuova spesa usando il pulsante `+`!</p>

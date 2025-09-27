@@ -12,8 +12,10 @@ export const useCurrencyConverter = () => {
         const toRate = rates[toCurrency];
 
         if (!fromRate || !toRate) {
-            console.warn(`Cannot convert from ${fromCurrency} to ${toCurrency}. Rate not found.`);
-            return amount;
+            // If a rate is not found, log a warning and return 0 to prevent calculation errors and crashes.
+            // Returning the original amount would lead to incorrect totals.
+            console.warn(`Cannot convert from ${fromCurrency} to ${toCurrency}. Rate not found. The amount will be treated as 0.`);
+            return 0;
         }
 
         const amountInEur = amount / fromRate;

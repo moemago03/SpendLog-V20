@@ -1,4 +1,6 @@
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { auth } from './config';
 import { Trip, Expense, AppView } from './types';
 import { DataProvider, useData } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -13,33 +15,44 @@ import LoadingScreen from './components/LoadingScreen';
 import MainLayout from './components/layout/MainLayout';
 import NotificationContainer from './components/NotificationContainer';
 import FloatingActionButtons from './components/layout/FloatingActionButtons';
+import DebugMenu from './components/DebugMenu';
 
-// Eagerly load main components for faster navigation
+// Eagerly load main components
 import Dashboard from './components/Dashboard';
 import ProfileScreen from './components/ProfileScreen';
 import ItineraryView from './components/itinerary/ItineraryView';
-import ExploreView from './components/explore/ExploreView';
 
-// Lazy load components that are not opened immediately
+// Lazy load other components
 const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
 const AIPanel = lazy(() => import('./components/AIPanel'));
-const PackingPromptModal = lazy(() => import('./components/prompts/PackingPromptModal'));
 const ReceiptScanner = lazy(() => import('./components/ReceiptScanner'));
 const PlanView = lazy(() => import('./components/plan/PlanView'));
+const Statistics = lazy(() => import('./components/Statistics'));
+const GroupView = lazy(() => import('./components/GroupBalances'));
 
 const App: React.FC = () => {
-    const [user, setUser] = useState<string | null>(localStorage.getItem('vsc_user'));
+    const [user, setUser] = useState<User | null>(null);
+    const [loadingAuth, setLoadingAuth] = useState(true);
 
-    const handleLogin = useCallback((password: string) => {
-        const userId = `user-${password}`;
-        localStorage.setItem('vsc_user', userId);
-        setUser(userId);
+    useEffect(() => {
+        if (!auth) {
+            setLoadingAuth(false);
+            return;
+        }
+        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            setUser(firebaseUser);
+            setLoadingAuth(false);
+        });
+        return () => unsubscribe();
     }, []);
 
     const handleLogout = useCallback(() => {
-        localStorage.removeItem('vsc_user');
-        setUser(null);
+        auth?.signOut();
     }, []);
+
+    if (loadingAuth) {
+        return <LoadingScreen />;
+    }
 
     return (
         <ThemeProvider>
@@ -47,13 +60,13 @@ const App: React.FC = () => {
                 <CurrencyProvider>
                     <LocationProvider>
                         {user ? (
-                            <DataProvider user={user}>
+                            <DataProvider user={user.uid}>
                                 <ItineraryProvider>
-                                    <AppContent onLogout={handleLogout} />
+                                    <AuthenticatedApp user={user} onLogout={handleLogout} />
                                 </ItineraryProvider>
                             </DataProvider>
                         ) : (
-                            <LoginScreen onLogin={handleLogin} />
+                            <LoginScreen />
                         )}
                         <NotificationContainer />
                     </LocationProvider>
@@ -63,34 +76,27 @@ const App: React.FC = () => {
     );
 };
 
-// FIX: Destructure 'onLogout' from props to make it available within the component scope.
-const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
-    const { data, loading, setDefaultTrip, addChecklistItem } = useData();
+// This new component is wrapped by DataProvider, so it can use the useData hook.
+const AuthenticatedApp: React.FC<{ user: User; onLogout: () => void }> = ({ user, onLogout }) => {
+    const { data, loading, firebaseStatus, setDefaultTrip } = useData();
     const [currentView, setCurrentView] = useState<AppView>('summary');
     
-    // State for modals
-    const [editingExpense, setEditingExpense] = useState<Partial<Expense> & { checklistItemId?: string } | null>(null);
+    const [editingExpense, setEditingExpense] = useState<Partial<Expense> | null>(null);
     const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
-    const [packingPrompt, setPackingPrompt] = useState<{ tripId: string, itemName: string } | null>(null);
 
     const activeTripId = useMemo(() => {
         if (!data) return null;
         if (data.defaultTripId && data.trips.some(t => t.id === data.defaultTripId)) {
             return data.defaultTripId;
         }
-        if (data.trips.length > 0) {
-            const sortedTrips = [...data.trips].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-            return sortedTrips[0].id;
-        }
-        return null;
+        return data.trips[0]?.id || null;
     }, [data]);
 
     const activeTrip = useMemo(() => {
         return data?.trips.find(t => t.id === activeTripId) || null;
     }, [data?.trips, activeTripId]);
 
-    // Apply dynamic trip theme
     useEffect(() => {
         const themeStyle = document.getElementById('dynamic-trip-theme');
         if (themeStyle) {
@@ -110,71 +116,41 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
             }
         }
     }, [activeTrip?.color]);
-    
-    // Redirect to the profile view if there are no trips.
-    // This handles the initial load and the case where the last trip is deleted,
-    // ensuring the user always starts on a valid screen.
+
     useEffect(() => {
         if (!loading && (!data || data.trips.length === 0)) {
             setCurrentView('profile');
         }
     }, [data, loading]);
 
-    const handleSetDefaultTrip = useCallback((tripId: string) => {
-        setDefaultTrip(tripId);
-    }, [setDefaultTrip]);
-    
-    const handleShowPackingPrompt = (tripId: string, itemName: string) => {
-        setPackingPrompt({ tripId, itemName });
-    };
-
-    const handleConfirmPackingPrompt = () => {
-        if (packingPrompt) {
-            addChecklistItem(packingPrompt.tripId, packingPrompt.itemName, false);
-            setPackingPrompt(null);
-        }
-    };
-    
-    const handleScanComplete = (scannedExpense: Partial<Expense>) => {
-        setEditingExpense(scannedExpense);
-        setIsScannerOpen(false);
-    };
-
     const renderContent = () => {
+        if (loading && !data) return <LoadingScreen />;
+
         if (!activeTrip && data && data.trips.length > 0) {
             return (
                 <div className="p-4 text-center">
-                    <h2 className="text-xl font-semibold">Nessun viaggio attivo.</h2>
-                    <p className="text-on-surface-variant">Seleziona un viaggio dal tuo profilo per iniziare.</p>
+                    <h2 className="text-xl font-semibold">No active trip.</h2>
+                    <p className="text-on-surface-variant">Select a trip from your profile to get started.</p>
                 </div>
             );
         }
         
         const mainViews: { [key in AppView]?: React.ReactNode } = {
-            'summary': activeTrip && <Dashboard activeTripId={activeTrip.id} currentView={currentView} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />,
-            'stats': activeTrip && <Dashboard activeTripId={activeTrip.id} currentView={currentView} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />,
-            'group': activeTrip && <Dashboard activeTripId={activeTrip.id} currentView={currentView} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />,
+            'summary': activeTrip && <Dashboard activeTripId={activeTrip.id} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />,
             'itinerary': activeTrip && <ItineraryView trip={activeTrip} onAddExpense={setEditingExpense} />,
             'plan': activeTrip && <Suspense fallback={<LoadingScreen />}><PlanView trip={activeTrip} onNavigate={setCurrentView} /></Suspense>,
-            'profile': <ProfileScreen trips={data?.trips || []} activeTripId={activeTripId} onSetDefaultTrip={handleSetDefaultTrip} onLogout={onLogout} />
+            'stats': activeTrip && <Suspense fallback={<LoadingScreen />}><Statistics trip={activeTrip} expenses={activeTrip.expenses || []} /></Suspense>,
+            'group': activeTrip && <Suspense fallback={<LoadingScreen />}><GroupView trip={activeTrip} /></Suspense>,
+            'profile': <ProfileScreen trips={data?.trips || []} activeTripId={activeTripId} onSetDefaultTrip={setDefaultTrip} onLogout={onLogout} />
         };
         
-        // Handle no trips case
         if (!activeTrip && currentView !== 'profile') {
-             return (
-                 <div className="pt-20">
-                    <ProfileScreen trips={[]} activeTripId={null} onSetDefaultTrip={handleSetDefaultTrip} onLogout={onLogout} />
-                 </div>
-            );
+             return <ProfileScreen trips={[]} activeTripId={null} onSetDefaultTrip={setDefaultTrip} onLogout={onLogout} />;
         }
 
-        return mainViews[currentView] || <div>Vista non trovata</div>;
+        return mainViews[currentView] || <div>View not found</div>;
     };
 
-    if (loading) {
-        return <LoadingScreen />;
-    }
-    
     return (
         <>
             <MainLayout activeView={currentView} onNavigate={setCurrentView} isTripActive={!!activeTrip}>
@@ -189,14 +165,12 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                 />
             )}
 
-            {/* Modals */}
             <Suspense fallback={<div />}>
                 {editingExpense && activeTrip && (
                     <ExpenseForm 
                         expense={editingExpense} 
                         trip={activeTrip}
                         onClose={() => setEditingExpense(null)}
-                        onShowPackingPrompt={handleShowPackingPrompt}
                     />
                 )}
                 {isAIPanelOpen && activeTrip && (
@@ -206,21 +180,20 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
                         onClose={() => setIsAIPanelOpen(false)} 
                     />
                 )}
-                {isScannerOpen && activeTrip && (
+                {isScannerOpen && (
                     <ReceiptScanner 
-                        trip={activeTrip}
+                        trip={activeTrip!}
                         onClose={() => setIsScannerOpen(false)}
-                        onScanComplete={handleScanComplete}
-                    />
-                )}
-                 {packingPrompt && (
-                    <PackingPromptModal 
-                        itemName={packingPrompt.itemName}
-                        onConfirm={handleConfirmPackingPrompt}
-                        onClose={() => setPackingPrompt(null)}
+                        onScanComplete={(expense) => setEditingExpense(expense)}
                     />
                 )}
             </Suspense>
+
+            <DebugMenu 
+                user={user}
+                dataContext={{ data, loading, firebaseStatus }}
+                activeTripId={activeTripId}
+            />
         </>
     );
 };
