@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
-import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem, Stage, PlanItem, GroupMessage } from '../types';
+import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem, Stage, PlanItem, GroupMessage, AccommodationFilters } from '../types';
 import { DEFAULT_CATEGORIES, ADJUSTMENT_CATEGORY } from '../constants';
 import { useNotification } from './NotificationContext';
 import { db } from '../config';
@@ -46,6 +46,7 @@ interface DataContextProps {
     updateCategory: (category: Category) => void;
     deleteCategory: (categoryId: string) => void;
     setDefaultTrip: (tripId: string | null) => void;
+    updateAccommodationFilters: (filters: AccommodationFilters) => void; // ADDED THIS
     addChecklistItem: (tripId: string, text: string, isGroupItem: boolean) => void;
     updateChecklistItem: (tripId: string, item: ChecklistItem) => void;
     deleteChecklistItem: (tripId: string, itemId: string) => void;
@@ -81,6 +82,12 @@ const defaultUserData: UserData = {
     dataviaggio: '',
     trips: [],
     categories: DEFAULT_CATEGORIES,
+    accommodationFilters: { // ADDED THIS
+        propertyTypes: [],
+        reviewScore: null,
+        distance: null,
+        entirePlace: false,
+    }
 };
 
 interface DataProviderProps {
@@ -99,7 +106,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
 
     const processFetchedData = (fetchedData: UserData | null): UserData => {
         if (!fetchedData) return defaultUserData;
-        let processedData = { ...fetchedData };
+
+        // Ensure accommodationFilters exists
+        const accommodationFilters = fetchedData.accommodationFilters || defaultFilters.accommodationFilters;
+
+        let processedData = { ...fetchedData, accommodationFilters };
         if (!processedData.categories || processedData.categories.length === 0) processedData.categories = DEFAULT_CATEGORIES;
         const defaultIds = new Set(DEFAULT_CATEGORIES.map(c => c.id));
         const missingDefaults = DEFAULT_CATEGORIES.filter(dc => !processedData.categories.some(uc => uc.id === dc.id));
@@ -125,14 +136,26 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
             });
             const checklist = (trip.checklist || []).map(item => ({ ...item, isGroupItem: item.isGroupItem ?? false }));
             
+            const stages = (trip.stages || []).map(stage => {
+                const planItems = (stage.planItems || []).map(item => ({
+                    ...item,
+                    address: item.address || undefined,
+                    checkInDate: item.checkInDate || undefined,
+                    checkOutDate: item.checkOutDate || undefined,
+                    bookingDetails: item.bookingDetails || undefined,
+                }));
+                return { ...stage, planItems };
+            });
+
             const events = (trip.stages || []).flatMap((stage: Stage) => stage.events || []).map(e => ({...e, tripId: trip.id}));
-            const derivedProps = getTripProperties(trip);
+            const derivedProps = getTripProperties({ ...trip, stages });
 
             return {
                 ...trip,
                 members,
                 expenses,
                 checklist,
+                stages,
                 events: events,
                 documents: trip.documents || [],
                 pinboardItems: trip.pinboardItems || [],
@@ -223,6 +246,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         return newData;
       });
     }, [saveData, addNotification]);
+
+    // ADDED THIS FUNCTION
+    const updateAccommodationFilters = useCallback((filters: AccommodationFilters) => {
+        updateAndSaveData(currentData => ({
+            ...currentData,
+            accommodationFilters: filters,
+        }), 'Filtri alloggio salvati.');
+    }, [updateAndSaveData]);
 
     const addTrip = useCallback((tripData: Omit<Trip, 'id' | 'expenses' | 'events' | 'documents' | 'checklist' | 'frequentExpenses' | 'pinboardItems' | 'groupMessages' | 'stages' | 'members'>) => {
         updateAndSaveData(currentData => {
@@ -390,9 +421,18 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
 
     const refetchData = async () => {};
 
-    const value = { data, loading, firebaseStatus, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, updateStages, deleteStage, addPlanItem, addPlanItems, updatePlanItem, deletePlanItem, addPinboardItem, updatePinboardItem, deletePinboardItem, addGroupMessage, updateGroupMessage, deleteGroupMessage, deleteChecklistItem };
+    const value = { data, loading, firebaseStatus, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, updateAccommodationFilters, addChecklistItem, updateChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, updateStages, deleteStage, addPlanItem, addPlanItems, updatePlanItem, deletePlanItem, addPinboardItem, updatePinboardItem, deletePinboardItem, addGroupMessage, updateGroupMessage, deleteGroupMessage, deleteChecklistItem };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+};
+
+const defaultFilters: { accommodationFilters: AccommodationFilters } = {
+    accommodationFilters: {
+        propertyTypes: [],
+        reviewScore: null,
+        distance: null,
+        entirePlace: false,
+    }
 };
 
 export const useData = () => {

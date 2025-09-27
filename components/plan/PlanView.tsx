@@ -5,6 +5,7 @@ import PlanMapView from './PlanMapView';
 import { getTripDurationDays, dateToISOString } from '../../utils/dateUtils';
 import { STAGE_COLORS } from '../../constants';
 import { useNotification } from '../../context/NotificationContext';
+import { useIonAlert } from '@ionic/react';
 
 
 // Lazy load modals for better performance
@@ -99,6 +100,7 @@ interface PlanViewProps {
 
 const PlanView: React.FC<PlanViewProps> = ({ trip }) => {
     const { updateStage, deleteStage, deletePinboardItem } = useData();
+    const [presentAlert] = useIonAlert();
     const [modal, setModal] = useState<'closed' | 'addDest' | 'viewStage' | 'findStay' | 'accommodationFilters'>('closed');
     const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
     const [addAfterStageId, setAddAfterStageId] = useState<string | null>(null);
@@ -116,9 +118,23 @@ const PlanView: React.FC<PlanViewProps> = ({ trip }) => {
     };
 
     const handleDeleteStage = (stageId: string) => {
-        if (window.confirm("Sei sicuro di voler rimuovere questa destinazione?")) {
-            deleteStage(trip.id, stageId);
-        }
+        presentAlert({
+            header: 'Conferma Eliminazione',
+            message: 'Sei sicuro di voler rimuovere questa destinazione?',
+            buttons: [
+                {
+                    text: 'Annulla',
+                    role: 'cancel',
+                },
+                {
+                    text: 'Elimina',
+                    role: 'destructive',
+                    handler: () => {
+                        deleteStage(trip.id, stageId);
+                    },
+                },
+            ],
+        });
     };
     
     const totalTripNights = useMemo(() => {

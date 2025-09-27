@@ -1,13 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useData } from '../context/DataContext';
 
-export interface AccommodationFilters {
-    propertyTypes: string[];
-    reviewScore: number | null;
-    distance: number | null;
-    entirePlace: boolean;
-}
-
-const LOCAL_STORAGE_KEY = 'vsc_accommodation_filters';
+// The structure is already defined in types.ts, so we can import it.
+import { AccommodationFilters } from '../types';
 
 const defaultFilters: AccommodationFilters = {
     propertyTypes: [],
@@ -17,29 +12,25 @@ const defaultFilters: AccommodationFilters = {
 };
 
 export const useAccommodationFilters = () => {
-    const [filters, setFilters] = useState<AccommodationFilters>(() => {
-        try {
-            const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-            return stored ? JSON.parse(stored) : defaultFilters;
-        } catch (error) {
-            console.error("Failed to load accommodation filters from storage", error);
-            return defaultFilters;
-        }
-    });
+    const { data, updateAccommodationFilters } = useData();
 
+    // The filters are now read directly from the synchronized user data.
+    // If they don't exist, we use the default values.
+    const filters = data?.accommodationFilters || defaultFilters;
+
+    // The saveFilters function now calls the central update function from DataContext.
     const saveFilters = useCallback((newFilters: AccommodationFilters) => {
-        try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newFilters));
-            setFilters(newFilters);
-        } catch (error) {
-            console.error("Failed to save accommodation filters", error);
+        if (updateAccommodationFilters) { // check if function exists before calling
+            updateAccommodationFilters(newFilters);
         }
-    }, []);
+    }, [updateAccommodationFilters]);
     
+    // The resetFilters function also uses the central update function.
     const resetFilters = useCallback(() => {
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-        setFilters(defaultFilters);
-    }, []);
+        if (updateAccommodationFilters) { // check if function exists before calling
+            updateAccommodationFilters(defaultFilters);
+        }
+    }, [updateAccommodationFilters]);
 
     return { filters, saveFilters, resetFilters };
 };

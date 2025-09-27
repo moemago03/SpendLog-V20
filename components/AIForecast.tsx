@@ -56,11 +56,6 @@ const AIForecast: React.FC<AIForecastProps> = ({ expenses, trip }) => {
     }, [expenses, trip, convert]);
 
     const generateForecast = async () => {
-        // RIABILITARE API GEMINI: Rimuovere le prossime 3 righe per riattivare la funzionalità.
-        setError("Funzionalità AI disabilitata in ambiente di sviluppo.");
-        setIsLoading(false);
-        return;
-
         if (!analysisData) {
             setError("Non ci sono abbastanza dati o il viaggio è terminato.");
             return;
@@ -72,8 +67,7 @@ const AIForecast: React.FC<AIForecastProps> = ({ expenses, trip }) => {
 
         try {
             const { GoogleGenAI, Type } = await import('@google/genai');
-            // FIX: The API key is sourced from an environment variable per guidelines.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",

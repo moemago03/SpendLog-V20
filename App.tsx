@@ -16,6 +16,7 @@ import MainLayout from './components/layout/MainLayout';
 import NotificationContainer from './components/NotificationContainer';
 import FloatingActionButtons from './components/layout/FloatingActionButtons';
 import DebugMenu from './components/DebugMenu';
+import PrivacyPolicy from './PrivacyPolicy';
 
 // Eagerly load main components
 import Dashboard from './components/Dashboard';
@@ -33,6 +34,7 @@ const GroupView = lazy(() => import('./components/GroupBalances'));
 const App: React.FC = () => {
     const [user, setUser] = useState<User | null>(null);
     const [loadingAuth, setLoadingAuth] = useState(true);
+    const [showingPrivacy, setShowingPrivacy] = useState(false);
 
     useEffect(() => {
         if (!auth) {
@@ -54,6 +56,10 @@ const App: React.FC = () => {
         return <LoadingScreen />;
     }
 
+    if (showingPrivacy) {
+        return <PrivacyPolicy onBack={() => setShowingPrivacy(false)} />;
+    }
+
     return (
         <ThemeProvider>
             <NotificationProvider>
@@ -66,7 +72,7 @@ const App: React.FC = () => {
                                 </ItineraryProvider>
                             </DataProvider>
                         ) : (
-                            <LoginScreen />
+                            <LoginScreen onShowPrivacy={() => setShowingPrivacy(true)} />
                         )}
                         <NotificationContainer />
                     </LocationProvider>

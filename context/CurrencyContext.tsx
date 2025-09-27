@@ -17,6 +17,7 @@ interface CurrencyContextProps {
 const CurrencyContext = createContext<CurrencyContextProps | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = 'vsc_exchange_rates';
+const API_URL = 'https://open.er-api.com/v6/latest/EUR';
 
 export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [rates, setRates] = useState<{ [key: string]: number }>(MOCK_EXCHANGE_RATES);
@@ -24,46 +25,72 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [isUpdating, setIsUpdating] = useState(false);
     const { addNotification } = useNotification();
 
-    useEffect(() => {
-        // On initial load, try to get rates from local storage for offline use.
+    const updateRates = useCallback(async (isSilent = false) => {
+        setIsUpdating(true);
         try {
-            const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (storedData) {
-                const parsedData: ExchangeRates = JSON.parse(storedData);
-                setRates(parsedData.rates);
-                setLastUpdated(parsedData.lastUpdated);
+            const response = await fetch(API_URL);
+            if (!response.ok) {
+                throw new Error('Network response was not ok for exchange rates.');
+            }
+            const data = await response.json();
+
+            if (data.result === 'success') {
+                const newRates = data.rates;
+                const newLastUpdated = new Date().toISOString();
+
+                const dataToStore: ExchangeRates = {
+                    rates: newRates,
+                    lastUpdated: newLastUpdated
+                };
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToStore));
+                setRates(newRates);
+                setLastUpdated(newLastUpdated);
+                if (!isSilent) {
+                    addNotification('Tassi di cambio aggiornati con successo.', 'success');
+                }
+            } else {
+                throw new Error('API did not return success for exchange rates.');
             }
         } catch (error) {
-            console.error("Failed to load exchange rates from local storage", error);
-            // Fallback to mocks is already handled by initial state
-        }
-    }, []);
-
-    const updateRates = useCallback(async () => {
-        setIsUpdating(true);
-        // In a real app, this would be an API call.
-        // We'll simulate it with a short delay.
-        await new Promise(resolve => setTimeout(resolve, 500)); 
-
-        const newRates = MOCK_EXCHANGE_RATES; // The "fetched" data
-        const newLastUpdated = new Date().toISOString();
-
-        try {
-            const dataToStore: ExchangeRates = {
-                rates: newRates,
-                lastUpdated: newLastUpdated
-            };
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToStore));
-            setRates(newRates);
-            setLastUpdated(newLastUpdated);
-            addNotification('Tassi di cambio aggiornati.', 'success');
-        } catch (error) {
-            console.error("Failed to save exchange rates to local storage", error);
-            addNotification("Impossibile salvare i tassi di cambio aggiornati.", 'error');
+            console.error("Failed to fetch or save exchange rates:", error);
+            if (!isSilent) {
+                addNotification("Impossibile aggiornare i tassi. Verranno usati dati offline.", 'warning');
+            }
         } finally {
             setIsUpdating(false);
         }
     }, [addNotification]);
+
+    useEffect(() => {
+        const initializeAndRefreshRates = async () => {
+            const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedData) {
+                try {
+                    const parsedData: ExchangeRates = JSON.parse(storedData);
+                    setRates(parsedData.rates);
+                    setLastUpdated(parsedData.lastUpdated);
+
+                    const lastUpdatedDate = new Date(parsedData.lastUpdated);
+                    const now = new Date();
+                    const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+                    if (now.getTime() - lastUpdatedDate.getTime() > oneDay) {
+                        // Data is stale, update in the background silently
+                        await updateRates(true);
+                    }
+                } catch (error) {
+                    console.error("Corrupted exchange rate data in local storage. Refetching...", error);
+                    localStorage.removeItem(LOCAL_STORAGE_KEY);
+                    await updateRates(true); // Fetch fresh data silently
+                }
+            } else {
+                // No data in storage, fetch immediately
+                await updateRates(true);
+            }
+        };
+
+        initializeAndRefreshRates();
+    }, [updateRates]);
 
     const value = { rates, lastUpdated, isUpdating, updateRates };
 

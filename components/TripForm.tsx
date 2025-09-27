@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-// FIX: Import Stage type
 import { Trip, FrequentExpense, CategoryBudget, TripMember, Stage } from '../types';
-import { COUNTRIES_CURRENCIES, ALL_CURRENCIES, TRIP_CARD_COLORS } from '../constants';
+import { TRIP_CARD_COLORS } from '../constants';
 import { useNotification } from '../context/NotificationContext';
 
 interface TripFormProps {
@@ -10,11 +9,20 @@ interface TripFormProps {
     onClose: () => void;
 }
 
+interface CountryData {
+    name: string;
+    code: string;
+    currency: string;
+}
+
 const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
     const { addTrip, updateTrip, data } = useData();
     const { addNotification } = useNotification();
+
+    const [allCountries, setAllCountries] = useState<CountryData[]>([]);
+    const [allCurrencies, setAllCurrencies] = useState<string[]>([]);
+
     const [name, setName] = useState(trip?.name || '');
-    // FIX: Use optional chaining to prevent error if trip.startDate is undefined
     const [startDate, setStartDate] = useState(trip?.startDate?.split('T')[0] || '');
     const [endDate, setEndDate] = useState(trip?.endDate?.split('T')[0] || '');
     const [totalBudget, setTotalBudget] = useState(trip?.totalBudget || 0);
@@ -25,12 +33,29 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
         trip ? [...new Set([...trip.preferredCurrencies, trip.mainCurrency])] : ['EUR']
     );
     
-    // Group expenses state
     const [members, setMembers] = useState<TripMember[]>(trip?.members || []);
     const [newMemberName, setNewMemberName] = useState('');
 
     const [enableCategoryBudgets, setEnableCategoryBudgets] = useState(trip?.enableCategoryBudgets || false);
     const [categoryBudgets, setCategoryBudgets] = useState<CategoryBudget[]>(trip?.categoryBudgets || []);
+
+    useEffect(() => {
+        const fetchCountryData = async () => {
+            try {
+                const response = await fetch('/data/countries.json');
+                const data: CountryData[] = await response.json();
+                data.sort((a, b) => a.name.localeCompare(b.name));
+                setAllCountries(data);
+                
+                const uniqueCurrencies = Array.from(new Set(data.map(c => c.currency))).sort();
+                setAllCurrencies(uniqueCurrencies);
+            } catch (error) {
+                console.error("Failed to fetch countries data", error);
+                addNotification("Impossibile caricare l'elenco dei paesi.", 'error');
+            }
+        };
+        fetchCountryData();
+    }, [addNotification]);
 
     const totalAllocatedBudget = useMemo(() => {
         return categoryBudgets.reduce((sum, b) => sum + (b.amount || 0), 0);
@@ -58,7 +83,6 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
         setMembers(members.filter(m => m.id !== memberId));
     };
 
-
     const handleCategoryBudgetChange = (categoryName: string, amountStr: string) => {
         const amount = parseFloat(amountStr) || 0;
         const existing = categoryBudgets.find(b => b.categoryName === categoryName);
@@ -77,14 +101,14 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
         }
     }, [mainCurrency, preferredCurrencies]);
 
-    const handleCountryChange = (country: string) => {
-        const newCountries = countries.includes(country)
-            ? countries.filter(c => c !== country)
-            : [...countries, country];
+    const handleCountryChange = (countryName: string) => {
+        const newCountries = countries.includes(countryName)
+            ? countries.filter(c => c !== countryName)
+            : [...countries, countryName];
         setCountries(newCountries);
 
-        const newSuggestedCurrencies = newCountries.map(c => COUNTRIES_CURRENCIES[c]).filter(Boolean);
-        const newPreferred = [...new Set([mainCurrency, ...newSuggestedCurrencies, ...preferredCurrencies])];
+        const countryCurrencies = newCountries.map(name => allCountries.find(c => c.name === name)?.currency).filter(Boolean) as string[];
+        const newPreferred = [...new Set([mainCurrency, ...countryCurrencies, ...preferredCurrencies])];
         setPreferredCurrencies(newPreferred);
     };
     
@@ -109,14 +133,13 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
             return;
         }
         
-        // FIX: Create a stages array from form data to satisfy the Trip type.
         const start = new Date(startDate);
         const end = new Date(endDate);
         const nights = Math.max(0, Math.round((end.getTime() - start.getTime()) / (1000 * 3600 * 24)));
 
         const newStages: Stage[] = [{
             id: trip?.stages?.[0]?.id || `stage-${Date.now()}`,
-            location: countries.join(', '), // Best guess for location
+            location: countries.join(', '),
             startDate: startDate,
             nights: nights,
         }];
@@ -130,7 +153,7 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
             mainCurrency,
             preferredCurrencies: [...new Set([...preferredCurrencies, mainCurrency])],
             color,
-            members, // Add members to trip data
+            members,
             enableCategoryBudgets,
             categoryBudgets: enableCategoryBudgets ? categoryBudgets.filter(b => b.amount > 0) : [],
             stages: newStages,
@@ -147,9 +170,18 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
     const inputClasses = "mt-1 block w-full bg-surface-variant border-transparent rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-primary";
     const labelClasses = "block text-sm font-medium text-on-surface-variant";
 
+    if (allCountries.length === 0) {
+        return (
+            <div className="fixed inset-0 bg-background z-50 flex items-center justify-center">
+                <span className="material-symbols-outlined animate-spin">progress_circular</span>
+                <p className='ml-2'>Caricamento dati...</p>
+            </div>
+        );
+    }
+
     return (
         <div className="fixed inset-0 bg-background z-50 flex flex-col animate-[slide-up_0.3s_ease-out]">
-            <header className="flex items-center p-4 flex-shrink-0 border-b border-surface-variant">
+             <header className="flex items-center p-4 flex-shrink-0 border-b border-surface-variant">
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-surface-variant">
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
@@ -182,13 +214,13 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
                         <div>
                            <label className={labelClasses}>Valuta Principale</label>
                            <select value={mainCurrency} onChange={e => setMainCurrency(e.target.value)} required className={inputClasses}>
-                                {ALL_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                {allCurrencies.map(c => <option key={c} value={c}>{c}</option>)}
                            </select>
                         </div>
                     </div>
                      <div>
                         <label className={labelClasses}>Membri del Viaggio</label>
-                        {members.length === 0 && (
+                         {members.length === 0 && (
                             <p className="text-xs text-on-surface-variant mt-2 p-2 bg-secondary-container/30 rounded-lg">
                                 Aggiungi i partecipanti al viaggio, iniziando da te! Questo è fondamentale per dividere le spese.
                             </p>
@@ -218,10 +250,10 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
                     <div>
                         <label className={labelClasses}>Paesi Visitati</label>
                         <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                            {Object.keys(COUNTRIES_CURRENCIES).map(country => (
-                                <label key={country} className="flex items-center space-x-2 p-2 border border-outline rounded-lg cursor-pointer hover:bg-surface-variant">
-                                    <input type="checkbox" checked={countries.includes(country)} onChange={() => handleCountryChange(country)} className="focus:ring-primary h-4 w-4 text-primary border-outline rounded"/>
-                                    <span className="text-sm">{country}</span>
+                            {allCountries.map(country => (
+                                <label key={country.code} className="flex items-center space-x-2 p-2 border border-outline rounded-lg cursor-pointer hover:bg-surface-variant">
+                                    <input type="checkbox" checked={countries.includes(country.name)} onChange={() => handleCountryChange(country.name)} className="focus:ring-primary h-4 w-4 text-primary border-outline rounded"/>
+                                    <span className="text-sm">{country.name}</span>
                                 </label>
                             ))}
                         </div>
@@ -230,7 +262,7 @@ const TripForm: React.FC<TripFormProps> = ({ trip, onClose }) => {
                         <label className={labelClasses}>Valute Preferite</label>
                          <p className="text-xs text-on-surface-variant">Seleziona le valute che userai. La valuta principale è sempre inclusa.</p>
                         <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                            {ALL_CURRENCIES.map(currency => (
+                            {allCurrencies.map(currency => (
                                 <label key={currency} className={`flex items-center space-x-2 p-2 border rounded-lg transition-colors ${currency === mainCurrency ? 'bg-surface-variant cursor-not-allowed' : 'cursor-pointer hover:bg-surface-variant'}`}>
                                     <input type="checkbox" checked={preferredCurrencies.includes(currency)} onChange={() => handlePreferredCurrencyChange(currency)} disabled={currency === mainCurrency} className="focus:ring-primary h-4 w-4 text-primary border-outline rounded"/>
                                     <span className="text-sm">{currency}</span>

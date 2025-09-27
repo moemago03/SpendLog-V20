@@ -20,9 +20,6 @@ const poiDetailCache = new Map<string, PoiDetail | null>();
  * @returns A promise resolving to WikiInfo object or null if not found.
  */
 export const fetchCityInfo = async (cityName: string): Promise<WikiInfo | null> => {
-    // RIABILITARE API WIKI: Rimuovere la riga sottostante per riattivare le informazioni sulla città.
-    return null;
-
     const normalizedCity = cityName.toLowerCase().trim();
     if (wikiCache.has(normalizedCity)) {
         return wikiCache.get(normalizedCity)!;
@@ -63,9 +60,6 @@ export const fetchCityInfo = async (cityName: string): Promise<WikiInfo | null> 
  * @returns The page title string or null.
  */
 const getWikipediaTitleFromWikidataId = async (wikidataId: string): Promise<string | null> => {
-    // RIABILITARE API WIKI: Rimuovere la riga sottostante.
-    return null;
-
     const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidataId}&props=sitelinks&format=json&origin=*`;
     try {
         const response = await fetch(url);
@@ -86,9 +80,6 @@ const getWikipediaTitleFromWikidataId = async (wikidataId: string): Promise<stri
  * @returns A promise resolving to a PoiDetail object or null.
  */
 export const fetchPoiDetails = async (poi: Poi): Promise<PoiDetail | null> => {
-    // RIABILITARE API WIKI: Rimuovere la riga sottostante.
-    return null;
-
     const cacheKey = poi.id || poi.name.toLowerCase().trim();
     if (poiDetailCache.has(cacheKey)) {
         return poiDetailCache.get(cacheKey)!;

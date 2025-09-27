@@ -3,6 +3,13 @@
 // FIX: Moved AppView type here to avoid circular dependencies
 export type AppView = 'summary' | 'stats' | 'group' | 'itinerary' | 'profile' | 'plan';
 
+export interface AccommodationFilters {
+    propertyTypes: string[];
+    reviewScore: number | null;
+    distance: number | null;
+    entirePlace: boolean;
+}
+
 export interface UserData {
     name: string;
     email: string;
@@ -10,6 +17,7 @@ export interface UserData {
     trips: Trip[];
     categories: Category[];
     defaultTripId?: string;
+    accommodationFilters?: AccommodationFilters; // ADDED THIS LINE
 }
 
 export interface Document {
@@ -29,6 +37,11 @@ export interface PlanItem {
     link?: string;
     imageUrl?: string;
     status: 'planned' | 'booked' | 'idea';
+    // Accommodation-specific fields
+    address?: string;
+    checkInDate?: string; // YYYY-MM-DD
+    checkOutDate?: string; // YYYY-MM-DD
+    bookingDetails?: string;
 }
 
 export interface Stage {

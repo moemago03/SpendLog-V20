@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "859713826525",
+    "project_id": "spendlog-cafa2",
+    "storage_bucket": "spendlog-cafa2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:859713826525:android:44ed8dff21deb6e1afb534",
+        "android_client_info": {
+          "package_name": "com.spendilog.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "859713826525-32eec24v15heole20l1cv0drqqbf3f1i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spendilog.app",
+            "certificate_hash": "f6690f46548bc250529ed8a940a5c89e866eb68f"
+          }
+        },
+        {
+          "client_id": "859713826525-ui2qjsef9hqfm5oagjk148h3b9nheu78.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCmkGU-LmoD3SRC1X9bT8GpK_kdxbogOA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "859713826525-ui2qjsef9hqfm5oagjk148h3b9nheu78.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

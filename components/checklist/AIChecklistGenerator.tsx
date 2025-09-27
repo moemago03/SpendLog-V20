@@ -31,20 +31,13 @@ const AIChecklistGenerator: React.FC<AIChecklistGeneratorProps> = ({ trip, onClo
     }, [trip]);
 
     const handleGenerate = async () => {
-        // RIABILITARE API GEMINI: Rimuovere le prossime 4 righe per riattivare la funzionalità.
-        setError("Funzionalità AI disabilitata in ambiente di sviluppo.");
-        setIsLoading(false);
-        addNotification("Funzionalità AI disabilitata.", 'info');
-        return;
-
         setIsLoading(true);
         setError(null);
         setGeneratedItems([]);
         setSelectedItems([]);
 
         try {
-            // FIX: The API key is sourced from an environment variable per guidelines.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",

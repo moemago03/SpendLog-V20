@@ -20,7 +20,6 @@ const Checklist = lazy(() => import('../Checklist'));
 const AIItineraryGenerator = lazy(() => import('./AIItineraryGenerator'));
 const DocumentHub = lazy(() => import('./DocumentHub'));
 
-
 const MonthView: React.FC<{
     displayDate: Date;
     trip: Trip;
@@ -245,24 +244,25 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     
     useEffect(() => {
         const fetchWeatherData = async () => {
-            // RIABILITARE API METEO: Rimuovere le prossime 2 righe per riattivare le previsioni.
-            setWeatherData(new Map());
-            return;
-
+            console.log("DEBUG: [Weather] Starting fetchWeatherData function.");
             const locationForWeather = userLocation?.city || trip.countries?.[0];
+            console.log(`DEBUG: [Weather] Location for weather fetch: ${locationForWeather}`);
 
             if (!locationForWeather) {
+                console.log("DEBUG: [Weather] No location available, aborting fetch.");
                 setWeatherData(new Map());
                 return;
             }
 
+            console.log(`DEBUG: [Weather] Geocoding location: ${locationForWeather}`);
             const coords = await geocodeLocation(locationForWeather);
 
             if (!coords) {
-                console.error(`Could not geocode location: ${locationForWeather}`);
+                console.error(`DEBUG: [Weather] Could not geocode location: ${locationForWeather}`);
                 setWeatherData(new Map());
                 return;
             }
+            console.log(`DEBUG: [Weather] Geocoded coordinates:`, coords);
             
             try {
                 const { lat, lon } = coords;
@@ -273,32 +273,34 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                 const tripStart = new Date(trip.startDate.split('T')[0] + 'T00:00:00Z');
                 const tripEnd = new Date(trip.endDate.split('T')[0] + 'T23:59:59Z');
 
-                // If trip is over, don't fetch weather
                 if (today > tripEnd) {
+                    console.log("DEBUG: [Weather] Trip is in the past, not fetching weather data.");
                     setWeatherData(new Map());
                     return;
                 }
 
-                // API start date is today or trip start date, whichever is later
                 const apiStartDate = today > tripStart ? today : tripStart;
-
-                // API end date limit is 8 days from API start date (inclusive, for a total of 9 days)
                 const apiEndDateLimit = new Date(apiStartDate);
                 apiEndDateLimit.setDate(apiEndDateLimit.getDate() + 8);
-
-                // API end date is the earlier of the trip end date and our 9-day limit
                 const apiEndDate = apiEndDateLimit < tripEnd ? apiEndDateLimit : tripEnd;
                 
                 const startDateParam = dateToISOString(apiStartDate);
                 const endDateParam = dateToISOString(apiEndDate);
 
                 const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,weathercode&start_date=${startDateParam}&end_date=${endDateParam}&timezone=auto`;
+                console.log(`DEBUG: [Weather] Fetching weather from URL: ${weatherUrl}`);
+                
                 const weatherResponse = await fetch(weatherUrl);
 
-                if (!weatherResponse.ok) throw new Error(`Weather API request failed with status ${weatherResponse.status}`);
+                if (!weatherResponse.ok) {
+                    throw new Error(`Weather API request failed with status ${weatherResponse.status}`);
+                }
                 
                 const weatherApiData = await weatherResponse.json();
+                console.log("DEBUG: [Weather] Successfully received data from API:", weatherApiData);
+
                 if (!weatherApiData?.daily?.time) {
+                    console.log("DEBUG: [Weather] API response is missing expected data, setting empty weather map.");
                     setWeatherData(new Map());
                     return;
                 }
@@ -319,11 +321,12 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                         });
                     }
                 }
+                console.log("DEBUG: [Weather] Processed and setting new weather data map:", newWeatherData);
                 setWeatherData(newWeatherData);
 
             } catch (error) {
-                console.error("Failed to fetch weather data:", error);
-                setWeatherData(new Map());
+                console.error("DEBUG: [Weather] Failed to fetch or process weather data:", error);
+                setWeatherData(new Map()); // Set to empty on error to avoid stale data
             }
         };
 
@@ -412,7 +415,7 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
                                     <h3 className="text-lg font-bold text-center w-40 capitalize">{displayDateForMonth.toLocaleString('it-IT', { month: 'long', year: 'numeric' })}</h3>
                                     <button onClick={() => handleNavigation(1)} disabled={isNextMonthNavDisabled} className="p-2 rounded-full hover:bg-surface-variant disabled:opacity-30"><span className="material-symbols-outlined">chevron_right</span></button>
                                 </div>
-                                <div className="flex items-center gap-2 p-1 bg-surface-variant rounded-full mt-3 sm:mt-0">
+                                <div className="flex items-center gap-1 p-1 bg-surface-variant rounded-full mt-3 sm:mt-0">
                                     <CalendarFilterButton filterType="3days" label="3d" />
                                     <CalendarFilterButton filterType="7days" label="7d" />
                                     <CalendarFilterButton filterType="10days" label="10d" />

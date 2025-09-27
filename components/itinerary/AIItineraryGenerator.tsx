@@ -48,8 +48,6 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
     const [dayStyle, setDayStyle] = useState<string | null>(null);
 
     useEffect(() => {
-        // Pre-fill prompt with location context, but only if it's empty
-        // to avoid overwriting user input.
         if (location?.city && !prompt) {
             setPrompt(`Una giornata a ${location.city}, visitando i luoghi più famosi.`);
         }
@@ -60,12 +58,6 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
     }, [data.categories]);
 
     const handleGenerate = async () => {
-        // RIABILITARE API GEMINI: Rimuovere le prossime 4 righe per riattivare la funzionalità.
-        setError("Funzionalità AI disabilitata in ambiente di sviluppo.");
-        setIsLoading(false);
-        addNotification("Funzionalità AI disabilitata.", 'info');
-        return;
-
         if (!prompt.trim()) return;
         setIsLoading(true);
         setError(null);
@@ -73,8 +65,7 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
         setSelectedEvents([]);
 
         try {
-            // FIX: The API key is sourced from an environment variable per guidelines.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
             let contextPrompt = `Basandoti sulla richiesta "${prompt}", genera una lista di eventi per un itinerario di viaggio.`;
             if (location?.city) {
@@ -92,6 +83,8 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
             
             const baseInstruction = `Gli orari devono essere plausibili. Il tipo di evento deve essere uno dei seguenti: ${itineraryCategories.join(', ')}. Rispondi in italiano.`;
             const finalContents = `${contextPrompt}${weatherContext} ${baseInstruction}`;
+
+            console.log("DEBUG: [Gemini] Sending prompt to AI:", finalContents);
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
@@ -126,6 +119,7 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
                 jsonString = jsonString.substring(7, jsonString.length - 3).trim();
             }
             const result = JSON.parse(jsonString);
+            console.log("DEBUG: [Gemini] Received and parsed response:", result);
 
             if (result.events && result.events.length > 0) {
                 const sortedEvents = result.events.sort((a: GeneratedEvent, b: GeneratedEvent) => (a.startTime || "99:99").localeCompare(b.startTime || "99:99"));
@@ -135,7 +129,7 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
                 throw new Error("L'AI non ha generato eventi validi. Prova a essere più specifico.");
             }
         } catch (e: any) {
-            console.error("Error generating itinerary:", e);
+            console.error("DEBUG: [Gemini] Error generating itinerary:", e);
             setError(e.message || "Si è verificato un errore. Riprova.");
         } finally {
             setIsLoading(false);

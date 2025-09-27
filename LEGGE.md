@@ -14,49 +14,47 @@ Le seguenti funzionalità della pagina "Plan" sono considerate fondamentali e de
 
 ## Autenticazione (Login)
 
-1.  **Stato Attuale:** La schermata di login è **temporaneamente disabilitata** per semplificare lo sviluppo e i test. L'applicazione utilizza un utente predefinito per caricare i dati.
-2.  **Requisito Futuro:** Il sistema di login **deve essere riattivato** prima della pubblicazione (live/produzione) per garantire la sicurezza e la privacy dei dati utente.
+1.  **Stato Attuale:** Il sistema di login, precedentemente disabilitato per facilitare lo sviluppo, è **in fase di riattivazione**. Stiamo implementando l'accesso tramite account Google.
+2.  **Requisito Futuro:** Il sistema di login deve essere pienamente operativo per garantire la sicurezza e la privacy dei dati utente.
 
-## API Disabilitate in Sviluppo
+## Funzionalità AI (Google Gemini)
 
-Per migliorare le prestazioni e la velocità di sviluppo in ambienti come Google Studio, le seguenti API esterne sono state temporaneamente disabilitate. Prima di passare in produzione, è **fondamentale** riabilitarle seguendo le istruzioni fornite.
+1.  **Stato Attuale:** Le funzionalità basate su Intelligenza Artificiale (come analisi, previsioni, generazione di itinerari e checklist) sono **attive e operative**.
+2.  **Configurazione:** Utilizzano una Chiave API gestita tramite variabili d'ambiente (`.env.production`) e configurata per accettare richieste esclusivamente dal dominio di produzione.
 
-### 1. Google Gemini API (Intelligenza Artificiale)
+---
 
-- **Scopo:** Funzionalità AI come analisi, previsioni, generazione di itinerari e checklist, aggiunta rapida di spese, scansione ricevute.
-- **Stato:** Disabilitata.
-- **Come riabilitare:** In ogni file elencato di seguito, cercare il commento `// RIABILITARE API GEMINI` e rimuovere la linea di codice `return;` o il blocco di codice che impedisce l'esecuzione della chiamata API.
-- **File interessati:**
-  - `components/AIForecast.tsx` (in `generateForecast`)
-  - `components/AIInsights.tsx` (in `generateInsights`)
-  - `components/checklist/AIChecklistGenerator.tsx` (in `handleGenerate`)
-  - `components/itinerary/AIItineraryGenerator.tsx` (in `handleGenerate`)
-  - `components/itinerary/TravelTimeEstimator.tsx` (in `fetchTravelTime`)
-  - `components/QuickExpense.tsx` (in `handleAddExpense`)
-  - `components/ReceiptScanner.tsx` (in `handleCapture`)
+## Architettura e Configurazioni Chiave
 
-### 2. API Geografiche (OpenStreetMap/Nominatim)
+Questa sezione documenta decisioni architetturali e passaggi di configurazione non standard che sono vitali per la manutenibilità e la ricostruzione del progetto.
 
-- **Scopo:** Convertire indirizzi in coordinate per visualizzare le mappe.
-- **Stato:** Disabilitata (utilizza solo dati mock interni).
-- **Come riabilitare:** Nel file `services/mapService.ts`, cercare il commento `// RIABILITARE API GEOGRAFICHE` e decommentare il blocco `try...catch` che contiene la chiamata `fetch` a Nominatim.
-- **File interessato:**
-  - `services/mapService.ts` (in `geocodeLocation`)
+### 1. Configurazione Google Sign-In (Android)
 
-### 3. API Meteo (Open-Meteo)
+Per far funzionare l'autenticazione Google su Android, sono necessari due passaggi manuali che non sono tracciati da Git:
 
-- **Scopo:** Fornire previsioni meteo per l'itinerario.
-- **Stato:** Disabilitata.
-- **Come riabilitare:** Nel file `components/itinerary/ItineraryView.tsx`, cercare il commento `// RIABILITARE API METEO` all'interno della funzione `fetchWeatherData` e rimuovere la riga `setWeatherData(new Map()); return;`.
-- **File interessato:**
-  - `components/itinerary/ItineraryView.tsx` (in `useEffect` -> `fetchWeatherData`)
+- **Keystore:** È necessario generare un file `debug.keystore` (o usare quello esistente) per ottenere una firma digitale **SHA-1**.
+- **`google-services.json`**: Questo file, generato dalla console Firebase/Google Cloud, deve essere ottenuto registrando l'app Android (`com.spendilog.app`) e la sua firma SHA-1. Il file deve essere posizionato in `android/app/google-services.json`.
 
-### 4. API Wiki (Wikipedia, Wikidata, Wikivoyage)
+**ATTENZIONE:** Senza questo file, la build Android non potrà autenticarsi con Google, anche se compila con successo.
 
-- **Scopo:** Recuperare informazioni su città, punti di interesse e guide di viaggio.
-- **Stato:** Disabilitate.
-- **Come riabilitare:** In ogni file di servizio elencato, cercare il commento `// RIABILITARE API WIKI` e rimuovere la riga `return ...;` che impedisce l'esecuzione della chiamata `fetch`.
-- **File interessati:**
-  - `services/guideService.ts` (in `fetchGuidesForCity`)
-  - `services/poiService.ts` (in `fetchPoisForCity`)
-  - `services/wikiService.ts` (in `fetchCityInfo`, `getWikipediaTitleFromWikidataId`, `fetchPoiDetails`)
+### 2. Sistema di Routing Personalizzato
+
+L'applicazione **non utilizza un router standard** come `react-router` o `IonRouterOutlet`. La navigazione all'interno dell'app autenticata è gestita da un sistema personalizzato basato sullo stato di React, che si trova in `App.tsx`.
+
+- **Componente Principale:** `AuthenticatedApp` in `App.tsx`.
+- **Logica di Routing:** La variabile di stato `currentView` determina quale componente principale visualizzare (`Dashboard`, `ItineraryView`, `ProfileScreen`, etc.).
+- **Aggiungere una Vista:** Per aggiungere una nuova schermata principale, è necessario modificare il tipo `AppView` (in `types.ts`) e aggiungere la nuova vista all'oggetto `mainViews` nella funzione `renderContent` di `AuthenticatedApp`.
+
+### 3. Implementazione della Privacy Policy
+
+La pagina della Privacy Policy è implementata con una logica di rendering condizionale direttamente in `App.tsx`.
+
+- **Attivazione:** Un link nella `LoginScreen.tsx` imposta lo stato `showingPrivacy` a `true` nel componente `App`.
+- **Visualizzazione:** Quando `showingPrivacy` è `true`, l'intero flusso dell'app viene sostituito dal componente `PrivacyPolicy`.
+- **Uscita:** Il componente `PrivacyPolicy` riceve una funzione `onBack` che reimposta lo stato `showingPrivacy` a `false`, riportando l'utente alla schermata di login.
+
+### 4. Convenzioni UI/UX
+
+Per mantenere un'esperienza utente coerente e un aspetto nativo, si è deciso di preferire i componenti dell'interfaccia utente forniti da Ionic.
+
+- **Esempio:** I dialoghi di conferma (alert) devono essere implementati utilizzando l'hook `useIonAlert` da `@ionic/react` invece della funzione `window.confirm()` del browser. Questo garantisce che i dialoghi abbiano lo stesso stile del resto dell'applicazione.

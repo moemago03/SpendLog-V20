@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Trip } from '../../types';
 import { useLocation } from '../../context/LocationContext';
 import { dateToISOString } from '../../utils/dateUtils';
@@ -8,8 +8,8 @@ interface WeatherDebugWidgetProps {
 }
 
 const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
-    // This is a debug component, not intended for the final UI.
-    const DEBUG_MODE = false; 
+    // This is a debug component. Set to true to show it in the UI.
+    const DEBUG_MODE = true; 
     const { location, isLoadingLocation, locationError } = useLocation();
 
     const locationForWeather = useMemo(() => {
@@ -35,6 +35,15 @@ const WeatherDebugWidget: React.FC<WeatherDebugWidgetProps> = ({ trip }) => {
         return `${dateToISOString(apiStartDate)} to ${dateToISOString(apiEndDate)}`;
 
     }, [trip.startDate, trip.endDate]);
+
+    // ADDED: Console logs for debugging
+    useEffect(() => {
+        if (DEBUG_MODE) {
+            console.log('[Weather Debug] Status:', isLoadingLocation ? 'Loading location...' : (locationError || 'Location OK'));
+            console.log('[Weather Debug] Location for fetch:', locationForWeather);
+            console.log('[Weather Debug] Calculated Date Range:', dateRange);
+        }
+    }, [isLoadingLocation, locationError, locationForWeather, dateRange]);
 
 
     if (!DEBUG_MODE) {
