@@ -28,10 +28,13 @@ const InAppBrowser: React.FC<InAppBrowserProps> = ({ url, onClose }) => {
                     {isLoading && <p className="text-xs text-on-surface-variant">Caricamento...</p>}
                 </div>
                 <div className="flex items-center">
+                    <button onClick={handleRefresh} className="p-2 rounded-full hover:bg-surface-variant" aria-label="Aggiorna">
+                        <span className="material-symbols-outlined text-base">refresh</span>
+                    </button>
                     <a href={url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-full hover:bg-surface-variant" aria-label="Apri nel browser">
                         <span className="material-symbols-outlined text-base">open_in_new</span>
                     </a>
-                </button>
+                </div>
             </header>
 
             {/* Iframe for content */}
