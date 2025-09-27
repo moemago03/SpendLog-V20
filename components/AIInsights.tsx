@@ -40,6 +40,11 @@ const AIInsights: React.FC<AIInsightsProps> = ({ expenses, trip }) => {
     }, [expenses, trip.mainCurrency, convert]);
 
     const generateInsights = async () => {
+        // RIABILITARE API GEMINI: Rimuovere le prossime 3 righe per riattivare la funzionalità.
+        setError("Funzionalità AI disabilitata in ambiente di sviluppo.");
+        setIsLoading(false);
+        return;
+
         if (!dataSummary) {
             setError("Non ci sono abbastanza dati per un'analisi significativa.");
             return;

@@ -15,6 +15,9 @@ const guideCache = new Map<string, Guide[]>();
  * @returns A promise that resolves to an array of guides.
  */
 export const fetchGuidesForCity = async (cityName: string): Promise<Guide[]> => {
+    // RIABILITARE API WIKI: Rimuovere la riga sottostante per riattivare la ricerca di guide.
+    return [];
+
     const normalizedCity = cityName.toLowerCase().trim();
     if (guideCache.has(normalizedCity)) {
         return guideCache.get(normalizedCity)!;

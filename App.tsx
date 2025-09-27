@@ -1,12 +1,12 @@
-import React, { useState, useMemo, lazy, Suspense, useCallback } from 'react';
-// FIX: Import AppView from types.ts to avoid circular dependencies.
-import { Trip, Expense, ChecklistItem, AppView } from './types';
+import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
+import { Trip, Expense, AppView } from './types';
 import { DataProvider, useData } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ItineraryProvider } from './context/ItineraryContext';
 import { LocationProvider } from './context/LocationContext';
+import { getContrastColor, hexToRgba } from './utils/colorUtils';
 
 import LoginScreen from './components/LoginScreen';
 import LoadingScreen from './components/LoadingScreen';
@@ -18,6 +18,7 @@ import FloatingActionButtons from './components/layout/FloatingActionButtons';
 import Dashboard from './components/Dashboard';
 import ProfileScreen from './components/ProfileScreen';
 import ItineraryView from './components/itinerary/ItineraryView';
+import ExploreView from './components/explore/ExploreView';
 
 // Lazy load components that are not opened immediately
 const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
@@ -26,37 +27,106 @@ const PackingPromptModal = lazy(() => import('./components/prompts/PackingPrompt
 const ReceiptScanner = lazy(() => import('./components/ReceiptScanner'));
 const PlanView = lazy(() => import('./components/plan/PlanView'));
 
+const App: React.FC = () => {
+    const [user, setUser] = useState<string | null>(localStorage.getItem('vsc_user'));
 
-// The main views of the application
-// FIX: Moved AppView to types.ts to resolve circular dependency.
+    const handleLogin = useCallback((password: string) => {
+        const userId = `user-${password}`;
+        localStorage.setItem('vsc_user', userId);
+        setUser(userId);
+    }, []);
 
-const AppContent: React.FC = () => {
+    const handleLogout = useCallback(() => {
+        localStorage.removeItem('vsc_user');
+        setUser(null);
+    }, []);
+
+    return (
+        <ThemeProvider>
+            <NotificationProvider>
+                <CurrencyProvider>
+                    <LocationProvider>
+                        {user ? (
+                            <DataProvider user={user}>
+                                <ItineraryProvider>
+                                    <AppContent onLogout={handleLogout} />
+                                </ItineraryProvider>
+                            </DataProvider>
+                        ) : (
+                            <LoginScreen onLogin={handleLogin} />
+                        )}
+                        <NotificationContainer />
+                    </LocationProvider>
+                </CurrencyProvider>
+            </NotificationProvider>
+        </ThemeProvider>
+    );
+};
+
+// FIX: Destructure 'onLogout' from props to make it available within the component scope.
+const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
     const { data, loading, setDefaultTrip, addChecklistItem } = useData();
-    
-    // State for UI management
     const [currentView, setCurrentView] = useState<AppView>('summary');
+    
+    // State for modals
     const [editingExpense, setEditingExpense] = useState<Partial<Expense> & { checklistItemId?: string } | null>(null);
     const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
-    const [isScanningReceipt, setIsScanningReceipt] = useState(false);
-    
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [packingPrompt, setPackingPrompt] = useState<{ tripId: string, itemName: string } | null>(null);
 
-    const activeTripId = useMemo(() => data?.defaultTripId || data?.trips[0]?.id || null, [data]);
-    const activeTrip = useMemo(() => data?.trips.find(t => t.id === activeTripId) || null, [data, activeTripId]);
+    const activeTripId = useMemo(() => {
+        if (!data) return null;
+        if (data.defaultTripId && data.trips.some(t => t.id === data.defaultTripId)) {
+            return data.defaultTripId;
+        }
+        if (data.trips.length > 0) {
+            const sortedTrips = [...data.trips].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+            return sortedTrips[0].id;
+        }
+        return null;
+    }, [data]);
 
-    const handleSetDefaultTrip = (tripId: string) => {
-        setDefaultTrip(tripId);
-    };
+    const activeTrip = useMemo(() => {
+        return data?.trips.find(t => t.id === activeTripId) || null;
+    }, [data?.trips, activeTripId]);
+
+    // Apply dynamic trip theme
+    useEffect(() => {
+        const themeStyle = document.getElementById('dynamic-trip-theme');
+        if (themeStyle) {
+            if (activeTrip?.color) {
+                const primary = activeTrip.color;
+                const onPrimary = getContrastColor(primary);
+                const primaryContainer = hexToRgba(primary, 0.2);
+                themeStyle.innerHTML = `
+                    :root {
+                        --trip-primary: ${primary};
+                        --trip-on-primary: ${onPrimary};
+                        --trip-primary-container: ${primaryContainer};
+                    }
+                `;
+            } else {
+                themeStyle.innerHTML = '';
+            }
+        }
+    }, [activeTrip?.color]);
     
-    const handleLogout = () => {
-        // In this mock setup, we clear local storage and reload to show the login screen.
-        localStorage.removeItem('vsc_user');
-        window.location.reload();
-    };
+    // Reset view to profile if there are no trips.
+    useEffect(() => {
+        if (!loading && (!data || data.trips.length === 0)) {
+            setCurrentView('profile');
+        } else if (!loading && currentView === 'profile' && data && data.trips.length > 0) {
+            setCurrentView('summary');
+        }
+    }, [data, loading, currentView]);
 
-    const handleShowPackingPrompt = useCallback((tripId: string, itemName: string) => {
+    const handleSetDefaultTrip = useCallback((tripId: string) => {
+        setDefaultTrip(tripId);
+    }, [setDefaultTrip]);
+    
+    const handleShowPackingPrompt = (tripId: string, itemName: string) => {
         setPackingPrompt({ tripId, itemName });
-    }, []);
+    };
 
     const handleConfirmPackingPrompt = () => {
         if (packingPrompt) {
@@ -64,135 +134,94 @@ const AppContent: React.FC = () => {
             setPackingPrompt(null);
         }
     };
-
+    
     const handleScanComplete = (scannedExpense: Partial<Expense>) => {
         setEditingExpense(scannedExpense);
-        setIsScanningReceipt(false);
+        setIsScannerOpen(false);
     };
 
-    const renderView = () => {
-        if (!activeTrip) {
-            // If no trip is selected or exists, default to profile view to create one
-            return <ProfileScreen trips={data?.trips || []} activeTripId={activeTripId} onSetDefaultTrip={handleSetDefaultTrip} onLogout={handleLogout} />;
+    const renderContent = () => {
+        if (!activeTrip && data && data.trips.length > 0) {
+            return (
+                <div className="p-4 text-center">
+                    <h2 className="text-xl font-semibold">Nessun viaggio attivo.</h2>
+                    <p className="text-on-surface-variant">Seleziona un viaggio dal tuo profilo per iniziare.</p>
+                </div>
+            );
         }
         
-        switch (currentView) {
-            case 'summary':
-            case 'stats':
-            case 'group':
-                return <Dashboard activeTripId={activeTrip.id} currentView={currentView} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />;
-            case 'plan':
-                return <Suspense fallback={<LoadingScreen />}><PlanView trip={activeTrip} onNavigate={setCurrentView} /></Suspense>;
-            case 'itinerary':
-                 return <ItineraryView trip={activeTrip} onAddExpense={setEditingExpense} />;
-            case 'profile':
-                return <ProfileScreen trips={data?.trips || []} activeTripId={activeTripId} onSetDefaultTrip={handleSetDefaultTrip} onLogout={handleLogout} />;
-            default:
-                return <Dashboard activeTripId={activeTrip.id} currentView="summary" setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />;
+        const mainViews: { [key in AppView]?: React.ReactNode } = {
+            'summary': activeTrip && <Dashboard activeTripId={activeTrip.id} currentView={currentView} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />,
+            'stats': activeTrip && <Dashboard activeTripId={activeTrip.id} currentView={currentView} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />,
+            'group': activeTrip && <Dashboard activeTripId={activeTrip.id} currentView={currentView} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />,
+            'itinerary': activeTrip && <ItineraryView trip={activeTrip} onAddExpense={setEditingExpense} />,
+            'plan': activeTrip && <Suspense fallback={<LoadingScreen />}><PlanView trip={activeTrip} onNavigate={setCurrentView} /></Suspense>,
+            'profile': <ProfileScreen trips={data?.trips || []} activeTripId={activeTripId} onSetDefaultTrip={handleSetDefaultTrip} onLogout={onLogout} />
+        };
+        
+        // Handle no trips case
+        if (!activeTrip && currentView !== 'profile') {
+             return (
+                 <div className="pt-20">
+                    <ProfileScreen trips={[]} activeTripId={null} onSetDefaultTrip={handleSetDefaultTrip} onLogout={onLogout} />
+                 </div>
+            );
         }
+
+        return mainViews[currentView] || <div>Vista non trovata</div>;
     };
 
-    if (loading && !data) {
+    if (loading) {
         return <LoadingScreen />;
     }
-
+    
     return (
         <>
-            <MainLayout 
-                activeView={currentView} 
-                onNavigate={setCurrentView} 
-                isTripActive={!!activeTrip}
-            >
-                {renderView()}
+            <MainLayout activeView={currentView} onNavigate={setCurrentView} isTripActive={!!activeTrip}>
+                {renderContent()}
             </MainLayout>
-
-            {currentView === 'summary' && activeTrip && (
-                 <FloatingActionButtons
+            
+            {activeTrip && currentView !== 'profile' && (
+                <FloatingActionButtons 
                     onAddExpense={() => setEditingExpense({})}
                     onAIPanelOpen={() => setIsAIPanelOpen(true)}
-                    onScanReceipt={() => setIsScanningReceipt(true)}
-                 />
+                    onScanReceipt={() => setIsScannerOpen(true)}
+                />
             )}
 
-            {editingExpense && activeTrip && (
-                 <Suspense fallback={<div/>}>
+            {/* Modals */}
+            <Suspense fallback={<div />}>
+                {editingExpense && activeTrip && (
                     <ExpenseForm 
                         expense={editingExpense} 
-                        trip={activeTrip} 
-                        onClose={() => setEditingExpense(null)} 
+                        trip={activeTrip}
+                        onClose={() => setEditingExpense(null)}
                         onShowPackingPrompt={handleShowPackingPrompt}
                     />
-                 </Suspense>
-            )}
-
-            {isAIPanelOpen && activeTrip && (
-                <Suspense fallback={<div/>}>
+                )}
+                {isAIPanelOpen && activeTrip && (
                     <AIPanel 
-                        trip={activeTrip}
-                        expenses={activeTrip.expenses || []}
-                        onClose={() => setIsAIPanelOpen(false)}
+                        trip={activeTrip} 
+                        expenses={activeTrip.expenses || []} 
+                        onClose={() => setIsAIPanelOpen(false)} 
                     />
-                </Suspense>
-            )}
-            
-             {packingPrompt && (
-                <Suspense fallback={<div/>}>
-                    <PackingPromptModal
+                )}
+                {isScannerOpen && activeTrip && (
+                    <ReceiptScanner 
+                        trip={activeTrip}
+                        onClose={() => setIsScannerOpen(false)}
+                        onScanComplete={handleScanComplete}
+                    />
+                )}
+                 {packingPrompt && (
+                    <PackingPromptModal 
                         itemName={packingPrompt.itemName}
                         onConfirm={handleConfirmPackingPrompt}
                         onClose={() => setPackingPrompt(null)}
                     />
-                </Suspense>
-            )}
-
-            {isScanningReceipt && activeTrip && (
-                <Suspense fallback={<div/>}>
-                    <ReceiptScanner
-                        trip={activeTrip}
-                        onClose={() => setIsScanningReceipt(false)}
-                        onScanComplete={handleScanComplete}
-                    />
-                </Suspense>
-            )}
+                )}
+            </Suspense>
         </>
-    );
-};
-
-const App: React.FC = () => {
-    // Login is temporarily disabled as per user request.
-    // A fixed user ID is used to fetch data. This will be re-enabled for production.
-    const user = 'default-user';
-
-    // Original login logic is commented out below for easy restoration.
-    /*
-    const [user, setUser] = useState<string | null>(localStorage.getItem('vsc_user'));
-
-    const handleLogin = (password: string) => {
-        // Use the password as a key for mock data. In a real app, you'd authenticate.
-        localStorage.setItem('vsc_user', password);
-        setUser(password);
-    };
-
-    if (!user) {
-        return <LoginScreen onLogin={handleLogin} />;
-    }
-    */
-
-    return (
-        <ThemeProvider>
-            <NotificationProvider>
-                <LocationProvider>
-                    <DataProvider user={user}>
-                        <CurrencyProvider>
-                            <ItineraryProvider>
-                                <AppContent />
-                            </ItineraryProvider>
-                        </CurrencyProvider>
-                    </DataProvider>
-                </LocationProvider>
-                <NotificationContainer />
-            </NotificationProvider>
-        </ThemeProvider>
     );
 };
 

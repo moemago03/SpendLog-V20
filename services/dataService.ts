@@ -7,9 +7,9 @@ import { dateToISOString } from '../utils/dateUtils';
 
 // Detect if the app is running in a local/development environment
 export const isDevelopmentEnvironment = (): boolean => {
-    // Force mock data environment as per user request to resolve performance issues.
-    // This prevents any attempts to connect to Firebase.
-    return true;
+    // Use mock data for local development, or if Firebase keys are not provided.
+    // This ensures the app is usable in environments like AI Studio without live credentials.
+    return (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || !process.env.FIREBASE_API_KEY);
 };
 
 
@@ -116,92 +116,76 @@ const getMockData = (password: string): UserData => {
                 ],
                 color: '#3B82F6',
                 enableCategoryBudgets: true,
-                categoryBudgets: [ { categoryName: 'Cibo', amount: 1000 }, { categoryName: 'Alloggio', amount: 1200 } ],
-                frequentExpenses: [
-                    { id: 'freq-1', name: 'Pranzo', icon: '🍽️', category: 'Cibo', amount: 10, paidById: 'user-self', splitBetweenMemberIds: ['user-self'] },
-                    { id: 'freq-2', name: 'Grab Bike', icon: '🛵', category: 'Trasporti', amount: 2, paidById: 'user-self', splitBetweenMemberIds: ['user-self'] },
+                categoryBudgets: [ { categoryName: 'Cibo', amount: 1000 }, { categoryName: 'Alloggio', amount: 1500 } ],
+                pinboardItems: [
+                    { id: 'pin-1', category: 'Notes', title: 'Ricordarsi adattatore', description: 'Serve adattatore di tipo G per la Thailandia!', status: 'idea' },
+                    { id: 'pin-2', category: 'Articles & Guides', title: 'Migliori ristoranti di Bangkok', link: 'https://www.example.com', status: 'idea' }
                 ],
-                pinboardItems: [{ id: 'pin-1', category: 'Notes', title: 'Link utili per Bangkok', description: 'Metropolitana, attrazioni, etc.', link: 'https://www.tourismthailand.org/', status: 'idea' }],
                 groupMessages: [
-                    { id: 'msg1', authorId: 'member-chiara', timestamp: Date.now() - 2 * 60 * 60 * 1000, text: "Ragazzi, ho trovato un'offerta per un tour della Baia di Ha Long, che ne dite?", category: 'Question' },
-                    { id: 'msg2', authorId: 'user-self', timestamp: Date.now() - 1.5 * 60 * 60 * 1000, text: "Ottimo! Ci sta. Manda il link che controllo.", category: 'General' },
-                    { id: 'msg3', authorId: 'member-chiara', timestamp: Date.now() - 1 * 60 * 60 * 1000, text: "Ecco il sito: https://www.getyourguide.it/ha-long-bay-l350/", category: 'Link' },
+                    { id: 'gm-1', authorId: 'user-self', timestamp: Date.now() - 100000, text: 'Hey team, I\'m so excited for this trip!', category: 'General' },
+                    { id: 'gm-2', authorId: 'member-chiara', timestamp: Date.now() - 50000, text: 'Me too! Did anyone book the Ha Long Bay tour yet?', category: 'Question' }
                 ],
+                checklist: [
+                    { id: 'chk-1', text: 'Passaporto', completed: true },
+                    { id: 'chk-2', text: 'Visto Cambogia', completed: false },
+                    { id: 'chk-3', text: 'Prenotare volo BKK -> HAN', completed: false, isGroupItem: true, assignedToMemberId: 'member-moeez' }
+                ]
             }
         ],
         categories: DEFAULT_CATEGORIES,
-        defaultTripId: 'mock-trip-1',
+        defaultTripId: 'mock-trip-1'
     };
-    
-    try {
-        const storedData = localStorage.getItem(`mock_data_${password}`);
-        if (storedData) {
-            // FIX: Ensure stored data dates are also dynamic on subsequent loads if needed,
-            // or just rely on fresh mock data for simplicity. For now, fresh is better.
-            // return JSON.parse(storedData);
-        }
-    } catch (e) {
-        console.error("Failed to parse mock data from localStorage", e);
-    }
-    
     return MOCK_USER_DATA;
 };
 
-// --- FIRESTORE DATA ---
-const fetchFirestoreData = async (password: string): Promise<UserData | null> => {
-    if (!db) {
-        throw new Error('Firebase DB not initialized. Check configuration in config.ts.');
+export const fetchData = async (user: string): Promise<UserData | null> => {
+    if (isDevelopmentEnvironment()) {
+        const mockData = getMockData(user);
+        // Save mock data to local storage to simulate persistence for development
+        localStorage.setItem(`vsc_data_${user}`, JSON.stringify(mockData));
+        return mockData;
     }
+
+    if (!db) {
+        console.warn("Firestore is not initialized. Cannot fetch data.");
+        return null;
+    }
+
     try {
-        const docRef = doc(db, "users", password);
+        const docRef = doc(db, "users", user);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
             return docSnap.data() as UserData;
         } else {
-            console.log("No such document!");
+            console.log("No such document! Creating one for the user.");
+            // A default structure could be created here if needed
+            // For now, returning null signifies a new user or no data.
             return null;
         }
     } catch (error) {
         console.error("Error fetching data from Firestore:", error);
-        throw new Error('Failed to fetch data from Firestore. Check your configuration and permissions.');
-    }
-}
-
-const saveFirestoreData = async (password: string, data: UserData): Promise<void> => {
-    if (!db) {
-        throw new Error('Firebase DB not initialized. Check configuration in config.ts.');
-    }
-     try {
-        await setDoc(doc(db, "users", password), data);
-    } catch (error) {
-        console.error("Error saving data to Firestore:", error);
-        throw new Error('Failed to save data to Firestore. Check your configuration and permissions.');
-    }
-}
-
-// --- UNIFIED DATA SERVICE ---
-export const fetchData = async (password: string): Promise<UserData | null> => {
-    console.log(`[DEBUG] Data fetch initiated from: ${window.location.href}`);
-    if (isDevelopmentEnvironment()) {
-        console.warn("Ambiente di sviluppo rilevato. Verranno usati dati di prova locali.");
-        await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
-        return getMockData(password);
-    } else {
-        return await fetchFirestoreData(password);
+        return null; // Return null on error to handle gracefully
     }
 };
 
-export const saveData = async (password: string, data: UserData): Promise<void> => {
-    console.log(`[DEBUG] Data save initiated from: ${window.location.href}`);
+export const saveData = async (user: string, data: UserData) => {
     if (isDevelopmentEnvironment()) {
-        console.warn("Ambiente di sviluppo rilevato. Salvataggio locale dei dati di prova.");
-        try {
-            localStorage.setItem(`mock_data_${password}`, JSON.stringify(data));
-        } catch (e) {
-            console.error("Failed to save mock data to localStorage", e);
-        }
-    } else {
-        await saveFirestoreData(password, data);
+        // Save to local storage in dev mode
+        localStorage.setItem(`vsc_data_${user}`, JSON.stringify(data));
+        return;
+    }
+
+    if (!db) {
+        console.error("Firestore is not initialized. Cannot save data.");
+        throw new Error("Database not connected");
+    }
+
+    try {
+        const docRef = doc(db, "users", user);
+        await setDoc(docRef, data);
+    } catch (error) {
+        console.error("Error saving data to Firestore:", error);
+        throw error;
     }
 };

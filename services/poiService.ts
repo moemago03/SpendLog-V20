@@ -20,6 +20,9 @@ const FETCH_TIMEOUT = 8000; // 8 seconds
  * @returns A promise that resolves to an array of high-quality POIs.
  */
 export const fetchPoisForCity = async (cityName: string): Promise<Poi[]> => {
+    // RIABILITARE API WIKI: Rimuovere la riga sottostante per riattivare la ricerca di POI.
+    return [];
+
     const normalizedCity = cityName.toLowerCase().trim();
     if (poiCache.has(normalizedCity)) {
         return poiCache.get(normalizedCity)!;

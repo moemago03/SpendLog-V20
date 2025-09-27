@@ -21,6 +21,11 @@ const TravelTimeEstimator: React.FC<TravelTimeEstimatorProps> = ({ origin, desti
     };
 
     const fetchTravelTime = useCallback(async () => {
+        // RIABILITARE API GEMINI: Rimuovere le prossime 3 righe per riattivare la funzionalità.
+        setError("AI disabilitata");
+        setIsLoading(false);
+        return;
+
         setIsLoading(true);
         setError(null);
         try {

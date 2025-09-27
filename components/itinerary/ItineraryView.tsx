@@ -245,6 +245,10 @@ const ItineraryView: React.FC<{ trip: Trip, onAddExpense: (prefill: Partial<Expe
     
     useEffect(() => {
         const fetchWeatherData = async () => {
+            // RIABILITARE API METEO: Rimuovere le prossime 2 righe per riattivare le previsioni.
+            setWeatherData(new Map());
+            return;
+
             const locationForWeather = userLocation?.city || trip.countries?.[0];
 
             if (!locationForWeather) {

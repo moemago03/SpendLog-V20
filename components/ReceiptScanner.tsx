@@ -43,6 +43,12 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onClose, onScanComplete
     }, [addNotification, onClose]);
 
     const handleCapture = async () => {
+        // RIABILITARE API GEMINI: Rimuovere le prossime 4 righe per riattivare la funzionalità.
+        addNotification("Scansione AI disabilitata in ambiente di sviluppo.", 'info');
+        setIsLoading(false);
+        onClose();
+        return;
+
         if (!videoRef.current || !canvasRef.current) return;
         setIsLoading(true);
 

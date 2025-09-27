@@ -66,6 +66,8 @@ export const geocodeLocation = async (location: string): Promise<Coords | null> 
         }
     }
     
+    // RIABILITARE API GEOGRAFICHE: Decommentare il blocco try...catch sottostante per riattivare le chiamate a Nominatim.
+    /*
     try {
         const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`);
         if (!response.ok) throw new Error('Network response was not ok');
@@ -78,6 +80,7 @@ export const geocodeLocation = async (location: string): Promise<Coords | null> 
     } catch (error) {
         console.error(`[Live Geocoding] Failed for: "${location}"`, error);
     }
+    */
 
     console.warn(`[Geocoding] No coordinates found for: "${location}"`);
     geocodeCache.set(normalizedLocation, null);

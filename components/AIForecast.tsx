@@ -56,6 +56,11 @@ const AIForecast: React.FC<AIForecastProps> = ({ expenses, trip }) => {
     }, [expenses, trip, convert]);
 
     const generateForecast = async () => {
+        // RIABILITARE API GEMINI: Rimuovere le prossime 3 righe per riattivare la funzionalità.
+        setError("Funzionalità AI disabilitata in ambiente di sviluppo.");
+        setIsLoading(false);
+        return;
+
         if (!analysisData) {
             setError("Non ci sono abbastanza dati o il viaggio è terminato.");
             return;

@@ -15,6 +15,11 @@ const QuickExpense: React.FC<QuickExpenseProps> = ({ trip }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleAddExpense = async () => {
+        // RIABILITARE API GEMINI: Rimuovere le prossime 3 righe per riattivare la funzionalità.
+        addNotification("Funzionalità AI disabilitata in ambiente di sviluppo.", 'info');
+        setIsLoading(false);
+        return;
+
         if (!prompt.trim()) return;
         
         setIsLoading(true);

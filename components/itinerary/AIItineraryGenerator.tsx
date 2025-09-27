@@ -60,6 +60,12 @@ const AIItineraryGenerator: React.FC<AIItineraryGeneratorProps> = ({ tripId, sel
     }, [data.categories]);
 
     const handleGenerate = async () => {
+        // RIABILITARE API GEMINI: Rimuovere le prossime 4 righe per riattivare la funzionalità.
+        setError("Funzionalità AI disabilitata in ambiente di sviluppo.");
+        setIsLoading(false);
+        addNotification("Funzionalità AI disabilitata.", 'info');
+        return;
+
         if (!prompt.trim()) return;
         setIsLoading(true);
         setError(null);

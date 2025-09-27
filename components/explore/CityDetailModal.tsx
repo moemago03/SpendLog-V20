@@ -110,26 +110,26 @@ const CityDetailModal: React.FC<CityDetailModalProps> = ({ cityId, countryFileMa
                     {cityGuide && (
                         <>
                             <div hidden={activeTab !== 'info'} className="space-y-6 animate-fade-in">
-                               <p className="text-on-surface-variant text-center p-4 bg-surface-variant/40 rounded-xl">{cityGuide.generalInfo.quickDescription}</p>
+                               <p className="text-on-surface-variant text-center p-4 bg-surface-variant/40 rounded-xl">{cityGuide.generalInfo?.quickDescription}</p>
                                <div>
                                  <h3 className="font-semibold text-on-surface mb-2">Arrivare in città</h3>
                                  <div className="space-y-3">
-                                   {cityGuide.arrivalInfo.options.map((opt, i) => <div key={i} className="p-3 bg-surface-variant/50 rounded-lg text-sm"><p className="font-bold">{opt.method}:</p><p>{opt.details}</p></div>)}
+                                   {cityGuide.arrivalInfo?.options?.map((opt, i) => <div key={i} className="p-3 bg-surface-variant/50 rounded-lg text-sm"><p className="font-bold">{opt.method}:</p><p>{opt.details}</p></div>)}
                                  </div>
                                </div>
                                <div>
                                  <h3 className="font-semibold text-on-surface mb-2">Consigli</h3>
                                  <ul className="list-disc list-inside text-on-surface-variant text-sm space-y-1">
-                                    <li><span className="font-bold">Famiglie:</span> {cityGuide.travelerTips.families}</li>
-                                    <li><span className="font-bold">Coppie:</span> {cityGuide.travelerTips.couples}</li>
+                                    <li><span className="font-bold">Famiglie:</span> {cityGuide.travelerTips?.families}</li>
+                                    <li><span className="font-bold">Coppie:</span> {cityGuide.travelerTips?.couples}</li>
                                  </ul>
                                </div>
                             </div>
                             <div hidden={activeTab !== 'attractions'} className="space-y-4 animate-fade-in">
-                                {cityGuide.mainAttractions.map((attr, index) => <AttractionCard key={index} attraction={attr} onAdd={() => handleAddAttraction(attr)} canAdd={!!activeTrip} />)}
+                                {cityGuide.mainAttractions?.map((attr, index) => <AttractionCard key={index} attraction={attr} onAdd={() => handleAddAttraction(attr)} canAdd={!!activeTrip} />)}
                             </div>
                             <div hidden={activeTab !== 'daytrips'} className="space-y-4 animate-fade-in">
-                                {cityGuide.dayTrips.map((trip, index) => (
+                                {cityGuide.dayTrips?.map((trip, index) => (
                                     <div key={index} className="p-4 bg-surface-variant/50 rounded-xl">
                                         <h4 className="font-bold text-on-surface">{trip.name}</h4>
                                         <p className="text-xs text-on-surface-variant mb-2">Tempo di viaggio: {trip.travelTime}</p>
@@ -138,15 +138,15 @@ const CityDetailModal: React.FC<CityDetailModalProps> = ({ cityId, countryFileMa
                                 ))}
                             </div>
                             <div hidden={activeTab !== 'itineraries'} className="space-y-6 animate-fade-in">
-                               {cityGuide.suggestedItineraries.map((itinerary, index) => (
+                               {cityGuide.suggestedItineraries?.map((itinerary, index) => (
                                  <div key={index} className="p-4 bg-surface-variant/50 rounded-xl">
                                    <h4 className="font-bold text-on-surface text-lg mb-3">{itinerary.title}</h4>
                                    <div className="space-y-4">
-                                     {itinerary.days.map(day => (
+                                     {itinerary.days?.map(day => (
                                        <div key={day.day} className="pl-4 border-l-2 border-primary">
                                          <h5 className="font-semibold text-primary">Giorno {day.day}: {day.theme}</h5>
                                          <ul className="list-disc list-inside text-sm text-on-surface-variant mt-1">
-                                           {day.activities.map((act, i) => <li key={i}>{act}</li>)}
+                                           {day.activities?.map((act, i) => <li key={i}>{act}</li>)}
                                          </ul>
                                        </div>
                                      ))}
@@ -159,7 +159,7 @@ const CityDetailModal: React.FC<CityDetailModalProps> = ({ cityId, countryFileMa
                 </main>
             </div>
             {isAddingToItinerary && selectedAttraction && activeTrip && (
-                <Suspense fallback={<div />}>
+                 <Suspense fallback={<div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50"/>}>
                     <AddToItineraryModal
                         trip={activeTrip}
                         attraction={selectedAttraction}
