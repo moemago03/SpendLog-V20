@@ -12,7 +12,7 @@ import RecentExpenses from './summary/RecentExpenses';
 import TodaysItineraryWidget from './summary/TodaysItineraryWidget';
 import QuickAddBar from './summary/QuickAddBar';
 import Statistics from './Statistics';
-import GroupBalances from './GroupBalances';
+import GroupView from './GroupBalances';
 
 interface DashboardProps {
     activeTripId: string;
@@ -63,7 +63,7 @@ const Dashboard: React.FC<DashboardProps> = ({ activeTripId, currentView, setEdi
     );
     
     const renderGroupView = () => (
-        <GroupBalances trip={activeTrip} />
+        <GroupView trip={activeTrip} />
     );
 
 

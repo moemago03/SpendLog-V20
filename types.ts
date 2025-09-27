@@ -41,6 +41,14 @@ export interface Stage {
     notes?: string;
 }
 
+export interface GroupMessage {
+  id: string;
+  authorId: string;
+  timestamp: number; // For sorting
+  text: string;
+  category: 'Idea' | 'Question' | 'Link' | 'Confirmation' | 'General';
+}
+
 export interface Trip {
     id: string;
     name: string;
@@ -56,6 +64,8 @@ export interface Trip {
     enableCategoryBudgets?: boolean;
     categoryBudgets?: CategoryBudget[];
     documents?: Document[];
+    pinboardItems?: PlanItem[];
+    groupMessages?: GroupMessage[];
     // FIX: Add missing properties to the Trip interface to align with usage across the app.
     startDate: string;
     endDate: string;

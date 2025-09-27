@@ -1,4 +1,4 @@
-import { UserData, Trip, Stage } from '../types';
+import { UserData, Trip, Stage, PlanItem } from '../types';
 import { DEFAULT_CATEGORIES } from '../constants';
 import { db } from '../config';
 // FIX: Import Firebase v9 modular functions
@@ -120,7 +120,13 @@ const getMockData = (password: string): UserData => {
                 frequentExpenses: [
                     { id: 'freq-1', name: 'Pranzo', icon: '🍽️', category: 'Cibo', amount: 10, paidById: 'user-self', splitBetweenMemberIds: ['user-self'] },
                     { id: 'freq-2', name: 'Grab Bike', icon: '🛵', category: 'Trasporti', amount: 2, paidById: 'user-self', splitBetweenMemberIds: ['user-self'] },
-                ]
+                ],
+                pinboardItems: [{ id: 'pin-1', category: 'Notes', title: 'Link utili per Bangkok', description: 'Metropolitana, attrazioni, etc.', link: 'https://www.tourismthailand.org/', status: 'idea' }],
+                groupMessages: [
+                    { id: 'msg1', authorId: 'member-chiara', timestamp: Date.now() - 2 * 60 * 60 * 1000, text: "Ragazzi, ho trovato un'offerta per un tour della Baia di Ha Long, che ne dite?", category: 'Question' },
+                    { id: 'msg2', authorId: 'user-self', timestamp: Date.now() - 1.5 * 60 * 60 * 1000, text: "Ottimo! Ci sta. Manda il link che controllo.", category: 'General' },
+                    { id: 'msg3', authorId: 'member-chiara', timestamp: Date.now() - 1 * 60 * 60 * 1000, text: "Ecco il sito: https://www.getyourguide.it/ha-long-bay-l350/", category: 'Link' },
+                ],
             }
         ],
         categories: DEFAULT_CATEGORIES,

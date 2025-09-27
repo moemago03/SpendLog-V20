@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
 // FIX: Import Stage to use in processing
-import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem, Stage, PlanItem } from '../types';
+import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem, Stage, PlanItem, GroupMessage } from '../types';
 import { DEFAULT_CATEGORIES, ADJUSTMENT_CATEGORY } from '../constants';
 import { fetchData, saveData as saveCloudData, isDevelopmentEnvironment } from '../services/dataService';
 import { useNotification } from './NotificationContext';
@@ -12,7 +12,7 @@ import { getTripProperties } from '../utils/tripUtils';
 interface DataContextProps {
     data: UserData | null;
     loading: boolean;
-    addTrip: (trip: Omit<Trip, 'id' | 'expenses' | 'events' | 'documents' | 'checklist' | 'frequentExpenses'>) => void;
+    addTrip: (trip: Omit<Trip, 'id' | 'expenses' | 'events' | 'documents' | 'checklist' | 'frequentExpenses' | 'pinboardItems' | 'groupMessages'>) => void;
     updateTrip: (trip: Trip) => void;
     deleteTrip: (tripId: string) => void;
     addExpense: (tripId: string, expense: Omit<Expense, 'id'>, checklistItemId?: string) => string;
@@ -43,6 +43,12 @@ interface DataContextProps {
     addPlanItems: (tripId: string, stageId: string, items: Omit<PlanItem, 'id'>[]) => void;
     updatePlanItem: (tripId: string, stageId: string, item: PlanItem) => void;
     deletePlanItem: (tripId: string, stageId: string, itemId: string) => void;
+    addPinboardItem: (tripId: string, item: Omit<PlanItem, 'id'>) => void;
+    updatePinboardItem: (tripId: string, item: PlanItem) => void;
+    deletePinboardItem: (tripId: string, itemId: string) => void;
+    addGroupMessage: (tripId: string, message: Omit<GroupMessage, 'id' | 'timestamp'>) => void;
+    updateGroupMessage: (tripId: string, message: GroupMessage) => void;
+    deleteGroupMessage: (tripId: string, messageId: string) => void;
 }
 
 const DataContext = createContext<DataContextProps | undefined>(undefined);
@@ -104,6 +110,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
                 checklist,
                 events: events,
                 documents: trip.documents || [],
+                pinboardItems: trip.pinboardItems || [],
+                groupMessages: trip.groupMessages || [],
                 startDate: derivedProps.startDate,
                 endDate: derivedProps.endDate,
                 countries: derivedProps.countries,
@@ -152,7 +160,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         return { ...data, trips: updatedTrips };
     };
     
-    const addTrip = useCallback((tripData: Omit<Trip, 'id' | 'expenses' | 'events' | 'documents' | 'checklist' | 'frequentExpenses'>) => {
+    const addTrip = useCallback((tripData: Omit<Trip, 'id' | 'expenses' | 'events' | 'documents' | 'checklist' | 'frequentExpenses' | 'pinboardItems' | 'groupMessages'>) => {
         if (!data) return;
         const newTrip: Trip = {
             ...tripData,
@@ -162,6 +170,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
             documents: [],
             checklist: [],
             frequentExpenses: [],
+            pinboardItems: [],
+            groupMessages: [],
         };
         const newData = { ...data, trips: [...data.trips, newTrip] };
         saveData(newData, 'Viaggio creato!');
@@ -375,6 +385,48 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
         if (newData) saveData(newData);
     }, [data, saveData]);
 
+    const addPinboardItem = useCallback((tripId: string, itemData: Omit<PlanItem, 'id'>) => {
+        const newItem: PlanItem = { ...itemData, id: `pin-${Date.now()}` };
+        const newData = updateTripData(tripId, trip => ({
+            ...trip,
+            pinboardItems: [...(trip.pinboardItems || []), newItem]
+        }));
+        if (newData) saveData(newData, 'Elemento aggiunto alla bacheca.');
+    }, [data, saveData]);
+
+    const updatePinboardItem = useCallback((tripId: string, updatedItem: PlanItem) => {
+        const newData = updateTripData(tripId, trip => ({
+            ...trip,
+            pinboardItems: (trip.pinboardItems || []).map(item => item.id === updatedItem.id ? updatedItem : item)
+        }));
+        if (newData) saveData(newData);
+    }, [data, saveData]);
+
+    const deletePinboardItem = useCallback((tripId: string, itemId: string) => {
+        const newData = updateTripData(tripId, trip => ({
+            ...trip,
+            pinboardItems: (trip.pinboardItems || []).filter(item => item.id !== itemId)
+        }));
+        if (newData) saveData(newData, 'Elemento rimosso dalla bacheca.');
+    }, [data, saveData]);
+    
+    const addGroupMessage = useCallback((tripId: string, message: Omit<GroupMessage, 'id' | 'timestamp'>) => {
+        if (!data) return;
+        const newMessage: GroupMessage = { ...message, id: `msg-${Date.now()}`, timestamp: Date.now() };
+        const newData = updateTripData(tripId, trip => ({ ...trip, groupMessages: [...(trip.groupMessages || []), newMessage] }));
+        if (newData) saveData(newData);
+    }, [data, saveData]);
+
+    const updateGroupMessage = useCallback((tripId: string, updatedMessage: GroupMessage) => {
+        const newData = updateTripData(tripId, trip => ({ ...trip, groupMessages: (trip.groupMessages || []).map(m => m.id === updatedMessage.id ? updatedMessage : m) }));
+        if (newData) saveData(newData);
+    }, [data, saveData]);
+
+    const deleteGroupMessage = useCallback((tripId: string, messageId: string) => {
+        const newData = updateTripData(tripId, trip => ({ ...trip, groupMessages: (trip.groupMessages || []).filter(m => m.id !== messageId) }));
+        if (newData) saveData(newData);
+    }, [data, saveData]);
+
     const addStage = useCallback((tripId: string, newStageData: Omit<Stage, 'id' | 'startDate'>, afterStageId?: string | null) => {
         const newData = updateTripData(tripId, trip => {
             const newStages = [...(trip.stages || [])];
@@ -467,7 +519,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
 
     const refetchData = async () => { /* ... */ };
 
-    const value = { data, loading, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, deleteChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, updateStages, deleteStage, addPlanItem, addPlanItems, updatePlanItem, deletePlanItem };
+    const value = { data, loading, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, deleteChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, updateStages, deleteStage, addPlanItem, addPlanItems, updatePlanItem, deletePlanItem, addPinboardItem, updatePinboardItem, deletePinboardItem, addGroupMessage, updateGroupMessage, deleteGroupMessage };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 export const useData = () => { const context = useContext(DataContext); if (!context) throw new Error('useData must be used within a DataProvider'); if (!context.data && !context.loading) return { ...context, data: defaultUserData }; return context; };
