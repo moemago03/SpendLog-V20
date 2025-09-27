@@ -38,3 +38,9 @@ if (isConfigured) {
 
 // Esporta l'istanza di Firestore (sarà undefined se non configurata)
 export { db };
+
+// Export debug info
+export const firebaseDebugInfo = {
+  isConfigured,
+  projectId: isConfigured ? firebaseConfig.projectId : 'N/A'
+};

@@ -9,9 +9,14 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 // FIX: Import utility to derive trip properties
 import { getTripProperties } from '../utils/tripUtils';
 
+type FirebaseStatus = {
+    status: 'initializing' | 'connecting' | 'connected' | 'error' | 'not_configured';
+    message: string;
+};
 interface DataContextProps {
     data: UserData | null;
     loading: boolean;
+    firebaseStatus: FirebaseStatus;
     addTrip: (trip: Omit<Trip, 'id' | 'expenses' | 'events' | 'documents' | 'checklist' | 'frequentExpenses' | 'pinboardItems' | 'groupMessages'>) => void;
     updateTrip: (trip: Trip) => void;
     deleteTrip: (tripId: string) => void;
@@ -69,6 +74,10 @@ interface DataProviderProps {
 export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) => {
     const [data, setData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [firebaseStatus, setFirebaseStatus] = useState<FirebaseStatus>({
+        status: 'initializing',
+        message: 'Avvio del Data Provider...',
+    });
     const { addNotification } = useNotification();
 
     const processFetchedData = (fetchedData: UserData | null): UserData => {
@@ -128,19 +137,21 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
                 try {
                     const rawData = await fetchData(user);
                     setData(processFetchedData(rawData));
-                } catch (error) { console.error("Failed to load mock data", error); addNotification("Impossibile caricare i dati di prova.", 'error'); setData(defaultUserData); } finally { setLoading(false); }
+                    setFirebaseStatus({ status: 'connected', message: 'Modalità Sviluppo: Dati Mock Caricati.' });
+                } catch (error: any) { console.error("Failed to load mock data", error); addNotification("Impossibile caricare i dati di prova.", 'error'); setData(defaultUserData); setFirebaseStatus({ status: 'error', message: `Caricamento dati mock fallito: ${error.message}` }); } finally { setLoading(false); }
             };
             loadMockData();
             return;
         }
-        if (!db) { console.error("Firestore not configured."); addNotification("Connessione al database non riuscita.", 'error'); setData(defaultUserData); setLoading(false); return; }
+        if (!db) { console.error("Firestore not configured."); addNotification("Connessione al database non riuscita.", 'error'); setData(defaultUserData); setLoading(false); setFirebaseStatus({ status: 'not_configured', message: 'Firestore non configurato. FIREBASE_API_KEY non è impostata nell\'ambiente.' }); return; }
         const docRef = doc(db, "users", user);
+        setFirebaseStatus({ status: 'connecting', message: `Connessione a Firestore per l'utente: ${user}` });
         const unsubscribe = onSnapshot(docRef, docSnap => {
-            if (docSnap.exists()) { setData(processFetchedData(docSnap.data() as UserData)); } else {
-                setDoc(docRef, defaultUserData).then(() => { setData(processFetchedData(defaultUserData)); }).catch(error => { console.error("Errore creazione documento:", error); addNotification("Impossibile creare il profilo.", 'error'); setData(defaultUserData); });
+            if (docSnap.exists()) { setData(processFetchedData(docSnap.data() as UserData)); setFirebaseStatus({ status: 'connected', message: 'Sincronizzazione Live Attiva.' }); } else {
+                setDoc(docRef, defaultUserData).then(() => { setData(processFetchedData(defaultUserData)); setFirebaseStatus({ status: 'connected', message: 'Profilo creato. Sincronizzazione Live Attiva.' }); }).catch(error => { console.error("Errore creazione documento:", error); addNotification("Impossibile creare il profilo.", 'error'); setData(defaultUserData); setFirebaseStatus({ status: 'error', message: `Creazione profilo fallita: ${error.message}` }); });
             }
             setLoading(false);
-        }, error => { console.error("Errore listener Firestore:", error); addNotification("Impossibile sincronizzare i dati.", 'error'); setData(defaultUserData); setLoading(false); });
+        }, error => { console.error("Errore listener Firestore:", error); addNotification("Impossibile sincronizzare i dati.", 'error'); setData(defaultUserData); setLoading(false); setFirebaseStatus({ status: 'error', message: `Errore di connessione: ${error.message}` }); });
         return () => unsubscribe();
     }, [user, addNotification]);
 
@@ -519,7 +530,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children, user }) =>
 
     const refetchData = async () => { /* ... */ };
 
-    const value = { data, loading, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, deleteChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, updateStages, deleteStage, addPlanItem, addPlanItems, updatePlanItem, deletePlanItem, addPinboardItem, updatePinboardItem, deletePinboardItem, addGroupMessage, updateGroupMessage, deleteGroupMessage };
+    const value = { data, loading, firebaseStatus, addTrip, updateTrip, deleteTrip, addExpense, updateExpense, deleteExpense, addAdjustment, addCategory, updateCategory, deleteCategory, setDefaultTrip, addChecklistItem, updateChecklistItem, deleteChecklistItem, addChecklistFromTemplate, clearCompletedChecklistItems, refetchData, addEvent, updateEvent, deleteEvent, addDocument, deleteDocument, addStage, updateStage, updateStages, deleteStage, addPlanItem, addPlanItems, updatePlanItem, deletePlanItem, addPinboardItem, updatePinboardItem, deletePinboardItem, addGroupMessage, updateGroupMessage, deleteGroupMessage };
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 export const useData = () => { const context = useContext(DataContext); if (!context) throw new Error('useData must be used within a DataProvider'); if (!context.data && !context.loading) return { ...context, data: defaultUserData }; return context; };
