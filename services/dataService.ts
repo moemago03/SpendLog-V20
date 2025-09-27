@@ -7,10 +7,13 @@ import { dateToISOString } from '../utils/dateUtils';
 
 // Detect if the app is running in a local/development environment
 export const isDevelopmentEnvironment = (): boolean => {
-    // Use mock data ONLY for local development.
-    // In any other environment (like Vercel), the app will attempt a Firebase connection.
-    // The developer is responsible for setting the FIREBASE_API_KEY in their deployment environment.
-    return (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    // Use mock data for local development OR if the Firebase API key is not provided.
+    // This covers both localhost and environments like AI Studio where env vars aren't set.
+    // When deployed to a live environment (like Vercel), the FIREBASE_API_KEY must be set,
+    // which will cause this function to return false and enable the real database connection.
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isApiKeyMissing = !process.env.FIREBASE_API_KEY;
+    return isLocal || isApiKeyMissing;
 };
 
 

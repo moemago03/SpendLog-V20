@@ -111,14 +111,14 @@ const AppContent: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
         }
     }, [activeTrip?.color]);
     
-    // Reset view to profile if there are no trips.
+    // Redirect to the profile view if there are no trips.
+    // This handles the initial load and the case where the last trip is deleted,
+    // ensuring the user always starts on a valid screen.
     useEffect(() => {
         if (!loading && (!data || data.trips.length === 0)) {
             setCurrentView('profile');
-        } else if (!loading && currentView === 'profile' && data && data.trips.length > 0) {
-            setCurrentView('summary');
         }
-    }, [data, loading, currentView]);
+    }, [data, loading]);
 
     const handleSetDefaultTrip = useCallback((tripId: string) => {
         setDefaultTrip(tripId);

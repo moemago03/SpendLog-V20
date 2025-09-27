@@ -6,6 +6,7 @@ import { useLocation } from '../context/LocationContext';
 const CategoryManager = lazy(() => import('./CategoryManager'));
 const FrequentExpenseManager = lazy(() => import('./FrequentExpenseManager'));
 const TripManager = lazy(() => import('./TripManager'));
+const CreateTripFlow = lazy(() => import('./CreateTripFlow'));
 
 
 interface ProfileScreenProps {
@@ -39,6 +40,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
     const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
     const [isFrequentExpenseManagerOpen, setIsFrequentExpenseManagerOpen] = useState(false);
     const [isTripManagerOpen, setIsTripManagerOpen] = useState(false);
+    const [isTripCreatorOpen, setIsTripCreatorOpen] = useState(false);
     const { location, isLoadingLocation, locationError, refreshLocation } = useLocation();
     
     const activeTrip = trips.find(t => t.id === activeTripId) || null;
@@ -60,7 +62,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
                         <span className="material-symbols-outlined text-6xl text-on-surface-variant/50">luggage</span>
                         <h2 className="text-2xl font-semibold text-on-surface mt-4">Nessun viaggio trovato</h2>
                         <p className="mt-2 text-on-surface-variant max-w-xs mx-auto">Crea il tuo primo viaggio per iniziare a tracciare le tue avventure.</p>
-                        <button onClick={() => setIsTripManagerOpen(true)} className="mt-8 px-8 py-3 bg-trip-primary text-trip-on-primary font-bold rounded-full shadow-md hover:shadow-lg transition-all transform active:scale-95">
+                        <button onClick={() => setIsTripCreatorOpen(true)} className="mt-8 px-8 py-3 bg-trip-primary text-trip-on-primary font-bold rounded-full shadow-md hover:shadow-lg transition-all transform active:scale-95">
                             Crea un Viaggio
                         </button>
                     </div>
@@ -86,7 +88,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
 
                 {/* --- Management Section --- */}
                 <section className="space-y-3">
-                    <h2 className="text-sm font-medium text-on-surface-variant px-2 uppercase tracking-wider">Gestione</h2>
+                    <div className="flex justify-between items-center mb-1 px-2">
+                        <h2 className="text-sm font-medium text-on-surface-variant uppercase tracking-wider">Gestione</h2>
+                        {trips.length > 0 && (
+                             <button onClick={() => setIsTripCreatorOpen(true)} className="flex items-center gap-1 text-sm font-semibold bg-primary-container text-on-primary-container rounded-full px-3 py-1.5 transition-transform active:scale-95">
+                                <span className="material-symbols-outlined text-base">add</span>
+                                Viaggio
+                            </button>
+                        )}
+                    </div>
                     <div className="bg-surface rounded-3xl divide-y divide-outline/20 overflow-hidden shadow-sm">
                         <SettingsItem icon="luggage" label="Gestione Viaggi" onClick={() => setIsTripManagerOpen(true)} />
                         <SettingsItem icon="category" label="Gestisci Categorie" onClick={() => setIsCategoryManagerOpen(true)} />
@@ -149,6 +159,11 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ trips, activeTripId, onSe
                         activeTrip={activeTrip}
                         onClose={() => setIsFrequentExpenseManagerOpen(false)} 
                     />
+                </Suspense>
+            )}
+            {isTripCreatorOpen && (
+                <Suspense fallback={<div />}>
+                    <CreateTripFlow onClose={() => setIsTripCreatorOpen(false)} />
                 </Suspense>
             )}
         </>
