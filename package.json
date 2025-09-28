@@ -14,7 +14,6 @@
     "@capacitor/cli": "^7.4.3",
     "@google/genai": "1.21.0",
     "@ionic/react": "^8.7.5",
-    "@southdevs/capacitor-google-auth": "^7.0.0",
     "firebase": "^11.10.0",
     "leaflet": "^1.9.4",
     "react": "^18.2.0",

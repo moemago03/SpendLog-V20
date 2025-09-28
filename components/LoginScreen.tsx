@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { auth } from '../config'; // Firebase auth instance
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
-// AGGIORNATO: Importa il nuovo plugin
-import { GoogleAuth } from '@southdevs/capacitor-google-auth';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 interface LoginScreenProps {
   onShowPrivacy: () => void;
@@ -22,22 +20,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onShowPrivacy }) => {
         setError(null);
 
         try {
-            // 1. Esegui il login nativo con Google usando il nuovo plugin
-            // Il metodo signIn() è lo stesso, ma ora usa l'implementazione corretta
-            const googleUser = await GoogleAuth.signIn();
-            
-            // 2. Crea le credenziali Firebase con il token ottenuto
-            const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
-            
-            // 3. Autentica l'utente in Firebase con le credenziali
-            await signInWithCredential(auth, credential);
-
+            await FirebaseAuthentication.signInWithGoogle();
             // L'observer onAuthStateChanged in App.tsx si occuperà del resto.
         } catch (error: any) {
             console.error("Errore di autenticazione Google:", error);
-            // Gestisci gli errori in modo più specifico se necessario.
-            // Ad esempio, l'utente potrebbe chiudere la finestra di login.
-            if (error.message && error.message.includes("cancelled")) {
+            if (error.code === 'CANCELLED' || (error.message && error.message.includes("cancelled"))) {
                 setError("Accesso annullato dall'utente.");
             } else {
                 setError("Si è verificato un errore durante l'accesso con Google.");

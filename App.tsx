@@ -9,6 +9,7 @@ import { CurrencyProvider } from './context/CurrencyContext';
 import { ItineraryProvider } from './context/ItineraryContext';
 import { LocationProvider } from './context/LocationContext';
 import { getContrastColor, hexToRgba } from './utils/colorUtils';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 import LoginScreen from './components/LoginScreen';
 import LoadingScreen from './components/LoadingScreen';
@@ -48,8 +49,8 @@ const App: React.FC = () => {
         return () => unsubscribe();
     }, []);
 
-    const handleLogout = useCallback(() => {
-        auth?.signOut();
+    const handleLogout = useCallback(async () => {
+        await FirebaseAuthentication.signOut();
     }, []);
 
     if (loadingAuth) {
